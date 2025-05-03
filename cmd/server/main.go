@@ -99,6 +99,11 @@ func initThunderConfigurations(logger *zap.Logger, thunderHome string) *config.C
 		logger.Fatal("Failed to load private key", zap.Error(err))
 	}
 
+	// Initialize runtime configurations.
+	if err := config.InitializeThunderRuntime(thunderHome); err != nil {
+		logger.Fatal("Failed to initialize thunder runtime", zap.Error(err))
+	}
+
 	return cfg
 }
 

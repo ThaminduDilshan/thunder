@@ -21,6 +21,7 @@ package database
 import (
 	"database/sql"
 	"fmt"
+	"path"
 	"strings"
 
 	"github.com/asgardeo/thunder/internal/system/config"
@@ -28,6 +29,7 @@ import (
 
 	_ "github.com/lib/pq"
 	"go.uber.org/zap"
+	_ "modernc.org/sqlite"
 )
 
 // DBClientInterface defines the interface for database operations.
@@ -55,6 +57,9 @@ func GetDriver(dbType string, cfg *config.Config) (DBClientInterface, error) {
 			driverName = "postgres"
 			dsn = fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=%s",
 				dbConfig.Hostname, dbConfig.Port, dbConfig.Username, dbConfig.Password, dbConfig.Name, dbConfig.SSLMode)
+		case "sqlite":
+			driverName = "sqlite"
+			dsn = path.Join(config.GetThunderRuntime().ThunderHome, cfg.Database.Identity.Path)
 		default:
 			return nil, fmt.Errorf("unsupported database type: %s", dbConfig.Type)
 		}
@@ -106,7 +111,8 @@ func (client *DBClient) ExecuteQuery(query string, args ...interface{}) ([]map[s
 
 		result := map[string]interface{}{}
 		for i, col := range columns {
-			result[col] = row[i]
+			// Normalize column names to lowercase for consistency.
+			result[strings.ToLower(col)] = row[i]
 		}
 		results = append(results, result)
 	}

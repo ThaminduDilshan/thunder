@@ -83,14 +83,16 @@ curl -k -X POST https://localhost:8090/oauth2/token \
 
 ## 🧪 Running Integration Tests
 
+Building the product with `make all` will run the integration tests by default. However if you want to run the tests manually, follow the steps below.
+
 ### 1️⃣ Build the Project
 
 ```bash
-make all
+make clean build
 ```
 
 ### 2️⃣ Run the Tests
 
 ```bash
-go run ./tests/integration/run_tests.go
+make test
 ```

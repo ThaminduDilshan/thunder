@@ -31,7 +31,7 @@ import (
 const (
 	TargetDir          = "./target"
 	ZipFilePattern     = "thunder-*.zip"
-	ExtractedDir       = "./target/extracted"
+	ExtractedDir       = "./target/.test"
 	ServerBinary       = "thunder"
 	DeploymentYamlPath = "./tests/integration/resources/deployment.yaml"
 	InitScriptPath     = "./scripts/init_script.sh"

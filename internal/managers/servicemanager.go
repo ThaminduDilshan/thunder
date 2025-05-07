@@ -53,5 +53,8 @@ func (sm *ServiceManager) RegisterServices() error {
 	// Register the authentication service.
 	services.NewAuthenticationService(sm.mux)
 
+	// Register the JWKS service.
+	services.NewJWKSService(sm.mux)
+
 	return nil
 }

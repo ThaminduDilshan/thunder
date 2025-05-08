@@ -77,19 +77,18 @@ func (ah *AuthorizeHandler) HandleAuthorizeRequest(responseWriter http.ResponseW
 func (ah *AuthorizeHandler) handleInitialAuthorizationRequest(oAuthMessage *authzmodel.OAuthMessage,
 	responseWriter http.ResponseWriter, request *http.Request) {
 
-	// Validate the authorization request.
-	errorCode, errorMessage := ah.authValidator.ValidateInitialAuthorizationRequest(oAuthMessage)
-	if errorCode != "" {
-		oauthutils.RedirectToErrorPage(responseWriter, request, errorCode, errorMessage)
-		return
-	}
-
 	// Extract required parameters.
 	clientId := oAuthMessage.RequestQueryParams[constants.CLIENT_ID]
 	redirectUri := oAuthMessage.RequestQueryParams[constants.REDIRECT_URI]
 	scope := oAuthMessage.RequestQueryParams[constants.SCOPE]
 	state := oAuthMessage.RequestQueryParams[constants.STATE]
 	responseType := oAuthMessage.RequestQueryParams[constants.RESPONSE_TYPE]
+
+	if clientId == "" {
+		oauthutils.RedirectToErrorPage(responseWriter, request, constants.ERROR_INVALID_REQUEST,
+			"Missing client_id parameter")
+		return
+	}
 
 	// Retrieve the OAuth application based on the client Id.
 	appProvider := appprovider.NewApplicationProvider()
@@ -101,15 +100,18 @@ func (ah *AuthorizeHandler) handleInitialAuthorizationRequest(oAuthMessage *auth
 		return
 	}
 
-	// Validate the redirect URI against the registered application.
-	if !oauthApp.IsValidRedirectURI(redirectUri) {
-		oauthutils.RedirectToErrorPage(responseWriter, request, constants.ERROR_INVALID_REQUEST,
-			"Your application's redirect URL does not match with the registered redirect URLs.")
+	// Validate the authorization request.
+	errorCode, errorMessage := ah.authValidator.ValidateInitialAuthorizationRequest(oAuthMessage, oauthApp)
+	if errorCode != "" {
+		oauthutils.RedirectToErrorPage(responseWriter, request, errorCode, errorMessage)
 		return
 	}
 
 	// Get query params sent in the request.
 	queryParams := oAuthMessage.RequestQueryParams
+
+	// TODO: @TDJ:: Check from here with the spec.
+	//  Check on 4.1 block, issuing token and refreshing token sections in the draft.
 
 	// Construct session data.
 	oauthParams := model.OAuthParameters{

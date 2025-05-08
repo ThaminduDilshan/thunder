@@ -19,6 +19,7 @@
 package authz
 
 import (
+	appmodel "github.com/asgardeo/thunder/internal/application/model"
 	"github.com/asgardeo/thunder/internal/identity/oauth2/authz/model"
 	"github.com/asgardeo/thunder/internal/identity/oauth2/constants"
 )
@@ -26,14 +27,12 @@ import (
 type AuthorizationValidator struct{}
 
 func (av *AuthorizationValidator) ValidateInitialAuthorizationRequest(
-	oAuthMessage *model.OAuthMessage) (string, string) {
+	oAuthMessage *model.OAuthMessage, oAuthApp *appmodel.OAuthApplication) (string, string) {
 
 	// Extract required parameters.
 	responseType := oAuthMessage.RequestQueryParams[constants.RESPONSE_TYPE]
 	clientId := oAuthMessage.RequestQueryParams[constants.CLIENT_ID]
 	redirectUri := oAuthMessage.RequestQueryParams[constants.REDIRECT_URI]
-	// scope := oAuthMessage.RequestQueryParams[constants.SCOPE]
-	// state := oAuthMessage.RequestQueryParams[constants.STATE]
 
 	// Validate the authorization request.
 	if responseType == "" {
@@ -45,8 +44,10 @@ func (av *AuthorizationValidator) ValidateInitialAuthorizationRequest(
 	if clientId == "" {
 		return constants.ERROR_INVALID_REQUEST, "Missing client_id parameter"
 	}
-	if redirectUri == "" {
-		return constants.ERROR_INVALID_REQUEST, "Missing redirect_uri parameter"
+
+	// Validate the redirect URI against the registered application.
+	if err := oAuthApp.ValidateRedirectURI(redirectUri); err != nil {
+		return constants.ERROR_INVALID_REQUEST, "Validation failed for redirect URI: " + err.Error()
 	}
 
 	return "", ""

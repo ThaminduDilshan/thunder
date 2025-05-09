@@ -35,11 +35,14 @@ import (
 	sessionstore "github.com/asgardeo/thunder/internal/identity/session/store"
 )
 
+// TODO: Add interface for AuthorizeHandler.
+
 type AuthorizeHandler struct {
 	authValidator *AuthorizationValidator
 }
 
 // HandleAuthorizeRequest handles the OAuth2 authorization request.
+// TODO: Rename method arguments.
 func (ah *AuthorizeHandler) HandleAuthorizeRequest(responseWriter http.ResponseWriter, request *http.Request) {
 
 	logger := log.GetLogger()
@@ -207,3 +210,5 @@ func (ah *AuthorizeHandler) handleAuthenticationResponse(oAuthMessage *authzmode
 	}
 	http.Redirect(responseWriter, request, redirectUri, http.StatusFound)
 }
+
+// TODO: authzhandler is the entry point for the authz package. Can make internal packages private.

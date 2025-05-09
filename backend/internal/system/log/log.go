@@ -38,6 +38,7 @@ type Logger struct {
 // GetLogger creates and returns a singleton instance of the logger.
 func GetLogger() *Logger {
 
+	// TODO: No need to lock the mutex here. Can acquire lock only when initializing the logger.
 	mu.Lock()
 	defer mu.Unlock()
 

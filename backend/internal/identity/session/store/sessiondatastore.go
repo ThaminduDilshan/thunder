@@ -45,6 +45,7 @@ type SessionDataStore struct {
 	mu             sync.RWMutex
 }
 
+// TODO: Use sync.Once instead.
 var instance *SessionDataStore
 var mu sync.Mutex
 
@@ -90,6 +91,7 @@ func (sdc *SessionDataStore) GetSession(key string) (bool, model.SessionData) {
 		return false, model.SessionData{}
 	}
 
+	// TODO: Modifying with a read lock.
 	sdc.mu.RLock()
 	defer sdc.mu.RUnlock()
 
@@ -125,3 +127,5 @@ func (sdc *SessionDataStore) ClearSessionStore() {
 
 	sdc.sessionStore = make(map[string]sessionStoreEntry)
 }
+
+// TODO: Rename identity to oauth.

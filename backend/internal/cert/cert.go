@@ -52,3 +52,7 @@ func GetTLSConfig(cfg *config.Config, currentDirectory string) (*tls.Config, err
 		Certificates: []tls.Certificate{cert},
 	}, nil
 }
+
+// TODO: Move cert inside the system package.
+//  Move inside system: cert, managers, server, services, utils
+//  Top level: application, user, oauth, system, authengine

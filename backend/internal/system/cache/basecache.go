@@ -73,6 +73,7 @@ func (bc *BaseCache) AddToCache(key CacheKey, entry *CacheEntry) {
 // GetValueFromCache retrieves a value from the cache if it is still valid.
 func (bc *BaseCache) GetValueFromCache(key CacheKey) *CacheEntry {
 
+	// TODO: Modifying with a read lock.
 	bc.mu.RLock()
 	defer bc.mu.RUnlock()
 

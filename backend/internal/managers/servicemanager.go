@@ -55,3 +55,5 @@ func (sm *ServiceManager) RegisterServices() error {
 
 	return nil
 }
+
+// TODO: Remove empty line after function definition.

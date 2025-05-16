@@ -290,6 +290,158 @@ func (ts *TokenTestSuite) TestClientCredentialsGrantNegativeCases() {
 	}
 }
 
+func (ts *TokenTestSuite) TestAuthorizationCodeGrantFlow() {
+
+	testCases := []struct {
+		testName       string
+		username       string
+		password       string
+		expectedStatus int
+		expectedError  string
+	}{
+		{
+			testName:       "ValidAuthorizationCodeFlow",
+			username:       "thor",
+			password:       "thor123",
+			expectedStatus: http.StatusOK,
+			expectedError:  "",
+		},
+		{
+			testName:       "InvalidCredentials",
+			username:       "thor",
+			password:       "invalid",
+			expectedStatus: http.StatusUnauthorized,
+			expectedError:  "access_denied",
+		},
+	}
+
+	for _, tc := range testCases {
+		ts.Run(tc.testName, func() {
+			// Step 1: Initiate the authorization request.
+			requestURI := testServerURL + "/oauth2/authorize?response_type=code&client_id=" + clientId +
+				"&redirect_uri=https://localhost:3000&scope=openid&state=state_1"
+			authRequest, err := http.NewRequest("GET", requestURI, nil)
+			if err != nil {
+				ts.T().Fatalf("Failed to create authorization request: %v", err)
+			}
+
+			client := &http.Client{
+				Transport: &http.Transport{
+					TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+				},
+			}
+
+			authResponse, err := client.Do(authRequest)
+			if err != nil {
+				ts.T().Fatalf("Failed to send authorization request: %v", err)
+			}
+			defer authResponse.Body.Close()
+
+			// TODO: This is a redirect and cannot extract sessionDataKey from test suite.
+			//  Need to find a way. Need to check on whether it's permitted to send a location header.
+
+			// Validate the authorization response.
+			if authResponse.StatusCode != http.StatusOK {
+				ts.T().Fatalf("Expected status %d, got %d", http.StatusOK, authResponse.StatusCode)
+			}
+
+			// Extract sessionDataKey from the Location header.
+			redirectURL := authResponse.Header.Get("Location")
+			if !strings.Contains(redirectURL, "sessionDataKey=") {
+				ts.T().Fatalf("Redirect URL does not contain sessionDataKey")
+			}
+			sessionDataKey := strings.Split(strings.Split(redirectURL, "sessionDataKey=")[1], "&")[0]
+
+			// Step 2: Authenticate the user.
+			authnBody := strings.NewReader("username=" + tc.username + "&password=" + tc.password +
+				"&sessionDataKey=" + sessionDataKey)
+			authnRequest, err := http.NewRequest("POST", testServerURL+"/flow/authn", authnBody)
+			if err != nil {
+				ts.T().Fatalf("Failed to create authentication request: %v", err)
+			}
+			authnRequest.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+			authnResponse, err := client.Do(authnRequest)
+			if err != nil {
+				ts.T().Fatalf("Failed to send authentication request: %v", err)
+			}
+			defer authnResponse.Body.Close()
+
+			// Validate the authentication response.
+			if authnResponse.StatusCode != http.StatusFound {
+				ts.T().Fatalf("Expected status %d, got %d", http.StatusFound, authnResponse.StatusCode)
+			}
+
+			// Extract sessionDataKey from the redirect response.
+			redirectURL = authnResponse.Header.Get("Location")
+			if !strings.Contains(redirectURL, "sessionDataKey=") {
+				ts.T().Fatalf("Redirect URL does not contain sessionDataKey")
+			}
+			sessionDataKey = strings.Split(strings.Split(redirectURL, "sessionDataKey=")[1], "&")[0]
+
+			// Step 3: Send another authorize request with the new sessionDataKey.
+			requestURI = testServerURL + "/oauth2/authorize?sessionDataKey=" + sessionDataKey
+			authRequest, err = http.NewRequest("GET", requestURI, nil)
+			if err != nil {
+				ts.T().Fatalf("Failed to create authorization request: %v", err)
+			}
+
+			authResponse, err = client.Do(authRequest)
+			if err != nil {
+				ts.T().Fatalf("Failed to send authorization request: %v", err)
+			}
+			defer authResponse.Body.Close()
+
+			// Validate the final redirect response.
+			if authResponse.StatusCode != http.StatusFound {
+				ts.T().Fatalf("Expected status %d, got %d", http.StatusFound, authResponse.StatusCode)
+			}
+
+			redirectURL = authResponse.Header.Get("Location")
+			if !strings.Contains(redirectURL, "code=") {
+				ts.T().Fatalf("Redirect URL does not contain authorization code")
+			}
+			code := strings.Split(strings.Split(redirectURL, "code=")[1], "&")[0]
+
+			// Step 4: Exchange the authorization code for an access token.
+			tokenBody := strings.NewReader("grant_type=authorization_code&code=" + code +
+				"&redirect_uri=https://localhost:3000&client_id=" + clientId + "&client_secret=" + clientSecret)
+			tokenRequest, err := http.NewRequest("POST", testServerURL+"/oauth2/token", tokenBody)
+			if err != nil {
+				ts.T().Fatalf("Failed to create token request: %v", err)
+			}
+			tokenRequest.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+			tokenResponse, err := client.Do(tokenRequest)
+			if err != nil {
+				ts.T().Fatalf("Failed to send token request: %v", err)
+			}
+			defer tokenResponse.Body.Close()
+
+			// Validate the token response.
+			if tokenResponse.StatusCode != http.StatusOK {
+				ts.T().Fatalf("Expected status %d, got %d", http.StatusOK, tokenResponse.StatusCode)
+			}
+
+			var tokenRespBody map[string]interface{}
+			err = json.NewDecoder(tokenResponse.Body).Decode(&tokenRespBody)
+			if err != nil {
+				ts.T().Fatalf("Failed to parse token response body: %v", err)
+			}
+
+			if _, ok := tokenRespBody["access_token"]; !ok {
+				ts.T().Fatalf("Response does not contain access_token")
+			}
+			if _, ok := tokenRespBody["token_type"]; !ok {
+				ts.T().Fatalf("Response does not contain token_type")
+			}
+			if _, ok := tokenRespBody["expires_in"]; !ok {
+				ts.T().Fatalf("Response does not contain expires_in")
+			}
+		})
+	}
+}
+
 func basicAuth(username, password string) string {
 
 	return base64.StdEncoding.EncodeToString([]byte(username + ":" + password))

@@ -1,0 +1,28 @@
+{
+    "id": "auth_flow_config_google",
+    "type": "AUTHENTICATION",
+    "nodes": [
+        {
+            "id": "google_auth",
+            "type": "TASK_EXECUTOR",
+            "inputData": [
+                {
+                    "name": "code",
+                    "type": "string",
+                    "required": true
+                }
+            ],
+            "executor": {
+                "name": "GoogleAuthExecutor",
+                "idpName": "Google"
+            }
+        },
+        {
+            "id": "authenticated",
+            "type": "AUTHENTICATION_SUCCESS"
+        }
+    ],
+    "edges": {
+        "google_auth": ["authenticated"]
+    }
+}

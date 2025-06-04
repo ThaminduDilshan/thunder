@@ -41,8 +41,9 @@ type EngineContext struct {
 
 // NodeContext holds the context for a specific node in the flow execution.
 type NodeContext struct {
-	FlowID string
-	AppID  string
+	FlowID          string
+	AppID           string
+	CurrentActionID string
 
 	NodeInputData []InputData
 	UserInputData map[string]string

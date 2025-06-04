@@ -98,6 +98,7 @@ func (fe *FlowEngine) Execute(ctx *model.EngineContext) (model.FlowStep, *servic
 		nodeCtx := &model.NodeContext{
 			FlowID:            ctx.FlowID,
 			AppID:             ctx.AppID,
+			CurrentActionID:   ctx.CurrentActionID,
 			NodeInputData:     ctx.CurrentNode.GetInputData(),
 			UserInputData:     ctx.UserInputData,
 			AuthenticatedUser: ctx.AuthenticatedUser,

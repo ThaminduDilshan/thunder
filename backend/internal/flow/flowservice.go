@@ -105,6 +105,11 @@ func (s *FlowService) Execute(appID, flowID, actionID string,
 		context.UserInputData = sysutils.MergeStringMaps(context.UserInputData, inputData)
 	}
 
+	// Set the action ID if provided
+	if actionID != "" {
+		context.CurrentActionID = actionID
+	}
+
 	engine := engine.GetFlowEngine()
 	flowStep, flowErr := engine.Execute(context)
 	if flowErr != nil {
@@ -209,8 +214,6 @@ func (s *FlowService) loadContextFromStore(flowID, actionID string, inputData ma
 
 	delete(s.store, flowID)
 	s.mu.Unlock()
-
-	ctx.CurrentActionID = actionID
 
 	return &ctx, nil
 }

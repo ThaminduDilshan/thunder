@@ -25,6 +25,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+
+	"github.com/asgardeo/thunder/tests/integration/testutils"
 )
 
 const testServerURL = "https://localhost:8095"
@@ -34,7 +36,7 @@ func initiateAuthFlow(appID string, inputs map[string]string) (*FlowStep, error)
 	flowReqBody := map[string]interface{}{
 		"applicationId": appID,
 	}
-	if inputs != nil && len(inputs) > 0 {
+	if len(inputs) > 0 {
 		flowReqBody["inputs"] = inputs
 	}
 
@@ -81,7 +83,7 @@ func initiateAuthFlowWithError(appID string, inputs map[string]string) (*ErrorRe
 	flowReqBody := map[string]interface{}{
 		"applicationId": appID,
 	}
-	if inputs != nil && len(inputs) > 0 {
+	if len(inputs) > 0 {
 		flowReqBody["inputs"] = inputs
 	}
 
@@ -321,8 +323,8 @@ func getAppConfig(appID string) (map[string]interface{}, error) {
 	return appConfig, nil
 }
 
-// updateAppConfig updates the application configuration with the specified auth flow graph ID
-func updateAppConfig(appID string, authFlowGraphID string) error {
+// updateAppConfigWithFlow updates the application configuration with the specified auth flow graph ID
+func updateAppConfigWithFlow(appID string, authFlowGraphID string) error {
 	appConfig, err := getAppConfig(appID)
 	if err != nil {
 		return fmt.Errorf("failed to get current app config: %w", err)
@@ -362,6 +364,374 @@ func updateAppConfig(appID string, authFlowGraphID string) error {
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
 		return fmt.Errorf("request failed with status %d: %s", resp.StatusCode, string(body))
+	}
+
+	return nil
+}
+
+// updateAppConfig updates the application configuration with the provided config object
+func updateAppConfig(appID string, appConfig map[string]interface{}) error {
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
+	client := &http.Client{Transport: tr}
+
+	jsonPayload, err := json.Marshal(appConfig)
+	if err != nil {
+		return fmt.Errorf("failed to marshal JSON payload: %w", err)
+	}
+
+	req, err := http.NewRequest(
+		"PUT",
+		fmt.Sprintf("%s/applications/%s", testServerURL, appID),
+		bytes.NewBuffer(jsonPayload),
+	)
+	if err != nil {
+		return fmt.Errorf("failed to create request: %w", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json")
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return fmt.Errorf("request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("request failed with status %d: %s", resp.StatusCode, string(body))
+	}
+
+	return nil
+}
+
+// IdentityProvider represents an identity provider
+type IdentityProvider struct {
+	ID          string        `json:"id"`
+	Name        string        `json:"name"`
+	Description string        `json:"description"`
+	Properties  []IDPProperty `json:"properties"`
+}
+
+// IDPProperty represents a property of an identity provider
+type IDPProperty struct {
+	Name     string `json:"name"`
+	Value    string `json:"value"`
+	IsSecret bool   `json:"is_secret"`
+}
+
+// createOrUpdateGoogleIDP creates or updates a Google IDP with mock endpoints
+func createOrUpdateGoogleIDP(idpID string, mockIDP *testutils.MockGoogleIDP) error {
+	googleIDP := IdentityProvider{
+		ID:          idpID,
+		Name:        "Mock Google IDP",
+		Description: "Mock Google Identity Provider for testing",
+		Properties: []IDPProperty{
+			{Name: "client_id", Value: mockIDP.GetClientID(), IsSecret: false},
+			{Name: "client_secret", Value: mockIDP.ClientSecret, IsSecret: true},
+			{Name: "scopes", Value: "openid email profile", IsSecret: false},
+		},
+	}
+
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
+	client := &http.Client{Transport: tr}
+
+	jsonPayload, err := json.Marshal(googleIDP)
+	if err != nil {
+		return fmt.Errorf("failed to marshal IDP JSON payload: %w", err)
+	}
+
+	// Try to update existing IDP first
+	req, err := http.NewRequest(
+		"PUT",
+		fmt.Sprintf("%s/identity-providers/%s", testServerURL, idpID),
+		bytes.NewBuffer(jsonPayload),
+	)
+	if err != nil {
+		return fmt.Errorf("failed to create IDP update request: %w", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json")
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return fmt.Errorf("IDP update request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusOK {
+		return nil
+	}
+
+	// If update failed with 404, try to create the IDP
+	if resp.StatusCode == http.StatusNotFound {
+		req, err = http.NewRequest(
+			"POST",
+			fmt.Sprintf("%s/identity-providers", testServerURL),
+			bytes.NewBuffer(jsonPayload),
+		)
+		if err != nil {
+			return fmt.Errorf("failed to create IDP creation request: %w", err)
+		}
+
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Accept", "application/json")
+
+		resp, err = client.Do(req)
+		if err != nil {
+			return fmt.Errorf("IDP creation request failed: %w", err)
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode != http.StatusCreated {
+			body, _ := io.ReadAll(resp.Body)
+			return fmt.Errorf("IDP creation failed with status %d: %s", resp.StatusCode, string(body))
+		}
+
+		return nil
+	}
+
+	// Update failed with error other than 404
+	body, _ := io.ReadAll(resp.Body)
+	return fmt.Errorf("IDP update failed with status %d: %s", resp.StatusCode, string(body))
+}
+
+// deleteGoogleIDP deletes the Google IDP
+func deleteGoogleIDP(idpID string) error {
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
+	client := &http.Client{Transport: tr}
+
+	req, err := http.NewRequest(
+		"DELETE",
+		fmt.Sprintf("%s/identity-providers/%s", testServerURL, idpID),
+		nil,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to create IDP delete request: %w", err)
+	}
+
+	req.Header.Set("Accept", "application/json")
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return fmt.Errorf("IDP delete request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusNoContent && resp.StatusCode != http.StatusNotFound {
+		body, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("IDP delete failed with status %d: %s", resp.StatusCode, string(body))
+	}
+
+	return nil
+}
+
+// updateAppForGoogleAuth updates the application to use Google authentication flow
+func updateAppForGoogleAuth(appID string, authFlowGraphID string) error {
+	appConfig, err := getAppConfig(appID)
+	if err != nil {
+		return fmt.Errorf("failed to get current app config: %w", err)
+	}
+
+	appConfig["auth_flow_graph_id"] = authFlowGraphID
+	appConfig["client_secret"] = "secret123"
+
+	return updateAppConfig(appID, appConfig)
+}
+
+// Application represents an application
+type Application struct {
+	ID                  string   `json:"id"`
+	Name                string   `json:"name"`
+	Description         string   `json:"description"`
+	AuthFlowGraphID     string   `json:"auth_flow_graph_id"`
+	ClientID            string   `json:"client_id"`
+	ClientSecret        string   `json:"client_secret"`
+	CallbackURL         []string `json:"callback_url"`
+	SupportedGrantTypes []string `json:"supported_grant_types"`
+}
+
+// createTestGoogleApp creates a new application for Google auth testing
+func createTestGoogleApp() (string, error) {
+	testApp := Application{
+		Name:            "Google Auth Test App",
+		Description:     "Test application for Google authentication flow testing",
+		ClientID:        "test-google-app-client-id",
+		ClientSecret:    "test-google-app-client-secret",
+		CallbackURL:     []string{"https://localhost:3000"},
+		AuthFlowGraphID: "auth_flow_config_google",
+	}
+
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
+	client := &http.Client{Transport: tr}
+
+	jsonPayload, err := json.Marshal(testApp)
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal app JSON payload: %w", err)
+	}
+
+	req, err := http.NewRequest(
+		"POST",
+		fmt.Sprintf("%s/applications", testServerURL),
+		bytes.NewBuffer(jsonPayload),
+	)
+	if err != nil {
+		return "", fmt.Errorf("failed to create app creation request: %w", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json")
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("app creation request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusCreated {
+		body, _ := io.ReadAll(resp.Body)
+		return "", fmt.Errorf("app creation failed with status %d: %s", resp.StatusCode, string(body))
+	}
+
+	// Read id of the created app from the response
+	var appResponse struct {
+		ID string `json:"id"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&appResponse); err != nil {
+		return "", fmt.Errorf("failed to parse app creation response: %w", err)
+	}
+	if appResponse.ID == "" {
+		return "", fmt.Errorf("app creation response does not contain ID")
+	}
+
+	return appResponse.ID, nil
+}
+
+// deleteTestApp deletes a test application
+func deleteTestApp(appID string) error {
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
+	client := &http.Client{Transport: tr}
+
+	req, err := http.NewRequest(
+		"DELETE",
+		fmt.Sprintf("%s/applications/%s", testServerURL, appID),
+		nil,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to create app deletion request: %w", err)
+	}
+
+	req.Header.Set("Accept", "application/json")
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return fmt.Errorf("app deletion request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusNoContent && resp.StatusCode != http.StatusNotFound {
+		body, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("app deletion failed with status %d: %s", resp.StatusCode, string(body))
+	}
+
+	return nil
+}
+
+// createTestGoogleIDP creates a new Google IDP for testing
+func createTestGoogleIDP(mockIDP *testutils.MockGoogleIDP) (string, error) {
+	googleIDP := IdentityProvider{
+		Name:        "Test Google IDP",
+		Description: "Test Google Identity Provider for Google auth flow testing",
+		Properties: []IDPProperty{
+			{Name: "client_id", Value: mockIDP.GetClientID(), IsSecret: false},
+			{Name: "client_secret", Value: mockIDP.ClientSecret, IsSecret: true},
+			{Name: "redirect_uri", Value: "https://localhost:3000", IsSecret: false},
+			{Name: "scopes", Value: "openid email profile", IsSecret: false},
+		},
+	}
+
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
+	client := &http.Client{Transport: tr}
+
+	jsonPayload, err := json.Marshal(googleIDP)
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal IDP JSON payload: %w", err)
+	}
+
+	req, err := http.NewRequest(
+		"POST",
+		fmt.Sprintf("%s/identity-providers", testServerURL),
+		bytes.NewBuffer(jsonPayload),
+	)
+	if err != nil {
+		return "", fmt.Errorf("failed to create IDP creation request: %w", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json")
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("IDP creation request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusCreated {
+		body, _ := io.ReadAll(resp.Body)
+		return "", fmt.Errorf("IDP creation failed with status %d: %s", resp.StatusCode, string(body))
+	}
+
+	// Read id of the created IDP from the response
+	var idpResponse struct {
+		ID string `json:"id"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&idpResponse); err != nil {
+		return "", fmt.Errorf("failed to parse IDP creation response: %w", err)
+	}
+
+	return idpResponse.ID, nil
+}
+
+// deleteTestGoogleIDP deletes a test Google IDP
+func deleteTestGoogleIDP(idpID string) error {
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
+	client := &http.Client{Transport: tr}
+
+	req, err := http.NewRequest(
+		"DELETE",
+		fmt.Sprintf("%s/identity-providers/%s", testServerURL, idpID),
+		nil,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to create IDP deletion request: %w", err)
+	}
+
+	req.Header.Set("Accept", "application/json")
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return fmt.Errorf("IDP deletion request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusNoContent && resp.StatusCode != http.StatusNotFound {
+		body, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("IDP deletion failed with status %d: %s", resp.StatusCode, string(body))
 	}
 
 	return nil

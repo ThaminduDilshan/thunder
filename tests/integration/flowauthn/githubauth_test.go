@@ -35,14 +35,14 @@ func TestGithubAuthFlowTestSuite(t *testing.T) {
 }
 
 func (ts *GithubAuthFlowTestSuite) SetupSuite() {
-	err := updateAppConfig(appID, "auth_flow_config_github")
+	err := updateAppConfigWithFlow(appID, "auth_flow_config_github")
 	if err != nil {
 		ts.T().Fatalf("Failed to update system app for Google auth: %v", err)
 	}
 }
 
 func (ts *GithubAuthFlowTestSuite) TearDownSuite() {
-	err := updateAppConfig(appID, "auth_flow_config_basic")
+	err := updateAppConfigWithFlow(appID, "auth_flow_config_basic")
 	if err != nil {
 		ts.T().Fatalf("Failed to reset system app to basic auth: %v", err)
 	}

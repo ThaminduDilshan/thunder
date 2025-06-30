@@ -272,6 +272,9 @@ func RunInitScript(zipFilePattern string) error {
 
 func StartServer(port string, zipFilePattern string) (*exec.Cmd, error) {
 
+	// Set log level environment variable
+	os.Setenv("LOG_LEVEL", "DEBUG")
+
 	log.Println("Starting server...")
 	productHome, err := getExtractedProductHome(zipFilePattern)
 	if err != nil {

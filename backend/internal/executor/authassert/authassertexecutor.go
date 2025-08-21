@@ -95,7 +95,8 @@ func (a *AuthAssertExecutor) Execute(ctx *flowmodel.NodeContext) (*flowmodel.Exe
 		execResp.FailureReason = "User is not authenticated"
 	}
 
-	logger.Debug("Authentication assertion executor execution completed", log.String("status", string(execResp.Status)))
+	logger.Debug("Authentication assertion executor execution completed",
+		log.String("status", string(execResp.Status)))
 
 	return execResp, nil
 }

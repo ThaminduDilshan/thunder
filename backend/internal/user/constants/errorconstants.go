@@ -60,7 +60,7 @@ var (
 		Type:             serviceerror.ClientErrorType,
 		Code:             "USR-1007",
 		Error:            "Invalid group ID",
-		ErrorDescription: "One or more group IDs in the request do not exist",
+		ErrorDescription: "One or more group IDs specified in the request do not exist",
 	}
 	// ErrorHandlePathRequired is the error returned when handle path is missing.
 	ErrorHandlePathRequired = serviceerror.ServiceError{

@@ -456,17 +456,17 @@ jobs:
           name: thunder-distribution
           path: ./backend-artifacts
 
-      - name: 📥 Download Linux & Windows Sample Artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: thunder-samples-linux-windows
-          path: ./linux-windows-artifacts
+      # - name: 📥 Download Linux & Windows Sample Artifacts
+      #   uses: actions/download-artifact@v4
+      #   with:
+      #     name: thunder-samples-linux-windows
+      #     path: ./linux-windows-artifacts
 
-      - name: 📥 Download macOS Sample Artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: thunder-samples-macos
-          path: ./macos-artifacts
+      # - name: 📥 Download macOS Sample Artifacts
+      #   uses: actions/download-artifact@v4
+      #   with:
+      #     name: thunder-samples-macos
+      #     path: ./macos-artifacts
 
       - name: 📦 Combine All Distribution Artifacts
         run: |

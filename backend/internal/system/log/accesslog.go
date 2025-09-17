@@ -19,41 +19,39 @@
 package log
 
 import (
-	"fmt"
 	"net"
 	"net/http"
-	"time"
 )
 
 // AccessLogHandler logs HTTP requests in Apache CLF with response time.
 func AccessLogHandler(logger *Logger, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		start := time.Now()
+		// start := time.Now()
 
 		// Capture the status and size.
 		lrw := &loggingResponseWriter{ResponseWriter: w, statusCode: 200}
 		next.ServeHTTP(lrw, r)
 
-		// Calculate elapsed time in milliseconds
-		elapsedMs := time.Since(start).Milliseconds()
+		// // Calculate elapsed time in milliseconds
+		// elapsedMs := time.Since(start).Milliseconds()
 
 		host, _, _ := net.SplitHostPort(r.RemoteAddr)
 		if host == "" {
 			host = r.RemoteAddr
 		}
 
-		// Standard CLF format with additional fields. Last %d is the response time in milliseconds.
-		logger.Info(fmt.Sprintf(
-			`%s - - [%s] "%s %s %s" %d %d %d`,
-			host,
-			start.Format("02/Jan/2006:15:04:05 -0700"),
-			r.Method,
-			r.RequestURI,
-			r.Proto,
-			lrw.statusCode,
-			lrw.size,
-			elapsedMs,
-		))
+		// // Standard CLF format with additional fields. Last %d is the response time in milliseconds.
+		// logger.Info(fmt.Sprintf(
+		// 	`%s - - [%s] "%s %s %s" %d %d %d`,
+		// 	host,
+		// 	start.Format("02/Jan/2006:15:04:05 -0700"),
+		// 	r.Method,
+		// 	r.RequestURI,
+		// 	r.Proto,
+		// 	lrw.statusCode,
+		// 	lrw.size,
+		// 	elapsedMs,
+		// ))
 	})
 }
 

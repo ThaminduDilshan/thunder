@@ -94,27 +94,27 @@ func (l *Logger) IsDebugEnabled() bool {
 
 // Info logs an informational message with custom fields.
 func (l *Logger) Info(msg string, fields ...Field) {
-	l.internal.Info(msg, convertFields(fields)...)
+	// l.internal.Info(msg, convertFields(fields)...)
 }
 
 // Debug logs a debug message with custom fields.
 func (l *Logger) Debug(msg string, fields ...Field) {
-	l.internal.Debug(msg, convertFields(fields)...)
+	// l.internal.Debug(msg, convertFields(fields)...)
 }
 
 // Warn logs a warning message with custom fields.
 func (l *Logger) Warn(msg string, fields ...Field) {
-	l.internal.Warn(msg, convertFields(fields)...)
+	// l.internal.Warn(msg, convertFields(fields)...)
 }
 
 // Error logs an error message with custom fields.
 func (l *Logger) Error(msg string, fields ...Field) {
-	l.internal.Error(msg, convertFields(fields)...)
+	// l.internal.Error(msg, convertFields(fields)...)
 }
 
 // Fatal logs a fatal message with custom fields and exits the application.
 func (l *Logger) Fatal(msg string, fields ...Field) {
-	l.internal.Error(msg, convertFields(fields)...)
+	// l.internal.Error(msg, convertFields(fields)...)
 	os.Exit(1)
 }
 

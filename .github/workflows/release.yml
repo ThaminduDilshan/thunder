@@ -476,8 +476,8 @@ jobs:
           cp ./backend-artifacts/*.zip target/dist/ || true
           
           # Copy sample artifacts from each platform
-          cp ./linux-windows-artifacts/*.zip target/dist/ || true
-          cp ./macos-artifacts/*.zip target/dist/ || true
+          # cp ./linux-windows-artifacts/*.zip target/dist/ || true
+          # cp ./macos-artifacts/*.zip target/dist/ || true
           
           echo "✅ Combined all artifacts:"
           ls -la target/dist/

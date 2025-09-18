@@ -21,7 +21,6 @@ package cache
 import (
 	"container/heap"
 	"container/list"
-	"sync"
 	"time"
 
 	"github.com/asgardeo/thunder/internal/system/log"
@@ -83,12 +82,12 @@ type inMemoryCacheEntry[T any] struct {
 
 // inMemoryCache implements the CacheInterface for an in-memory cache.
 type inMemoryCache[T any] struct {
-	enabled        bool
-	name           string
-	cache          map[CacheKey]*inMemoryCacheEntry[T]
-	accessOrder    *list.List
-	lfuHeap        *lfuHeap
-	mu             sync.RWMutex
+	enabled     bool
+	name        string
+	cache       map[CacheKey]*inMemoryCacheEntry[T]
+	accessOrder *list.List
+	lfuHeap     *lfuHeap
+	// mu             sync.RWMutex
 	size           int
 	ttl            time.Duration
 	evictionPolicy evictionPolicy
@@ -138,8 +137,8 @@ func (c *inMemoryCache[T]) Set(key CacheKey, value T) error {
 	logger := log.GetLogger().With(log.String(log.LoggerKeyComponentName, "InMemoryCache"),
 		log.String("name", c.GetName()))
 
-	c.mu.Lock()
-	defer c.mu.Unlock()
+	// c.mu.Lock()
+	// defer c.mu.Unlock()
 
 	now := time.Now()
 	expiryTime := now.Add(c.ttl)
@@ -209,8 +208,8 @@ func (c *inMemoryCache[T]) Get(key CacheKey) (T, bool) {
 	logger := log.GetLogger().With(log.String(log.LoggerKeyComponentName, "InMemoryCache"),
 		log.String("name", c.GetName()))
 
-	c.mu.Lock()
-	defer c.mu.Unlock()
+	// c.mu.Lock()
+	// defer c.mu.Unlock()
 
 	entry, exists := c.cache[key]
 	if !exists {
@@ -250,8 +249,8 @@ func (c *inMemoryCache[T]) Delete(key CacheKey) error {
 		return nil
 	}
 
-	c.mu.Lock()
-	defer c.mu.Unlock()
+	// c.mu.Lock()
+	// defer c.mu.Unlock()
 
 	if entry, exists := c.cache[key]; exists {
 		c.deleteEntry(key, entry)
@@ -269,8 +268,8 @@ func (c *inMemoryCache[T]) Clear() error {
 	logger := log.GetLogger().With(log.String(log.LoggerKeyComponentName, "InMemoryCache"),
 		log.String("name", c.GetName()))
 
-	c.mu.Lock()
-	defer c.mu.Unlock()
+	// c.mu.Lock()
+	// defer c.mu.Unlock()
 
 	c.cache = make(map[CacheKey]*inMemoryCacheEntry[T])
 	c.accessOrder.Init()
@@ -300,8 +299,8 @@ func (c *inMemoryCache[T]) GetStats() CacheStat {
 		return CacheStat{Enabled: false}
 	}
 
-	c.mu.RLock()
-	defer c.mu.RUnlock()
+	// c.mu.RLock()
+	// defer c.mu.RUnlock()
 
 	size := len(c.cache)
 	totalOps := c.hitCount + c.missCount
@@ -392,8 +391,8 @@ func (c *inMemoryCache[T]) CleanupExpired() {
 		log.String("name", c.GetName()))
 	logger.Debug("Cleaning up expired entries from the cache")
 
-	c.mu.Lock()
-	defer c.mu.Unlock()
+	// c.mu.Lock()
+	// defer c.mu.Unlock()
 
 	now := time.Now()
 	cleaned := 0

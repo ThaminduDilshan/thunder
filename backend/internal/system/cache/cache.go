@@ -20,7 +20,6 @@
 package cache
 
 import (
-	"sync"
 	"time"
 
 	"github.com/asgardeo/thunder/internal/system/config"
@@ -55,7 +54,7 @@ type Cache[T any] struct {
 	enabled       bool
 	cacheName     string
 	InternalCache internalCacheInterface[T]
-	mu            sync.RWMutex
+	// mu            sync.RWMutex
 }
 
 // newCache creates a new cache instance.
@@ -132,8 +131,8 @@ func (c *Cache[T]) Set(key CacheKey, value T) error {
 		log.String("cacheName", c.cacheName))
 
 	if c.IsEnabled() && c.InternalCache.IsEnabled() {
-		c.mu.Lock()
-		defer c.mu.Unlock()
+		// c.mu.Lock()
+		// defer c.mu.Unlock()
 
 		if err := c.InternalCache.Set(key, value); err != nil {
 			logger.Warn("Failed to set value in the cache", log.String("key", key.ToString()), log.Error(err))
@@ -146,8 +145,8 @@ func (c *Cache[T]) Set(key CacheKey, value T) error {
 // Get retrieves a value from the cache.
 func (c *Cache[T]) Get(key CacheKey) (T, bool) {
 	if c.IsEnabled() && c.InternalCache.IsEnabled() {
-		c.mu.RLock()
-		defer c.mu.RUnlock()
+		// c.mu.RLock()
+		// defer c.mu.RUnlock()
 
 		if value, found := c.InternalCache.Get(key); found {
 			return value, true
@@ -164,8 +163,8 @@ func (c *Cache[T]) Delete(key CacheKey) error {
 		log.String("cacheName", c.cacheName))
 
 	if c.IsEnabled() && c.InternalCache.IsEnabled() {
-		c.mu.Lock()
-		defer c.mu.Unlock()
+		// c.mu.Lock()
+		// defer c.mu.Unlock()
 
 		if err := c.InternalCache.Delete(key); err != nil {
 			logger.Warn("Failed to delete value from the cache", log.String("key", key.ToString()), log.Error(err))
@@ -183,8 +182,8 @@ func (c *Cache[T]) Clear() error {
 	if c.IsEnabled() && c.InternalCache.IsEnabled() {
 		logger.Debug("Clearing all entries in the cache")
 
-		c.mu.Lock()
-		defer c.mu.Unlock()
+		// c.mu.Lock()
+		// defer c.mu.Unlock()
 
 		if err := c.InternalCache.Clear(); err != nil {
 			logger.Warn("Failed to clear the cache", log.Error(err))
@@ -202,8 +201,8 @@ func (c *Cache[T]) IsEnabled() bool {
 // CleanupExpired cleans up expired entries in the cache.
 func (c *Cache[T]) CleanupExpired() {
 	if c.IsEnabled() && c.InternalCache.IsEnabled() {
-		c.mu.Lock()
-		defer c.mu.Unlock()
+		// c.mu.Lock()
+		// defer c.mu.Unlock()
 		c.InternalCache.CleanupExpired()
 	}
 }

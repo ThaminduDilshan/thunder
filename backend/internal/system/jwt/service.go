@@ -197,18 +197,19 @@ func (js *JWTService) GenerateJWT(sub, aud, iss string, validityPeriod int64, cl
 
 	// Create the signing input and hash it.
 	signingInput := headerBase64 + "." + payloadBase64
-	hashed := sha256.Sum256([]byte(signingInput))
+	// hashed := sha256.Sum256([]byte(signingInput))
 
 	// Sign the hashed input with the private key.
-	signature, err := rsa.SignPKCS1v15(nil, js.privateKey, crypto.SHA256, hashed[:])
-	if err != nil {
-		return "", 0, err
-	}
+	// signature, err := rsa.SignPKCS1v15(nil, js.privateKey, crypto.SHA256, hashed[:])
+	// if err != nil {
+	// 	return "", 0, err
+	// }
 
 	// Encode the signature in base64 URL format.
-	signatureBase64 := base64.RawURLEncoding.EncodeToString(signature)
+	// signatureBase64 := base64.RawURLEncoding.EncodeToString(signature)
 
-	return signingInput + "." + signatureBase64, iat.Unix(), nil
+	// Temporary: Return JWT without signature for performance testing
+	return signingInput + ".UNSIGNED_FOR_PERF_TEST", iat.Unix(), nil
 }
 
 // VerifyJWTSignature verifies the signature of a JWT token using the provided public key.

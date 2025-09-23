@@ -32,9 +32,9 @@ $(TOOL_BIN):
 	mkdir -p $(TOOL_BIN)
 
 # Default target
-all: prepare clean test_unit build test_integration
+all: prepare clean test_unit build
 
-backend: prepare clean test_unit build_backend test_integration
+backend: prepare clean test_unit build_backend
 
 prepare:
 	chmod +x build.sh

@@ -1,8 +1,8 @@
 openapi: 3.0.3
 
 info:
-  title: Identity Provider Management API
-  description: This API is used to manage identity providers.
+  title: Identity Provider API
+  description: This API is used to manage and authenticate with identity providers.
   version: "1.0"
   license:
     name: Apache 2.0
@@ -22,14 +22,14 @@ paths:
       summary: List identity providers
       description: Retrieve a list of all identity providers.
       tags:
-      - Identity Providers
+      - Management
       responses:
         "200":
           description: OK
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/IdpListResponse'
+                $ref: '#/components/schemas/IDPListResponse'
         "500":
           description: 'Internal Server Error: An unexpected error occurred while processing the request'
           content:
@@ -41,21 +41,21 @@ paths:
       summary: Create an identity provider
       description: Creates a new identity provider with the provided details.
       tags:
-      - Identity Providers
+      - Management
       requestBody:
         description: Identity provider data
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/IdpRequest'
+              $ref: '#/components/schemas/IDPRequest'
       responses:
         "201":
           description: Created
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/IdpResponse'
+                $ref: '#/components/schemas/IDPResponse'
         "400":
           description: 'Bad Request: The request body is malformed or contains invalid data.'
           content:
@@ -88,7 +88,7 @@ paths:
       summary: Get an identity provider by ID
       description: Retrieve a specific identity provider using its ID.
       tags:
-      - Identity Providers
+      - Management
       parameters:
       - name: id
         in: path
@@ -102,7 +102,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/IdpResponse'
+                $ref: '#/components/schemas/IDPResponse'
         "400":
           description: 'Bad Request: The request body is malformed or contains invalid data.'
           content:
@@ -134,7 +134,7 @@ paths:
       summary: Update an identity provider
       description: Update the details of an existing identity provider.
       tags:
-      - Identity Providers
+      - Management
       parameters:
       - name: id
         in: path
@@ -148,14 +148,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/IdpRequest'
+              $ref: '#/components/schemas/IDPRequest'
       responses:
         "200":
           description: OK
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/IdpResponse'
+                $ref: '#/components/schemas/IDPResponse'
         "400":
           description: 'Bad Request: The request body is malformed or contains invalid data.'
           content:
@@ -197,7 +197,7 @@ paths:
       summary: Delete an identity provider
       description: Delete an identity provider using its ID.
       tags:
-      - Identity Providers
+      - Management
       parameters:
       - name: id
         in: path
@@ -225,9 +225,121 @@ paths:
               schema:
                 $ref: '#/components/schemas/ServerErrorResponse'
 
+  /identity-providers/{type}/authenticate/start:
+    post:
+      summary: Start identity provider authentication
+      description: Start authentication flow with an external identity provider.
+      tags:
+      - Authentication
+      parameters:
+      - name: type
+        in: path
+        description: Type of the identity provider (e.g., oauth)
+        required: true
+        schema:
+          type: string
+          enum:
+            - oauth
+      requestBody:
+        description: Identity provider authentication initiation data
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IDPAuthInitRequest'
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IDPAuthInitResponse'
+        "400":
+          description: 'Bad Request: The request body is malformed or contains invalid data.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClientErrorResponse'
+              example:
+                code: "AUTHN-1001"
+                message: "Invalid identity provider ID"
+                description: "The provided identity provider ID is invalid or empty"
+        "404":
+          description: 'Not Found: The identity provider with the specified ID does not exist.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClientErrorResponse'
+              example:
+                code: "AUTHN-1002"
+                message: "Identity provider not found"
+                description: "The requested identity provider could not be found"
+        "500":
+          description: 'Internal Server Error: An unexpected error occurred while processing the request.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServerErrorResponse'
+
+  /identity-providers/{type}/authenticate/finish:
+    post:
+      summary: Finish identity provider authentication
+      description: Complete authentication flow with an external identity provider.
+      tags:
+      - Authentication
+      parameters:
+      - name: type
+        in: path
+        description: Type of the identity provider (e.g., oauth)
+        required: true
+        schema:
+          type: string
+          enum:
+            - oauth
+      requestBody:
+        description: Identity provider authentication completion data
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IDPAuthFinishRequest'
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IDPAuthFinishResponse'
+        "400":
+          description: 'Bad Request: The request body is malformed or contains invalid data.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClientErrorResponse'
+              example:
+                code: "AUTHN-1003"
+                message: "Authorization code is required"
+                description: "The authorization code must be provided to complete authentication"
+        "401":
+          description: 'Unauthorized'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClientErrorResponse'
+              example:
+                code: "AUTHN-1004"
+                message: "Invalid authorization code"
+                description: "The provided authorization code is invalid or has expired"
+        "500":
+          description: 'Internal Server Error: An unexpected error occurred while processing the request.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServerErrorResponse'
+
 components:
   schemas:
-    IdpRequest:
+    IDPRequest:
       type: object
       required:
         - name
@@ -243,7 +355,7 @@ components:
         properties:
           type: array
           items:
-            $ref: '#/components/schemas/IdpProperty'
+            $ref: '#/components/schemas/IDPProperty'
           description: Properties of the identity provider
           example:
             - name: "client_id"
@@ -256,7 +368,7 @@ components:
               value: "openid email profile"
               is_secret: false
 
-    IdpResponse:
+    IDPResponse:
       type: object
       properties:
         id:
@@ -274,7 +386,7 @@ components:
         properties:
           type: array
           items:
-            $ref: '#/components/schemas/IdpProperty'
+            $ref: '#/components/schemas/IDPProperty'
           description: Properties of the identity provider
           example:
             - name: "client_id"
@@ -287,7 +399,7 @@ components:
               value: "openid email profile"
               is_secret: false
 
-    BasicIdpResponse:
+    BasicIDPResponse:
       type: object
       properties:
         id:
@@ -303,10 +415,10 @@ components:
           description: Description of the identity provider
           example: "Google OIDC identity provider for employee authentication"
     
-    IdpListResponse:
+    IDPListResponse:
       type: array
       items:
-        $ref: '#/components/schemas/BasicIdpResponse'
+        $ref: '#/components/schemas/BasicIDPResponse'
       example:
         - id: "550e8400-e29b-41d4-a716-446655440000"
           name: "Google"
@@ -315,7 +427,7 @@ components:
           name: "GitHub"
           description: "GitHub OAuth identity provider for developer authentication"
 
-    IdpProperty:
+    IDPProperty:
       type: object
       properties:
         name:
@@ -330,6 +442,54 @@ components:
           type: boolean
           description: Whether the property is secret
           example: false
+
+    IDPAuthInitRequest:
+      type: object
+      required:
+        - idp_id
+      properties:
+        idp_id:
+          type: string
+          description: Identity provider ID
+          example: "550e8400-e29b-41d4-a716-446655440000"
+    
+    IDPAuthInitResponse:
+      type: object
+      properties:
+        redirect_url:
+          type: string
+          description: URL to redirect the user for authentication
+          example: "https://accounts.google.com/o/oauth2/auth?client_id=your-client-id&response_type=code&scope=openid%20email%20profile&redirect_uri=https://yourapp.com/callback"
+    
+    IDPAuthFinishRequest:
+      type: object
+      required:
+        - code
+      properties:
+        code:
+          type: string
+          description: Authorization code received from the identity provider
+      additionalProperties:
+        type: string
+        description: Additional parameters based on the identity provider configurations
+      example:
+        code: "authorization-code"
+        nonce: "random-nonce-value"
+
+    IDPAuthFinishResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: "The unique identifier of the authenticated user"
+        type:
+          type: string
+          description: "The type of the authenticated user"
+        organizationUnit:
+          type: string
+          format: uuid
+          description: "The organization unit ID of the authenticated user"
 
     ErrorResponse:
       type: object

@@ -1,0 +1,199 @@
+openapi: 3.0.3
+
+info:
+  title: Authentication API
+  description: This API is used to authenticate users.
+  version: "1.0"
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+
+servers:
+  - url: https://{host}:{port}
+    variables:
+      host:
+        default: "localhost"
+      port:
+        default: "8090"
+
+paths:
+  /authn/oauth/idp/start:
+    post:
+      summary: Start OAuth IDP Authentication
+      description: Start authentication flow with an OAuth Identity Provider (IDP).
+      tags:
+      - OAuth Identity Provider
+      requestBody:
+        description: OAuth IDP authentication initiation data
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OAuthIdpInitRequest'
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OAuthIdpInitResponse'
+        "400":
+          description: 'Bad Request: The request body is malformed or contains invalid data.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClientErrorResponse'
+              example:
+                code: "AUTHN-1001"
+                message: "Invalid identity provider ID"
+                description: "The provided identity provider ID is invalid or empty"
+        "404":
+          description: 'Not Found: The identity provider with the specified ID does not exist.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClientErrorResponse'
+              example:
+                code: "AUTHN-1002"
+                message: "Identity provider not found"
+                description: "The requested identity provider could not be found"
+        "500":
+          description: 'Internal Server Error: An unexpected error occurred while processing the request.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServerErrorResponse'
+
+  /authn/oauth/idp/finish:
+    post:
+      summary: Finish OAuth IDP Authentication
+      description: Complete authentication flow with an OAuth Identity Provider (IDP).
+      tags:
+      - OAuth Identity Provider
+      requestBody:
+        description: OAuth IDP authentication completion data
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OAuthIdpFinishRequest'
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OAuthIdpFinishResponse'
+        "400":
+          description: 'Bad Request: The request body is malformed or contains invalid data.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClientErrorResponse'
+              example:
+                code: "AUTHN-1003"
+                message: "Authorization code is required"
+                description: "The authorization code must be provided to complete authentication"
+        "401":
+          description: 'Unauthorized'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClientErrorResponse'
+              example:
+                code: "AUTHN-1004"
+                message: "Invalid authorization code"
+                description: "The provided authorization code is invalid or has expired"
+        "500":
+          description: 'Internal Server Error: An unexpected error occurred while processing the request.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServerErrorResponse'
+
+components:
+  schemas:
+    OAuthIdpInitRequest:
+      type: object
+      required:
+        - idp_id
+      properties:
+        idp_id:
+          type: string
+          description: Identity provider ID
+          example: "550e8400-e29b-41d4-a716-446655440000"
+    
+    OAuthIdpInitResponse:
+      type: object
+      properties:
+        redirect_url:
+          type: string
+          description: URL to redirect the user for authentication
+          example: "https://accounts.google.com/o/oauth2/auth?client_id=your-client-id&response_type=code&scope=openid%20email%20profile&redirect_uri=https://yourapp.com/callback"
+    
+    OAuthIdpFinishRequest:
+      type: object
+      required:
+        - code
+      properties:
+        code:
+          type: string
+          description: Authorization code received from the identity provider
+      additionalProperties:
+        type: string
+        description: Additional parameters based on the identity provider configurations
+      example:
+        code: "authorization-code"
+        nonce: "random-nonce-value"
+
+    OAuthIdpFinishResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: "The unique identifier of the authenticated user"
+        type:
+          type: string
+          description: "The type of the authenticated user"
+        organizationUnit:
+          type: string
+          format: uuid
+          description: "The organization unit ID of the authenticated user"
+
+    ErrorResponse:
+      type: object
+      properties:
+        code:
+          type: string
+          description: Error code
+        message:
+          type: string
+          description: Error message
+        description:
+          type: string
+          description: Detailed error description
+
+    ClientErrorResponse:
+      allOf:
+        - $ref: '#/components/schemas/ErrorResponse'
+        - type: object
+          properties:
+            code:
+              example: "IDP-1001"
+            message:
+              example: "Identity provider not found"
+            description:
+              example: "The requested identity provider could not be found"
+
+    ServerErrorResponse:
+      allOf:
+        - $ref: '#/components/schemas/ErrorResponse'
+        - type: object
+          properties:
+            code:
+              example: "IDP-5000"
+            message:
+              example: "Internal server error"
+            description:
+              example: "An unexpected error occurred while processing the request"

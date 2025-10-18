@@ -605,23 +605,85 @@ jobs:
           VERSION="${{ github.event.inputs.version }}"
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
-      - name: 📝 Generate Changelog (Release Drafter)
-        id: changelog
-        uses: release-drafter/release-drafter@v5
+      - name: 📝 Generate Automatic Release Notes
+        id: generate_notes
+        uses: actions/github-script@v7
         with:
-          config-name: release-drafter.yml
-          name: Thunder ${{ github.event.inputs.version }}
-          tag: ${{ github.event.inputs.version }}
-          prerelease: ${{ github.event.inputs.prerelease }}
-          publish: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const currentTag = '${{ github.event.inputs.version }}';
+            
+            try {
+              // Get only the 2 most recent releases (current + previous)
+              const { data: releases } = await github.rest.repos.listReleases({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                per_page: 2
+              });
 
-      - name: ⏳ Wait for Release Drafter to Complete
-        run: |
-          echo "⏳ Waiting for release-drafter to fully create the draft release..."
-          sleep 10
-          echo "✅ Proceeding with release creation"
+              console.log(`Found ${releases.length} recent release(s)`);
+              
+              // Find the previous release (skip the current one if it exists)
+              let previousTag = null;
+              
+              if (releases.length === 0) {
+                console.log('No previous releases found - this is the first release');
+              } else if (releases.length === 1) {
+                // Only one release exists
+                if (releases[0].tag_name === currentTag) {
+                  console.log('Current release found, but no previous release exists');
+                } else {
+                  previousTag = releases[0].tag_name;
+                  console.log(`Previous release tag: ${previousTag}`);
+                }
+              } else {
+                // Two or more releases exist
+                if (releases[0].tag_name === currentTag) {
+                  // Current release is the most recent, use the second one
+                  previousTag = releases[1].tag_name;
+                  console.log(`Current release found at position 0, using position 1: ${previousTag}`);
+                } else {
+                  // Current release doesn't exist yet or is not the most recent
+                  previousTag = releases[0].tag_name;
+                  console.log(`Using most recent release: ${previousTag}`);
+                }
+              }
+
+              if (previousTag !== null && previousTag !== undefined) {
+                console.log(`Will compare ${previousTag}...${currentTag}`);
+              }
+              
+              // Generate release notes
+              // Build the request parameters conditionally
+              const releaseNotesParams = {
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                tag_name: currentTag,
+              };
+              
+              // Only include previous_tag_name if it exists
+              if (previousTag !== null && previousTag !== undefined) {
+                releaseNotesParams.previous_tag_name = previousTag;
+              }
+              
+              const { data } = await github.rest.repos.generateReleaseNotes(releaseNotesParams);
+              
+              // Only save to file if we have actual content
+              const releaseNotesBody = data.body || '';
+              if (releaseNotesBody.trim().length > 0) {
+                const fs = require('fs');
+                fs.writeFileSync('release-notes.md', releaseNotesBody);
+                console.log('✅ Generated release notes successfully');
+                console.log(`Release notes length: ${releaseNotesBody.length} characters`);
+              } else {
+                console.log('⚠️ Generated release notes are empty, skipping file creation');
+              }
+              
+              return releaseNotesBody;
+            } catch (error) {
+              console.log('⚠️ Could not generate release notes:', error.message);
+              // Return empty string if generation fails (e.g., for first release)
+              return '';
+            }
 
       - name: 📝 Extract README Content for Release
         id: readme_extract
@@ -696,16 +758,26 @@ jobs:
             { print }
           ')
 
-          # Get changelog from Release Drafter
-          CHANGELOG="${{ steps.changelog.outputs.body }}"
+          # Read the generated release notes if they exist
+          CHANGELOG=""
+          if [ -f "release-notes.md" ]; then
+            CHANGELOG=$(cat release-notes.md)
+            echo "✅ Found generated release notes"
+          else
+            echo "⚠️ No release notes file found, skipping changelog"
+          fi
 
-          # Combine for release description
+          # Combine for release description with changelog
           echo "RELEASE_BODY<<EOF" >> $GITHUB_ENV
           echo "$INTRO" >> $GITHUB_ENV
           echo "" >> $GITHUB_ENV
-          echo "## 🔀 What's Changed" >> $GITHUB_ENV
-          echo "$CHANGELOG" >> $GITHUB_ENV
-          echo "" >> $GITHUB_ENV
+
+          # Insert changelog
+          if [ -n "$CHANGELOG" ]; then
+            echo "$CHANGELOG" >> $GITHUB_ENV
+            echo "" >> $GITHUB_ENV
+          fi
+
           echo "$QUICKSTART" >> $GITHUB_ENV
           echo "" >> $GITHUB_ENV
           echo "$LICENSE" >> $GITHUB_ENV

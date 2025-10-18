@@ -517,11 +517,11 @@ jobs:
                 repo: context.repo.repo,
                 per_page: 2
               });
-              
+
               console.log(`Found ${releases.length} recent release(s)`);
               
               // Find the previous release (skip the current one if it exists)
-              let previousTag = undefined;
+              let previousTag = null;
               
               if (releases.length === 0) {
                 console.log('No previous releases found - this is the first release');
@@ -545,8 +545,8 @@ jobs:
                   console.log(`Using most recent release: ${previousTag}`);
                 }
               }
-              
-              if (previousTag) {
+
+              if (previousTag !== null && previousTag !== undefined) {
                 console.log(`Will compare ${previousTag}...${currentTag}`);
               }
               
@@ -558,16 +558,20 @@ jobs:
                 previous_tag_name: previousTag,
               });
               
-              // Save the generated notes
-              const fs = require('fs');
-              fs.writeFileSync('release-notes.md', data.body);
+              // Only save to file if we have actual content
+              const releaseNotesBody = data.body || '';
+              if (releaseNotesBody.trim().length > 0) {
+                const fs = require('fs');
+                fs.writeFileSync('release-notes.md', releaseNotesBody);
+                console.log('✅ Generated release notes successfully');
+                console.log(`Release notes length: ${releaseNotesBody.length} characters`);
+              } else {
+                console.log('⚠️ Generated release notes are empty, skipping file creation');
+              }
               
-              console.log('✅ Generated release notes successfully');
-              console.log(`Release notes length: ${data.body.length} characters`);
-              
-              return data.body;
+              return releaseNotesBody;
             } catch (error) {
-              console.error('⚠️ Could not generate release notes:', error.message);
+              console.log('⚠️ Could not generate release notes:', error.message);
               // Return empty string if generation fails (e.g., for first release)
               return '';
             }

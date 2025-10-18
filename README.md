@@ -1310,58 +1310,6 @@ curl -kL https://localhost:8090/oauth2/jwks
     }'
     ```
 
-
-
-5. **Start the Registration Flow**
-
-    Start registration flow for the application with the following cURL command:
-
-    ```bash
-    curl -kL -H 'Accept: application/json' -H 'Content-Type: application/json' https://localhost:8090/flow/execute \
-    -d '{
-        "applicationId": "<application_id>",
-        "flowType": "REGISTRATION"
-    }'
-    ```
-
-    You'll receive a response similar to the following:
-
-    ```json
-    {
-        "flowId": "db93a19e-c23f-4cfc-a45f-0e0bc157f6d5",
-        "flowStatus": "PROMPT_ONLY",
-        "type": "REDIRECTION",
-        "data": {
-            "redirectURL": "<google_auth_redirect_url>",
-            "inputs": [
-              {
-                  "name": "code",
-                  "type": "string",
-                  "required": true
-              },
-              {
-                  "name": "nonce",
-                  "type": "string",
-                  "required": false
-              }
-            ],
-            "additionalData": {
-              "idpName": "Google"
-            }
-        }
-    }
-    ```
-
-6. **Login with Google Account**
-
-    Open the `redirect_url` in your browser. You will be redirected to the Google login page. Enter your Google credentials and authorize the application.
-
-    After successful authentication, you will be redirected to the redirect URI with the authorization code, state and other parameters.
-
-    ```bash
-    https://localhost:3000/?code=<code>&state=db93a19e-c23f-4cfc-a45f-0e0bc157f6d5
-    ```
-
 7. **Complete the Registration Flow**
 
     Copy the authorization code and make the second cURL request to complete the registration flow. Make sure to replace `<flow_id>` with the `flowId` received in the previous response.

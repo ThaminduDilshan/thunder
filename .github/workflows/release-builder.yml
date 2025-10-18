@@ -508,23 +508,53 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
-            const tag = '${{ github.event.inputs.version }}';
+            const currentTag = '${{ github.event.inputs.version }}';
             
             try {
-              // Get the previous tag to compare against
-              const { data: tags } = await github.rest.repos.listTags({
+              // Get only the 2 most recent releases (current + previous)
+              const { data: releases } = await github.rest.repos.listReleases({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                per_page: 10
+                per_page: 2
               });
               
-              const previousTag = tags.length > 0 ? tags[0].name : undefined;
+              console.log(`Found ${releases.length} recent release(s)`);
+              
+              // Find the previous release (skip the current one if it exists)
+              let previousTag = undefined;
+              
+              if (releases.length === 0) {
+                console.log('No previous releases found - this is the first release');
+              } else if (releases.length === 1) {
+                // Only one release exists
+                if (releases[0].tag_name === currentTag) {
+                  console.log('Current release found, but no previous release exists');
+                } else {
+                  previousTag = releases[0].tag_name;
+                  console.log(`Previous release tag: ${previousTag}`);
+                }
+              } else {
+                // Two or more releases exist
+                if (releases[0].tag_name === currentTag) {
+                  // Current release is the most recent, use the second one
+                  previousTag = releases[1].tag_name;
+                  console.log(`Current release found at position 0, using position 1: ${previousTag}`);
+                } else {
+                  // Current release doesn't exist yet or is not the most recent
+                  previousTag = releases[0].tag_name;
+                  console.log(`Using most recent release: ${previousTag}`);
+                }
+              }
+              
+              if (previousTag) {
+                console.log(`Will compare ${previousTag}...${currentTag}`);
+              }
               
               // Generate release notes
               const { data } = await github.rest.repos.generateReleaseNotes({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                tag_name: tag,
+                tag_name: currentTag,
                 previous_tag_name: previousTag,
               });
               
@@ -533,9 +563,11 @@ jobs:
               fs.writeFileSync('release-notes.md', data.body);
               
               console.log('✅ Generated release notes successfully');
+              console.log(`Release notes length: ${data.body.length} characters`);
+              
               return data.body;
             } catch (error) {
-              console.log('⚠️ Could not generate release notes:', error.message);
+              console.error('⚠️ Could not generate release notes:', error.message);
               // Return empty string if generation fails (e.g., for first release)
               return '';
             }

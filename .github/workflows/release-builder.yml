@@ -503,6 +503,43 @@ jobs:
           VERSION="${{ github.event.inputs.version }}"
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
+      - name: 📝 Generate Automatic Release Notes
+        id: generate_notes
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const tag = '${{ github.event.inputs.version }}';
+            
+            try {
+              // Get the previous tag to compare against
+              const { data: tags } = await github.rest.repos.listTags({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                per_page: 10
+              });
+              
+              const previousTag = tags.length > 0 ? tags[0].name : undefined;
+              
+              // Generate release notes
+              const { data } = await github.rest.repos.generateReleaseNotes({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                tag_name: tag,
+                previous_tag_name: previousTag,
+              });
+              
+              // Save the generated notes
+              const fs = require('fs');
+              fs.writeFileSync('release-notes.md', data.body);
+              
+              console.log('✅ Generated release notes successfully');
+              return data.body;
+            } catch (error) {
+              console.log('⚠️ Could not generate release notes:', error.message);
+              // Return empty string if generation fails (e.g., for first release)
+              return '';
+            }
+
       - name: 📝 Extract README Content for Release
         id: readme_extract
         run: |
@@ -576,10 +613,24 @@ jobs:
             { print }
           ')
 
-          # Combine for release description
+          # Read the generated release notes if they exist
+          CHANGELOG=""
+          if [ -f "release-notes.md" ]; then
+            CHANGELOG=$(cat release-notes.md)
+            echo "✅ Found generated release notes"
+          else
+            echo "⚠️ No release notes file found, skipping changelog"
+          fi
+
+          # Combine for release description with changelog before Quickstart
           echo "RELEASE_BODY<<EOF" >> $GITHUB_ENV
           echo "$INTRO" >> $GITHUB_ENV
           echo "" >> $GITHUB_ENV
+          # Insert changelog here (before Quickstart)
+          if [ -n "$CHANGELOG" ]; then
+            echo "$CHANGELOG" >> $GITHUB_ENV
+            echo "" >> $GITHUB_ENV
+          fi
           echo "$QUICKSTART" >> $GITHUB_ENV
           echo "" >> $GITHUB_ENV
           echo "$LICENSE" >> $GITHUB_ENV
@@ -595,8 +646,7 @@ jobs:
           prerelease: ${{ github.event.inputs.prerelease }}
           files: target/dist/*.zip
           body: ${{ env.RELEASE_BODY }}
-          generate_release_notes: true
-          append_body: true
+          generate_release_notes: false
 
       - name: 🔔 Set Release Info
         id: release_info

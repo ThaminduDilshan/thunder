@@ -348,25 +348,6 @@ To try out the Client Credentials flow, follow these steps:
     ```
 
 </details>
-<details>
-<summary><h4>Authorization Code Flow</h4></summary>
-
-<p>The Authorization Code flow is used to obtain an access token after the user authenticates. This flow is typically used for web applications where a user redirection is required to complete the authentication process.</p>
-
-1. **Configure a Gate Client**
-
-    Authorization code flow requires you to setup a gate client to handle the login and error redirection. You can implement your own client following the [sample gate client implementation](./frontend/apps/gate/).
-  
-    Add the following configurations to the `deployment.yaml` file to configure the gate client.
-
-    ```yaml
-    gate_client:
-      hostname: "localhost"
-      port: 9090
-      scheme: "https"
-      login_path: "/login"
-      error_path: "/error"
-    ```
 
     Make sure to restart the server after making this change.
 

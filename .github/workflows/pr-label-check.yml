@@ -21,6 +21,10 @@ jobs:
                 'Type/New Feature',
                 'Type/Improvement',
                 'Type/Bug',
+                'Type/Docs',
+                'Type/Test',
+                'Type/Infrastructure',
+                'Type/Tooling',
                 'skip-changelog'
             ];
 

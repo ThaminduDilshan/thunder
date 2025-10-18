@@ -1,0 +1,35 @@
+# Configuration for GitHub's automatic release notes
+# https://docs.github.com/en/repositories/releasing-projects-on-github/automatically-generated-release-notes
+
+changelog:
+  exclude:
+    labels:
+      - skip-changelog
+    authors:
+      - dependabot
+      - copilot
+  categories:
+    - title: ⚠️ Breaking Changes
+      labels:
+        - 'breaking change'
+    - title: 🚀 Features
+      labels:
+        - 'Type/New Feature'
+    - title: ✨ Improvements
+      labels:
+        - 'Type/Improvement'
+    - title: 🐛 Bug Fixes
+      labels:
+        - 'Type/Bug'
+    - title: 📚 Documentation
+      labels:
+        - 'Type/Docs'
+    - title: ✅ Quality Assurance
+      labels:
+        - 'Type/Test'
+    - title: 🔧 Infrastructure
+      labels:
+        - 'Type/Infrastructure'
+    - title: 🛠️ Tooling & Scripts
+      labels:
+        - 'Type/Tooling'

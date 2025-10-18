@@ -212,17 +212,6 @@ To self register a user in the sample app, follow these steps:
 
 4. After successful registration, you will be automatically logged in to the sample application.
 
-##### Login to the Sample App
-
-To log in to the sample app, follow these steps:
-
-1. Open the sample app in your browser at [https://localhost:3000](https://localhost:3000).
-
-2. Enter username and password you used during the self registration process and click on the "Sign In" button.
-
-    ![Login to Sample App](resources/images/sample-app-login.png)
-
-3. If the login is successful, you will be redirected to the home page of the sample app with the access token.
 
 #### Try Out Client Credentials Flow
 

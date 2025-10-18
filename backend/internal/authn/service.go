@@ -451,14 +451,12 @@ func (as *authenticationService) verifyAndDecodeSessionToken(token string, logge
 	jwtConfig := config.GetThunderRuntime().Config.JWT
 	err := as.jwtService.VerifyJWT(token, "auth-svc", jwtConfig.Issuer)
 	if err != nil {
-		logger.Debug("Error verifying session token", log.Error(err))
 		return nil, &common.ErrorInvalidSessionToken
 	}
 
 	// Parse and extract authentication session data
 	payload, err := jwt.DecodeJWTPayload(token)
 	if err != nil {
-		logger.Debug("Error decoding session token payload", log.Error(err))
 		return nil, &common.ErrorInvalidSessionToken
 	}
 

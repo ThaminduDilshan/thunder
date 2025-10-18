@@ -165,9 +165,7 @@ func (m *MockGoogleOIDCServer) Start() error {
 	}
 
 	go func() {
-		log.Printf("Starting mock Google OIDC server on port %d", m.port)
 		if err := m.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Printf("Mock Google OIDC server error: %v", err)
 		}
 	}()
 

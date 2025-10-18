@@ -165,8 +165,6 @@ func findMatchingZipFile(zipFilePattern string) ([]string, error) {
 }
 
 func ReplaceResources(zipFilePattern string) error {
-	log.Println("Replacing resources...")
-
 	cwd, err := os.Getwd()
 	if err != nil {
 		log.Printf("Error getting current directory: %v", err)
@@ -251,8 +249,6 @@ func copyDirectory(src, dest string) error {
 }
 
 func RunInitScript(zipFilePattern string) error {
-	log.Println("Running init script...")
-
 	cwd, err := os.Getwd()
 	if err != nil {
 		log.Printf("Error getting current directory: %v", err)

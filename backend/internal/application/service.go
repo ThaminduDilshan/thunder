@@ -804,8 +804,6 @@ func (as *applicationService) deleteApplicationCertificate(appID string) *servic
 				certErr.ErrorDescription
 			return serviceerror.CustomServiceError(ErrorCertificateClientError, errorDescription)
 		}
-		logger.Error("Failed to delete application certificate", log.String("appID", appID),
-			log.Any("serviceError", certErr))
 		return &ErrorCertificateServerError
 	}
 

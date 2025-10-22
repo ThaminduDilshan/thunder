@@ -58,7 +58,6 @@ func (ah *applicationHandler) HandleApplicationPostRequest(w http.ResponseWriter
 		}
 		if encodeErr := json.NewEncoder(w).Encode(errResp); encodeErr != nil {
 			logger.Error("Error encoding error response", log.Error(encodeErr))
-			http.Error(w, "Failed to encode error response", http.StatusInternalServerError)
 		}
 		return
 	}

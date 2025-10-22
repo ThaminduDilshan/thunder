@@ -795,8 +795,6 @@ func (as *applicationService) rollbackAppCertificateCreation(appID string) *serv
 
 // deleteApplicationCertificate deletes the certificate associated with the application.
 func (as *applicationService) deleteApplicationCertificate(appID string) *serviceerror.ServiceError {
-	logger := log.GetLogger().With(log.String(log.LoggerKeyComponentName, "ApplicationService"))
-
 	if certErr := as.certService.DeleteCertificateByReference(
 		cert.CertificateReferenceTypeApplication, appID); certErr != nil {
 		if certErr.Type == serviceerror.ClientErrorType {

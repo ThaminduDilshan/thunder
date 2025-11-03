@@ -168,6 +168,11 @@ jobs:
       - name: ⚙️ Set up Go Environment
         uses: ./.github/actions/setup-go
 
+      - name: 🏷️ Update Product Version
+        run: |
+          VERSION="${{ github.event.inputs.version }}"
+          echo "$VERSION" > version.txt
+
       - name: 🗄️ Cache Go Modules
         uses: actions/cache@v4
         id: cache-go-modules

@@ -832,6 +832,44 @@ paths:
         "500":
           description: Internal server error
 
+  /user-schemas/available:
+    get:
+      tags:
+        - user-schemas
+      summary: Get available user type schema names
+      description: |
+        Retrieves a list of all available user type schema names (user types) that can be 
+        used for self-registration or user type selection. Returns only the schema names 
+        without pagination for selection/dropdown purposes.
+      responses:
+        "200":
+          description: List of available user type schema names
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  schemas:
+                    type: array
+                    items:
+                      type: string
+                    description: Array of user schema names
+              example:
+                schemas:
+                  - "employee"
+                  - "customer"
+                  - "partner"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: "USRS-1001"
+                message: "Internal server error"
+                description: "An unexpected error occurred while retrieving available user schemas"
+
   /user-schemas/{id}:
     get:
       tags:

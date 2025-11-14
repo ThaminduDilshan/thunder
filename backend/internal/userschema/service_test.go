@@ -152,3 +152,91 @@ func TestValidateUserUniquenessReturnsInternalErrorWhenSchemaLoadFails(t *testin
 	require.NotNil(t, svcErr)
 	require.Equal(t, ErrorInternalServerError, *svcErr)
 }
+
+func TestGetAvailableUserSchemasReturnsSchemaNames(t *testing.T) {
+	storeMock := newUserSchemaStoreInterfaceMock(t)
+	expectedSchemas := []UserSchemaListItem{
+		{ID: "1", Name: "employee"},
+		{ID: "2", Name: "customer"},
+		{ID: "3", Name: "partner"},
+	}
+	storeMock.
+		On("GetUserSchemaList", 1000, 0).
+		Return(expectedSchemas, nil).
+		Once()
+
+	service := &userSchemaService{
+		userSchemaStore: storeMock,
+	}
+
+	schemaNames, svcErr := service.GetAvailableUserSchemas()
+
+	require.Nil(t, svcErr)
+	require.NotNil(t, schemaNames)
+	require.Len(t, schemaNames, 3)
+	require.Contains(t, schemaNames, "employee")
+	require.Contains(t, schemaNames, "customer")
+	require.Contains(t, schemaNames, "partner")
+}
+
+func TestGetAvailableUserSchemasReturnsEmptyListWhenNoSchemas(t *testing.T) {
+	storeMock := newUserSchemaStoreInterfaceMock(t)
+	storeMock.
+		On("GetUserSchemaList", 1000, 0).
+		Return([]UserSchemaListItem{}, nil).
+		Once()
+
+	service := &userSchemaService{
+		userSchemaStore: storeMock,
+	}
+
+	schemaNames, svcErr := service.GetAvailableUserSchemas()
+
+	require.Nil(t, svcErr)
+	require.NotNil(t, schemaNames)
+	require.Len(t, schemaNames, 0)
+}
+
+func TestGetAvailableUserSchemasReturnsErrorWhenStoreFails(t *testing.T) {
+	storeMock := newUserSchemaStoreInterfaceMock(t)
+	storeMock.
+		On("GetUserSchemaList", 1000, 0).
+		Return([]UserSchemaListItem{}, errors.New("database error")).
+		Once()
+
+	service := &userSchemaService{
+		userSchemaStore: storeMock,
+	}
+
+	schemaNames, svcErr := service.GetAvailableUserSchemas()
+
+	require.NotNil(t, svcErr)
+	require.Nil(t, schemaNames)
+	require.Equal(t, ErrorInternalServerError, *svcErr)
+}
+
+func TestGetAvailableUserSchemasFiltersEmptyNames(t *testing.T) {
+	storeMock := newUserSchemaStoreInterfaceMock(t)
+	expectedSchemas := []UserSchemaListItem{
+		{ID: "1", Name: "employee"},
+		{ID: "2", Name: ""},
+		{ID: "3", Name: "customer"},
+	}
+	storeMock.
+		On("GetUserSchemaList", 1000, 0).
+		Return(expectedSchemas, nil).
+		Once()
+
+	service := &userSchemaService{
+		userSchemaStore: storeMock,
+	}
+
+	schemaNames, svcErr := service.GetAvailableUserSchemas()
+
+	require.Nil(t, svcErr)
+	require.NotNil(t, schemaNames)
+	require.Len(t, schemaNames, 2)
+	require.Contains(t, schemaNames, "employee")
+	require.Contains(t, schemaNames, "customer")
+	require.NotContains(t, schemaNames, "")
+}

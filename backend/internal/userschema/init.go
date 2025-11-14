@@ -48,6 +48,19 @@ func registerRoutes(mux *http.ServeMux, userSchemaHandler *userSchemaHandler) {
 			w.WriteHeader(http.StatusNoContent)
 		}, opts1))
 
+	// Route for getting available user schemas (user types) for self-registration
+	opts3 := middleware.CORSOptions{
+		AllowedMethods:   "GET",
+		AllowedHeaders:   "Content-Type, Authorization",
+		AllowCredentials: true,
+	}
+	mux.HandleFunc(middleware.WithCORS("GET /user-schemas/available",
+		userSchemaHandler.HandleAvailableUserSchemasRequest, opts3))
+	mux.HandleFunc(middleware.WithCORS("OPTIONS /user-schemas/available",
+		func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusNoContent)
+		}, opts3))
+
 	opts2 := middleware.CORSOptions{
 		AllowedMethods:   "GET, PUT, DELETE",
 		AllowedHeaders:   "Content-Type, Authorization",

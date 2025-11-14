@@ -79,6 +79,32 @@ func (h *userSchemaHandler) HandleUserSchemaListRequest(w http.ResponseWriter, r
 		log.Int("count", userSchemaListResponse.Count))
 }
 
+// HandleAvailableUserSchemasRequest handles the request to get available user schema names.
+func (h *userSchemaHandler) HandleAvailableUserSchemasRequest(w http.ResponseWriter, r *http.Request) {
+	logger := log.GetLogger().With(log.String(log.LoggerKeyComponentName, userSchemaHandlerLoggerComponentName))
+
+	schemaNames, svcErr := h.userSchemaService.GetAvailableUserSchemas()
+	if svcErr != nil {
+		handleError(w, logger, svcErr)
+		return
+	}
+
+	response := map[string]interface{}{
+		"schemas": schemaNames,
+	}
+
+	w.Header().Set(serverconst.ContentTypeHeaderName, serverconst.ContentTypeJSON)
+	w.WriteHeader(http.StatusOK)
+
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		logger.Error("Error encoding response", log.Error(err))
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+		return
+	}
+
+	logger.Debug("Successfully retrieved available user schemas", log.Int("count", len(schemaNames)))
+}
+
 // HandleUserSchemaPostRequest handles the user schema creation request.
 func (h *userSchemaHandler) HandleUserSchemaPostRequest(w http.ResponseWriter, r *http.Request) {
 	logger := log.GetLogger().With(log.String(log.LoggerKeyComponentName, userSchemaHandlerLoggerComponentName))

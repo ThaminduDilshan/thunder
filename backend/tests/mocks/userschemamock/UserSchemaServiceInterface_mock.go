@@ -290,6 +290,63 @@ func (_c *UserSchemaServiceInterfaceMock_GetUserSchemaList_Call) RunAndReturn(ru
 	return _c
 }
 
+// GetAvailableUserSchemas provides a mock function for the type UserSchemaServiceInterfaceMock
+func (_mock *UserSchemaServiceInterfaceMock) GetAvailableUserSchemas() ([]string, *serviceerror.ServiceError) {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetAvailableUserSchemas")
+	}
+
+	var r0 []string
+	var r1 *serviceerror.ServiceError
+	if returnFunc, ok := ret.Get(0).(func() ([]string, *serviceerror.ServiceError)); ok {
+		return returnFunc()
+	}
+	if returnFunc, ok := ret.Get(0).(func() []string); ok {
+		r0 = returnFunc()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]string)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func() *serviceerror.ServiceError); ok {
+		r1 = returnFunc()
+	} else {
+		if ret.Get(1) != nil {
+			r1 = ret.Get(1).(*serviceerror.ServiceError)
+		}
+	}
+	return r0, r1
+}
+
+// UserSchemaServiceInterfaceMock_GetAvailableUserSchemas_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetAvailableUserSchemas'
+type UserSchemaServiceInterfaceMock_GetAvailableUserSchemas_Call struct {
+	*mock.Call
+}
+
+// GetAvailableUserSchemas is a helper method to define mock.On call
+func (_e *UserSchemaServiceInterfaceMock_Expecter) GetAvailableUserSchemas() *UserSchemaServiceInterfaceMock_GetAvailableUserSchemas_Call {
+	return &UserSchemaServiceInterfaceMock_GetAvailableUserSchemas_Call{Call: _e.mock.On("GetAvailableUserSchemas")}
+}
+
+func (_c *UserSchemaServiceInterfaceMock_GetAvailableUserSchemas_Call) Run(run func()) *UserSchemaServiceInterfaceMock_GetAvailableUserSchemas_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *UserSchemaServiceInterfaceMock_GetAvailableUserSchemas_Call) Return(schemas []string, serviceError *serviceerror.ServiceError) *UserSchemaServiceInterfaceMock_GetAvailableUserSchemas_Call {
+	_c.Call.Return(schemas, serviceError)
+	return _c
+}
+
+func (_c *UserSchemaServiceInterfaceMock_GetAvailableUserSchemas_Call) RunAndReturn(run func() ([]string, *serviceerror.ServiceError)) *UserSchemaServiceInterfaceMock_GetAvailableUserSchemas_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // UpdateUserSchema provides a mock function for the type UserSchemaServiceInterfaceMock
 func (_mock *UserSchemaServiceInterfaceMock) UpdateUserSchema(schemaID string, request userschema.UpdateUserSchemaRequest) (*userschema.UserSchema, *serviceerror.ServiceError) {
 	ret := _mock.Called(schemaID, request)

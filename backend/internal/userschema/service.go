@@ -36,6 +36,7 @@ const userSchemaLoggerComponentName = "UserSchemaService"
 // UserSchemaServiceInterface defines the interface for the user schema service.
 type UserSchemaServiceInterface interface {
 	GetUserSchemaList(limit, offset int) (*UserSchemaListResponse, *serviceerror.ServiceError)
+	GetAvailableUserSchemas() ([]string, *serviceerror.ServiceError)
 	CreateUserSchema(request CreateUserSchemaRequest) (*UserSchema, *serviceerror.ServiceError)
 	GetUserSchema(schemaID string) (*UserSchema, *serviceerror.ServiceError)
 	UpdateUserSchema(schemaID string, request UpdateUserSchemaRequest) (
@@ -86,6 +87,29 @@ func (us *userSchemaService) GetUserSchemaList(limit, offset int) (
 	}
 
 	return response, nil
+}
+
+// GetAvailableUserSchemas retrieves all available user schema names (user types) that can be used for self-registration.
+// This method returns schema names without pagination as it's intended for selection/dropdown purposes.
+func (us *userSchemaService) GetAvailableUserSchemas() ([]string, *serviceerror.ServiceError) {
+	logger := log.GetLogger().With(log.String(log.LoggerKeyComponentName, userSchemaLoggerComponentName))
+
+	// Get all user schemas without pagination limit
+	// Using a high limit to get all schemas at once since this is for selection purposes
+	userSchemas, err := us.userSchemaStore.GetUserSchemaList(1000, 0)
+	if err != nil {
+		return nil, logAndReturnServerError(logger, "Failed to get available user schemas", err)
+	}
+
+	// Extract schema names
+	schemaNames := make([]string, 0, len(userSchemas))
+	for _, schema := range userSchemas {
+		if schema.Name != "" {
+			schemaNames = append(schemaNames, schema.Name)
+		}
+	}
+
+	return schemaNames, nil
 }
 
 // CreateUserSchema creates a new user schema.

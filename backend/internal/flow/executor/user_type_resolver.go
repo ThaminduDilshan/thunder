@@ -19,12 +19,12 @@
 package executor
 
 import (
-	"errors"
 	"fmt"
 	"slices"
 
 	flowcm "github.com/asgardeo/thunder/internal/flow/common"
 	flowcore "github.com/asgardeo/thunder/internal/flow/core"
+	"github.com/asgardeo/thunder/internal/system/error/serviceerror"
 	"github.com/asgardeo/thunder/internal/system/log"
 	"github.com/asgardeo/thunder/internal/userschema"
 )
@@ -83,14 +83,22 @@ func (u *userTypeResolver) Execute(ctx *flowcore.NodeContext) (*flowcm.ExecutorR
 		if len(allowed) == 0 || slices.Contains(allowed, userType) {
 			logger.Debug("User type resolved from input", log.String("userType", userType))
 
-			// TODO: Check if self registration is enabled for the user type when the support is available
+			// Check if self registration is enabled for the user type
+			userSchema, ouID, svcErr := u.getUserSchemaAndOU(userType, logger)
+			if svcErr != nil {
+				return execResp, fmt.Errorf("failed to resolve user schema for user type")
+			}
+
+			if !userSchema.AllowSelfRegistration {
+				logger.Debug("Self registration not enabled for user type", log.String("userType", userType))
+				execResp.Status = flowcm.ExecFailure
+				execResp.FailureReason = fmt.Sprintf("Self-registration not enabled for user type: %s", userType)
+				return execResp, nil
+			}
 
 			// Add userType to runtime data
 			execResp.RuntimeData[inputUserType] = userType
-
-			if err := u.resolveAndSetDefaultOUID(userType, execResp); err != nil {
-				return execResp, err
-			}
+			execResp.RuntimeData[defaultOUIDKey] = ouID
 
 			execResp.Status = flowcm.ExecComplete
 			return execResp, nil
@@ -113,26 +121,67 @@ func (u *userTypeResolver) Execute(ctx *flowcore.NodeContext) (*flowcm.ExecutorR
 	}
 
 	if len(allowed) == 1 {
-		// TODO: Check if self registration is enabled for the user type when the support is available
+		// Check if self registration is enabled for the user type
+		userSchema, ouID, svcErr := u.getUserSchemaAndOU(allowed[0], logger)
+		if svcErr != nil {
+			return execResp, fmt.Errorf("failed to resolve user schema for user type")
+		}
+
+		if !userSchema.AllowSelfRegistration {
+			logger.Debug("Self registration not enabled for user type", log.String("userType", allowed[0]))
+			execResp.Status = flowcm.ExecFailure
+			execResp.FailureReason = "Self-registration not available for this application"
+			return execResp, nil
+		}
 
 		logger.Debug("User type resolved from allowed list", log.String("userType", allowed[0]))
 
 		// Add userType to runtime data
 		execResp.RuntimeData[inputUserType] = allowed[0]
-
-		if err := u.resolveAndSetDefaultOUID(allowed[0], execResp); err != nil {
-			return execResp, err
-		}
+		execResp.RuntimeData[defaultOUIDKey] = ouID
 
 		execResp.Status = flowcm.ExecComplete
 		return execResp, nil
 	}
 
-	// TODO: Should verify which user types have self registration enabled when the support is available.
-	//  If only one user type remains after filtering, select it automatically.
+	// Filter user types to only those with self registration enabled
+	var selfRegUserTypes []string
+	for _, userType := range allowed {
+		userSchema, _, svcErr := u.getUserSchemaAndOU(userType, logger)
+		if svcErr != nil {
+			logger.Debug("Failed to resolve user schema", log.String("userType", userType))
+			continue
+		}
+		if userSchema.AllowSelfRegistration {
+			selfRegUserTypes = append(selfRegUserTypes, userType)
+		}
+	}
+
+	// If no user types have self registration enabled
+	if len(selfRegUserTypes) == 0 {
+		logger.Debug("No user types with self registration enabled")
+		execResp.Status = flowcm.ExecFailure
+		execResp.FailureReason = "Self-registration not available for this application"
+		return execResp, nil
+	}
+
+	// If only one user type has self registration enabled, select it automatically
+	if len(selfRegUserTypes) == 1 {
+		_, ouID, svcErr := u.getUserSchemaAndOU(selfRegUserTypes[0], logger)
+		if svcErr != nil {
+			return execResp, fmt.Errorf("failed to resolve user schema for user type")
+		}
+
+		logger.Debug("User type auto-selected", log.String("userType", selfRegUserTypes[0]))
+		execResp.RuntimeData[inputUserType] = selfRegUserTypes[0]
+		execResp.RuntimeData[defaultOUIDKey] = ouID
+
+		execResp.Status = flowcm.ExecComplete
+		return execResp, nil
+	}
 
 	// If multiple user types are allowed, prompt the user to select one
-	logger.Debug("Prompting for user type selection", log.Any("userTypes", allowed))
+	logger.Debug("Prompting for user type selection", log.Any("userTypes", selfRegUserTypes))
 
 	execResp.Status = flowcm.ExecUserInputRequired
 	execResp.RequiredData = []flowcm.InputData{
@@ -140,30 +189,32 @@ func (u *userTypeResolver) Execute(ctx *flowcore.NodeContext) (*flowcm.ExecutorR
 			Name:     inputUserType,
 			Type:     "dropdown",
 			Required: true,
-			Options:  append([]string{}, allowed...),
+			Options:  append([]string{}, selfRegUserTypes...),
 		},
 	}
 	return execResp, nil
 }
 
-// resolveAndSetDefaultOUID resolves the organization unit for the given user type and sets it in runtime data.
-func (u *userTypeResolver) resolveAndSetDefaultOUID(userType string, execResp *flowcm.ExecutorResponse) error {
-	logger := u.logger
+// getUserSchemaAndOU retrieves the user schema by name and returns the schema and organization unit ID.
+func (u *userTypeResolver) getUserSchemaAndOU(userType string, logger *log.Logger) (*userschema.UserSchema, string, *serviceerror.ServiceError) {
+	userSchema, svcErr := u.userSchemaService.GetUserSchemaByName(userType)
+	if svcErr != nil {
+		logger.Error("Failed to resolve user schema for user type",
+			log.String("userType", userType), log.String("error", svcErr.Error))
+		return nil, "", svcErr
+	}
 
-	// TODO: Uncomment when the implementation is available
-	// ouID, svcErr := u.userSchemaService.GetOUForUserType(userType)
-	// if svcErr != nil {
-	// 	logger.Error("Failed to resolve organization unit for user type",
-	// 		log.String("userType", userType), log.String("error", svcErr.Error))
-	// 	return fmt.Errorf("failed to resolve organization unit for user type")
-	// }
-	// if ouID != nil && *ouID != "" {
-	// 	logger.Debug("Organization unit resolved for user type",
-	// 		log.String("userType", userType), log.String("ouID", *ouID))
-	// 	execResp.RuntimeData[defaultOUIDKey] = *ouID
-	// 	return nil
-	// }
+	if userSchema.OrganizationUnitID == "" {
+		logger.Error("No organization unit found for user type", log.String("userType", userType))
+		return nil, "", &serviceerror.ServiceError{
+			Type:             serviceerror.ServerErrorType,
+			Code:             "UT-500",
+			Error:            "Internal Server Error",
+			ErrorDescription: "No organization unit found for user type",
+		}
+	}
 
-	logger.Error("No organization unit found for user type", log.String("userType", userType))
-	return errors.New("no organization unit found for user type")
+	logger.Debug("User schema resolved for user type",
+		log.String("userType", userType), log.String("ouID", userSchema.OrganizationUnitID))
+	return userSchema, userSchema.OrganizationUnitID, nil
 }

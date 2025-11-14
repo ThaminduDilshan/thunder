@@ -3,6 +3,11 @@
     "type": "REGISTRATION",
     "nodes": [
         {
+            "id": "registration_start",
+            "type": "REGISTRATION_START",
+            "next": ["choose_auth"]
+        },
+        {
             "id": "choose_auth",
             "type": "DECISION",
             "next": [
@@ -118,10 +123,6 @@
                     "required": false
                 }
             ],
-            "properties": {
-                "ouId": "<default-ou-id>",
-                "userType": "<default-user-type>"
-            },
             "executor": {
                 "name": "ProvisioningExecutor"
             },
@@ -149,10 +150,6 @@
                     "required": true
                 }
             ],
-            "properties": {
-                "ouId": "<default-ou-id>",
-                "userType": "<default-user-type>"
-            },
             "executor": {
                 "name": "ProvisioningExecutor"
             },
@@ -163,10 +160,6 @@
         {
             "id": "provisioning_social",
             "type": "TASK_EXECUTION",
-            "properties": {
-                "ouId": "<default-ou-id>",
-                "userType": "<default-user-type>"
-            },
             "executor": {
                 "name": "ProvisioningExecutor"
             },

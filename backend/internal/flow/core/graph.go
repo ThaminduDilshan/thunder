@@ -193,9 +193,10 @@ func (g *graph) SetStartNode(startNodeID string) error {
 // ToJSON converts the graph to a JSON string representation
 func (g *graph) ToJSON() (string, error) {
 	type JSONInputData struct {
-		Name     string `json:"name"`
-		Type     string `json:"type"`
-		Required bool   `json:"required"`
+		Name     string   `json:"name"`
+		Type     string   `json:"type"`
+		Required bool     `json:"required"`
+		Options  []string `json:"options,omitempty"`
 	}
 
 	type JSONNode struct {

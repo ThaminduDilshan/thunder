@@ -24,9 +24,10 @@ import (
 
 // InputData represents the input data required for a flow step
 type InputData struct {
-	Name     string `json:"name"`
-	Type     string `json:"type"`
-	Required bool   `json:"required"`
+	Name     string   `json:"name"`
+	Type     string   `json:"type"`
+	Required bool     `json:"required"`
+	Options  []string `json:"options,omitempty"`
 }
 
 // Action represents an action to be executed in a flow step

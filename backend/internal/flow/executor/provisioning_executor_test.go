@@ -119,13 +119,13 @@ func (suite *ProvisioningExecutorTestSuite) TestExecute_Success() {
 			"username": "newuser",
 			"email":    "new@example.com",
 		},
+		RuntimeData: map[string]string{
+			"ouId":     "ou-123",
+			"userType": "INTERNAL",
+		},
 		NodeInputData: []flowcm.InputData{
 			{Name: "username", Type: "string", Required: true},
 			{Name: "email", Type: "string", Required: true},
-		},
-		NodeProperties: map[string]interface{}{
-			"ouId":     "ou-123",
-			"userType": "INTERNAL",
 		},
 	}
 
@@ -202,11 +202,11 @@ func (suite *ProvisioningExecutorTestSuite) TestExecute_CreateUserFails() {
 		UserInputData: map[string]string{
 			"username": "newuser",
 		},
-		NodeInputData: []flowcm.InputData{{Name: "username", Type: "string", Required: true}},
-		NodeProperties: map[string]interface{}{
+		RuntimeData: map[string]string{
 			"ouId":     "ou-123",
 			"userType": "INTERNAL",
 		},
+		NodeInputData: []flowcm.InputData{{Name: "username", Type: "string", Required: true}},
 	}
 
 	suite.mockUserService.On("IdentifyUser", mock.Anything).Return(nil, &user.ErrorUserNotFound)

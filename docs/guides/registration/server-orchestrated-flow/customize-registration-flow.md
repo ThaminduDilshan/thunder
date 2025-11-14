@@ -57,10 +57,11 @@ To create a custom registration flow:
 1. Create a new JSON file in your graphs directory with the flow definition
 2. Use the `registration_flow_config_` prefix for automatic detection or any custom name
 3. Define the flow nodes, their executors, and connections
-4. Include a `OUExecutor` node if you want to create an organizational unit during registration
-5. Include a `ProvisioningExecutor` node to create user accounts
-6. Add an `AUTHENTICATION_SUCCESS` node at the end if you need to automatically login the user after registration
-7. Restart the server to register the flow in Thunder
+4. Ensure the flow starts with a `REGISTRATION_START` node
+5. Include a `OUExecutor` node if you want to create an organizational unit during registration
+6. Include a `ProvisioningExecutor` node to create user accounts
+7. Add an `AUTHENTICATION_SUCCESS` node at the end if you need to automatically login the user after registration
+8. Restart the server to register the flow in Thunder
 
 ### Flow Definition Structure
 
@@ -69,6 +70,11 @@ To create a custom registration flow:
   "id": "registration_flow_config_custom",
   "type": "REGISTRATION",
   "nodes": [
+    {
+      "id": "registration_start",
+      "type": "REGISTRATION_START",
+      "next": ["node_id"]
+    },
     {
       "id": "node_id",
       "type": "TASK_EXECUTION",
@@ -100,11 +106,7 @@ To create a custom registration flow:
         }
       ],
       "executor": {
-        "name": "ProvisioningExecutor",
-        "properties": {
-            "ouId": "<default-ou-id>",
-            "userType": "<default-user-type>"
-        }
+        "name": "ProvisioningExecutor"
       },
       "next": ["authenticated"]
     },
@@ -117,6 +119,7 @@ To create a custom registration flow:
 ```
 
 > * Make sure to use type `REGISTRATION` for the top-level flow object. The `ProvisioningExecutor` should be placed after all authentication and data collection nodes.
+> * Start the flow with a `REGISTRATION_START` node to indicate the beginning of the registration process.
 > * Define the expected `ouId` and `userType` in the `ProvisioningExecutor` properties to specify where and how the user should be created by default. If the `ouId` or `userType` is set to context from any other executor, flow will use that value.
 > * By default `ProvisioningExecutor` will provision all previously collected attributes. If you want to provision only specific attributes, define the `inputData` in the `ProvisioningExecutor` node.
 > * `AUTHENTICATION_SUCCESS` node is optional but recommended if you want to authenticate the user immediately after registration.
@@ -130,6 +133,11 @@ Here's an example of a basic registration flow that collects additional user att
   "id": "registration_flow_config_basic_with_profile",
   "type": "REGISTRATION",
   "nodes": [
+    {
+      "id": "registration_start",
+      "type": "REGISTRATION_START",
+      "next": ["basic_auth"]
+    },
     {
       "id": "basic_auth",
       "type": "TASK_EXECUTION",
@@ -208,11 +216,7 @@ Here's an example of a basic registration flow that collects additional user att
         }
       ],
       "executor": {
-        "name": "ProvisioningExecutor",
-        "properties": {
-            "ouId": "<default-ou-id>",
-            "userType": "<default-user-type>"
-        }
+        "name": "ProvisioningExecutor"
       },
       "next": ["authenticated"]
     },
@@ -233,6 +237,11 @@ Here's an example of a registration flow using Google OAuth:
   "id": "registration_flow_config_google_with_profile",
   "type": "REGISTRATION",
   "nodes": [
+    {
+      "id": "registration_start",
+      "type": "REGISTRATION_START",
+      "next": ["google_auth"]
+    },
     {
       "id": "google_auth",
       "type": "TASK_EXECUTION",
@@ -277,11 +286,7 @@ Here's an example of a registration flow using Google OAuth:
       "id": "provisioning",
       "type": "TASK_EXECUTION",
       "executor": {
-        "name": "ProvisioningExecutor",
-        "properties": {
-            "ouId": "<default-ou-id>",
-            "userType": "<default-user-type>"
-        }
+        "name": "ProvisioningExecutor"
       },
       "next": ["authenticated"]
     },

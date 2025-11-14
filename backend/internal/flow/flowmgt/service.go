@@ -49,6 +49,7 @@ type flowMgtService struct {
 	mu               sync.Mutex
 	flowFactory      core.FlowFactoryInterface
 	executorRegistry executor.ExecutorRegistryInterface
+	logger           *log.Logger
 }
 
 func newFlowMgtService(flowFactory core.FlowFactoryInterface,
@@ -58,6 +59,7 @@ func newFlowMgtService(flowFactory core.FlowFactoryInterface,
 		mu:               sync.Mutex{},
 		flowFactory:      flowFactory,
 		executorRegistry: executorRegistry,
+		logger:           log.GetLogger().With(log.String(log.LoggerKeyComponentName, "FlowMgtService")),
 	}
 	err := flowMgtInstance.init()
 	if err != nil {
@@ -73,7 +75,7 @@ func newFlowMgtService(flowFactory core.FlowFactoryInterface,
 
 // Init initializes the FlowMgtService by loading graph configurations into runtime.
 func (s *flowMgtService) init() error {
-	logger := log.GetLogger().With(log.String(log.LoggerKeyComponentName, "FlowMgtService"))
+	logger := s.logger
 	logger.Debug("Initializing the flow management service")
 
 	configDir := config.GetThunderRuntime().Config.Flow.GraphDirectory
@@ -159,7 +161,7 @@ func (s *flowMgtService) init() error {
 		registrationGraphID := s.getRegistrationGraphID(graphID)
 		_, exists := s.graphs[registrationGraphID]
 		if !exists && graph.GetType() == common.FlowTypeAuthentication {
-			if err := s.createAndRegisterRegistrationGraph(registrationGraphID, graph, logger); err != nil {
+			if err := s.createAndRegisterRegistrationGraph(registrationGraphID, graph); err != nil {
 				logger.Error("Failed creating registration graph", log.String("graphID", graphID), log.Error(err))
 				continue
 			}
@@ -251,6 +253,8 @@ func (s *flowMgtService) buildGraphFromDefinition(definition *graphDefinition) (
 			// Check if it is the auth assert node
 			if nodeDef.Type == string(common.NodeTypeAuthSuccess) {
 				executorName = executor.ExecutorNameAuthAssert
+			} else if nodeDef.Type == string(common.NodeTypeRegistrationStart) {
+				executorName = executor.ExecutorNameUserTypeResolver
 			}
 		}
 
@@ -321,8 +325,9 @@ func (s *flowMgtService) getRegistrationGraphID(authGraphID string) string {
 }
 
 // createAndRegisterRegistrationGraph creates a registration graph from an authentication graph and registers it.
-func (s *flowMgtService) createAndRegisterRegistrationGraph(registrationGraphID string, authGraph core.GraphInterface,
-	logger *log.Logger) error {
+func (s *flowMgtService) createAndRegisterRegistrationGraph(
+	registrationGraphID string, authGraph core.GraphInterface) error {
+	logger := s.logger
 	registrationGraph, err := s.createRegistrationGraph(registrationGraphID, authGraph)
 	if err != nil {
 		return fmt.Errorf("failed to infer registration graph: %w", err)
@@ -347,6 +352,11 @@ func (s *flowMgtService) createAndRegisterRegistrationGraph(registrationGraphID 
 // createRegistrationGraph creates a registration graph from an authentication graph.
 func (s *flowMgtService) createRegistrationGraph(registrationGraphID string,
 	authGraph core.GraphInterface) (core.GraphInterface, error) {
+	logger := s.logger
+	logger.Debug("Creating registration graph from authentication graph",
+		log.String("registrationGraphID", registrationGraphID),
+		log.String("authGraphID", authGraph.GetID()))
+
 	// Create a new graph from the authentication graph
 	registrationGraph := s.flowFactory.CreateGraph(registrationGraphID, common.FlowTypeRegistration)
 	nodesCopy, err := s.flowFactory.CloneNodes(authGraph.GetNodes())
@@ -356,12 +366,7 @@ func (s *flowMgtService) createRegistrationGraph(registrationGraphID string,
 	registrationGraph.SetNodes(nodesCopy)
 	registrationGraph.SetEdges(sysutils.DeepCopyMapOfStringSlices(authGraph.GetEdges()))
 
-	err = registrationGraph.SetStartNode(authGraph.GetStartNodeID())
-	if err != nil {
-		return nil, fmt.Errorf("failed to set start node for registration graph: %w", err)
-	}
-
-	// Find authentication success nodes to insert provisioning before them
+	// Find authentication success node to insert provisioning node before it
 	authSuccessNodeID := ""
 	nodes := registrationGraph.GetNodes()
 	for nodeID, node := range nodes {
@@ -407,6 +412,36 @@ func (s *flowMgtService) createRegistrationGraph(registrationGraphID string,
 		return nil, fmt.Errorf("failed to add edge from provisioning node to auth success node: %w", err)
 	}
 
+	// Insert the registration start node
+	regStartNode, err := s.createRegistrationStartNode()
+	if err != nil {
+		return nil, fmt.Errorf("failed to create registration start node: %w", err)
+	}
+	err = registrationGraph.AddNode(regStartNode)
+	if err != nil {
+		return nil, fmt.Errorf("failed to add registration start node: %w", err)
+	}
+
+	// Add edge from registration start to the previous start node
+	if err := registrationGraph.AddEdge(regStartNode.GetID(), authGraph.GetStartNodeID()); err != nil {
+		return nil, fmt.Errorf("failed to connect registration start to previous start: %w", err)
+	}
+	if err := registrationGraph.SetStartNode(regStartNode.GetID()); err != nil {
+		return nil, fmt.Errorf("failed to set registration start node as start: %w", err)
+	}
+
+	// Log the graph model as JSON for debugging
+	if logger.IsDebugEnabled() {
+		jsonString, err := registrationGraph.ToJSON()
+		if err != nil {
+			logger.Warn("Failed to convert graph model to JSON",
+				log.String("graphID", registrationGraph.GetID()), log.Error(err))
+		} else {
+			logger.Debug("Registration graph model loaded successfully",
+				log.String("graphID", registrationGraph.GetID()), log.String("json", jsonString))
+		}
+	}
+
 	return registrationGraph, nil
 }
 
@@ -431,6 +466,29 @@ func (s *flowMgtService) createProvisioningNode() (core.NodeInterface, error) {
 	}
 
 	return provisioningNode, nil
+}
+
+// createRegistrationStartNode creates the registration start node.
+func (s *flowMgtService) createRegistrationStartNode() (core.NodeInterface, error) {
+	regStartNode, err := s.flowFactory.CreateNode(
+		"registration_start",
+		string(common.NodeTypeRegistrationStart),
+		map[string]interface{}{},
+		false,
+		false,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create registration start node: %w", err)
+	}
+
+	// Set executor name for the registration start node
+	if executableNode, ok := regStartNode.(core.ExecutorBackedNodeInterface); ok {
+		executableNode.SetExecutorName(executor.ExecutorNameUserTypeResolver)
+	} else {
+		return nil, fmt.Errorf("registration start node does not implement ExecutorBackedNodeInterface")
+	}
+
+	return regStartNode, nil
 }
 
 // validateDefaultFlowConfigs validates the default flow configurations.

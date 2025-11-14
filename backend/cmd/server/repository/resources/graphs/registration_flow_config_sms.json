@@ -3,6 +3,11 @@
     "type": "REGISTRATION",
     "nodes": [
         {
+            "id": "registration_start",
+            "type": "REGISTRATION_START",
+            "next": ["prompt_mobile"]
+        },
+        {
             "id": "prompt_mobile",
             "type": "PROMPT_ONLY",
             "inputData": [
@@ -54,10 +59,6 @@
                     "required": true
                 }
             ],
-            "properties": {
-                "ouId": "<default-ou-id>",
-                "userType": "<default-user-type>"
-            },
             "executor": {
                 "name": "ProvisioningExecutor"
             },

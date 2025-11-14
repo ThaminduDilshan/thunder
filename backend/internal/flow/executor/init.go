@@ -28,6 +28,7 @@ import (
 	"github.com/asgardeo/thunder/internal/ou"
 	"github.com/asgardeo/thunder/internal/system/jwt"
 	"github.com/asgardeo/thunder/internal/user"
+	"github.com/asgardeo/thunder/internal/userschema"
 )
 
 // Initialize registers available executors and returns the executor registry.
@@ -40,6 +41,7 @@ func Initialize(
 	jwtService jwt.JWTServiceInterface,
 	authRegistry *authn.AuthServiceRegistry,
 	authZService authz.AuthorizationServiceInterface,
+	userSchemaService userschema.UserSchemaServiceInterface,
 ) ExecutorRegistryInterface {
 	reg := newExecutorRegistry()
 	reg.RegisterExecutor(ExecutorNameBasicAuth, newBasicAuthExecutor(
@@ -64,6 +66,7 @@ func Initialize(
 		userService, ouService, authRegistry.AuthAssertGenerator))
 	reg.RegisterExecutor(ExecutorNameAuthorization, newAuthorizationExecutor(flowFactory, authZService))
 	reg.RegisterExecutor(ExecutorNameHTTPRequest, newHTTPRequestExecutor(flowFactory))
+	reg.RegisterExecutor(ExecutorNameUserTypeResolver, newUserTypeResolver(flowFactory, userSchemaService))
 
 	return reg
 }

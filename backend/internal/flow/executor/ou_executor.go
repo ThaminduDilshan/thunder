@@ -145,9 +145,16 @@ func (o *ouExecutor) Execute(ctx *flowcore.NodeContext) (*flowcm.ExecutorRespons
 
 // getOrganizationUnitRequest constructs an OrganizationUnitRequest from the NodeContext.
 func (o *ouExecutor) getOrganizationUnitRequest(ctx *flowcore.NodeContext) ou.OrganizationUnitRequest {
-	return ou.OrganizationUnitRequest{
+	ouRequest := ou.OrganizationUnitRequest{
 		Name:        ctx.UserInputData[userInputOuName],
 		Handle:      ctx.UserInputData[userInputOuHandle],
 		Description: ctx.UserInputData[userInputOuDesc],
 	}
+
+	// Set parent OU ID if defaultOUID is present in runtime data
+	if val, ok := ctx.RuntimeData[defaultOUIDKey]; ok && val != "" {
+		ouRequest.Parent = &val
+	}
+
+	return ouRequest
 }

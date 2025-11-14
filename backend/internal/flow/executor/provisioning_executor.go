@@ -290,39 +290,28 @@ func (p *provisioningExecutor) createUserInStore(ctx *flowcore.NodeContext,
 	return retUser, nil
 }
 
-// getOuID retrieves the organization unit ID from the context or executor properties.
+// getOuID retrieves the organization unit ID from runtime data.
 func (p *provisioningExecutor) getOuID(ctx *flowcore.NodeContext) string {
 	ouID := ""
-	if val, ok := ctx.RuntimeData["ouId"]; ok {
+	// Check for ouId in runtime data
+	if val, ok := ctx.RuntimeData[ouIDKey]; ok && val != "" {
 		ouID = val
 	}
+	// If not found, check for defaultOUID in runtime data
 	if ouID == "" {
-		if len(ctx.NodeProperties) > 0 {
-			if val, ok := ctx.NodeProperties["ouId"]; ok {
-				if valStr, valid := val.(string); valid && valStr != "" {
-					ouID = valStr
-				}
-			}
+		if val, ok := ctx.RuntimeData[defaultOUIDKey]; ok && val != "" {
+			ouID = val
 		}
 	}
 
 	return ouID
 }
 
-// getUserType retrieves the user type from the context or executor properties.
+// getUserType retrieves the user type from runtime data.
 func (p *provisioningExecutor) getUserType(ctx *flowcore.NodeContext) string {
 	userType := ""
-	if val, ok := ctx.RuntimeData["userType"]; ok {
+	if val, ok := ctx.RuntimeData["userType"]; ok && val != "" {
 		userType = val
-	}
-	if userType == "" {
-		if len(ctx.NodeProperties) > 0 {
-			if val, ok := ctx.NodeProperties["userType"]; ok {
-				if valStr, valid := val.(string); valid && valStr != "" {
-					userType = valStr
-				}
-			}
-		}
 	}
 
 	return userType

@@ -1,0 +1,11 @@
+{
+    "flowEndpoint": "https://localhost:8090/flow",
+    "redirectBasedLogin": false,
+    "applicationID": "{your-application-id}",
+    "clientId": "{your-oauth-client-id}",
+    "redirectUri": "https://localhost:3000",
+    "scope": "openid",
+    "applicationsEndpoint": "https://localhost:8090/applications",
+    "authorizationEndpoint": "https://localhost:8090/oauth2/authorize",
+    "tokenEndpoint": "https://localhost:8090/oauth2/token"
+}

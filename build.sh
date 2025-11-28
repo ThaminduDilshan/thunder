@@ -92,13 +92,13 @@ PRODUCT_FOLDER=${BINARY_NAME}-${THUNDER_VERSION}-${GO_PACKAGE_OS}-${GO_PACKAGE_A
 SAMPLE_PACKAGE_OS=$SAMPLE_DIST_OS
 SAMPLE_PACKAGE_ARCH=$SAMPLE_DIST_ARCH
 
-# OAuth Sample
-OAUTH_SAMPLE_APP_SERVER_BINARY_NAME=server
-OAUTH_SAMPLE_APP_VERSION=$(grep -o '"version": *"[^"]*"' samples/apps/oauth/package.json | sed 's/"version": *"\(.*\)"/\1/')
-OAUTH_SAMPLE_APP_FOLDER="sample-app-oauth-${OAUTH_SAMPLE_APP_VERSION}-${SAMPLE_PACKAGE_OS}-${SAMPLE_PACKAGE_ARCH}"
+# React Vanilla Sample
+VANILLA_SAMPLE_APP_SERVER_BINARY_NAME=server
+VANILLA_SAMPLE_APP_VERSION=$(grep -o '"version": *"[^"]*"' samples/apps/react-vanilla-sample/package.json | sed 's/"version": *"\(.*\)"/\1/')
+VANILLA_SAMPLE_APP_FOLDER="sample-app-react-vanilla-${VANILLA_SAMPLE_APP_VERSION}-${SAMPLE_PACKAGE_OS}-${SAMPLE_PACKAGE_ARCH}"
 
 # React SDK Sample
-REACT_SDK_SAMPLE_APP_VERSION=$(grep -o '"version": *"[^"]*"' samples/apps/react-sdk/package.json | sed 's/"version": *"\(.*\)"/\1/')
+REACT_SDK_SAMPLE_APP_VERSION=$(grep -o '"version": *"[^"]*"' samples/apps/react-sdk-sample/package.json | sed 's/"version": *"\(.*\)"/\1/')
 REACT_SDK_SAMPLE_APP_FOLDER="sample-app-react-sdk-${REACT_SDK_SAMPLE_APP_VERSION}-${SAMPLE_PACKAGE_OS}-${SAMPLE_PACKAGE_ARCH}"
 
 # Server ports
@@ -123,9 +123,9 @@ DEVELOP_APP_DIST_DIR=apps/develop
 FRONTEND_GATE_APP_SOURCE_DIR=$FRONTEND_BASE_DIR/apps/thunder-gate
 FRONTEND_DEVELOP_APP_SOURCE_DIR=$FRONTEND_BASE_DIR/apps/thunder-develop
 SAMPLE_BASE_DIR=samples
-OAUTH_SAMPLE_APP_DIR=$SAMPLE_BASE_DIR/apps/oauth
-OAUTH_SAMPLE_APP_SERVER_DIR=$OAUTH_SAMPLE_APP_DIR/server
-REACT_SDK_SAMPLE_APP_DIR=$SAMPLE_BASE_DIR/apps/react-sdk
+VANILLA_SAMPLE_APP_DIR=$SAMPLE_BASE_DIR/apps/react-vanilla-sample
+VANILLA_SAMPLE_APP_SERVER_DIR=$VANILLA_SAMPLE_APP_DIR/server
+REACT_SDK_SAMPLE_APP_DIR=$SAMPLE_BASE_DIR/apps/react-sdk-sample
 
 function get_coverage_exclusion_pattern() {
     # Read exclusion patterns (full package paths) from .excludecoverage file
@@ -154,11 +154,11 @@ function clean_all() {
     echo "Removing certificates in the $BACKEND_DIR/$SECURITY_DIR"
     rm -rf "$BACKEND_DIR/$SECURITY_DIR"
 
-    echo "Removing certificates in the OAuth sample app"
-    rm -f "$OAUTH_SAMPLE_APP_DIR/server.cert"
-    rm -f "$OAUTH_SAMPLE_APP_DIR/server.key"
-    rm -f "$OAUTH_SAMPLE_APP_SERVER_DIR/server.cert"
-    rm -f "$OAUTH_SAMPLE_APP_SERVER_DIR/server.key"
+    echo "Removing certificates in the React Vanilla sample app"
+    rm -f "$VANILLA_SAMPLE_APP_DIR/server.cert"
+    rm -f "$VANILLA_SAMPLE_APP_DIR/server.key"
+    rm -f "$VANILLA_SAMPLE_APP_SERVER_DIR/server.cert"
+    rm -f "$VANILLA_SAMPLE_APP_SERVER_DIR/server.key"
     echo "================================================================"
 }
 
@@ -170,9 +170,9 @@ function clean() {
     echo "Removing certificates in the $BACKEND_DIR/$SECURITY_DIR"
     rm -rf "$BACKEND_DIR/$SECURITY_DIR"
 
-    echo "Removing certificates in the $OAUTH_SAMPLE_APP_DIR"
-    rm -f "$OAUTH_SAMPLE_APP_DIR/server.cert"
-    rm -f "$OAUTH_SAMPLE_APP_DIR/server.key"
+    echo "Removing certificates in the $VANILLA_SAMPLE_APP_DIR"
+    rm -f "$VANILLA_SAMPLE_APP_DIR/server.cert"
+    rm -f "$VANILLA_SAMPLE_APP_DIR/server.key"
 
     echo "Removing certificates in the $REACT_SDK_SAMPLE_APP_DIR"
     rm -f "$REACT_SDK_SAMPLE_APP_DIR/server.cert"
@@ -384,20 +384,20 @@ function build_sample_app() {
     echo "================================================================"
     echo "Building sample apps..."
 
-    # Build OAuth sample
-    echo "=== Building OAuth sample app ==="
-    echo "=== Ensuring OAuth sample app certificates exist ==="
-    ensure_certificates "$OAUTH_SAMPLE_APP_DIR"
+    # Build React Vanilla sample
+    echo "=== Building React Vanilla sample app ==="
+    echo "=== Ensuring React Vanilla sample app certificates exist ==="
+    ensure_certificates "$VANILLA_SAMPLE_APP_DIR"
 
-    cd "$OAUTH_SAMPLE_APP_DIR" || exit 1
-    echo "Installing OAuth sample dependencies..."
+    cd "$VANILLA_SAMPLE_APP_DIR" || exit 1
+    echo "Installing React Vanilla sample dependencies..."
     npm install
 
-    echo "Building OAuth sample app..."
+    echo "Building React Vanilla sample app..."
     npm run build
 
     cd - || exit 1
-    echo "✅ OAuth sample app built successfully."
+    echo "✅ React Vanilla sample app built successfully."
 
     # Build React SDK sample
     echo "=== Building React SDK sample app ==="
@@ -423,9 +423,9 @@ function package_sample_app() {
     echo "================================================================"
     echo "Packaging sample apps..."
 
-    # Package OAuth sample
-    echo "=== Packaging OAuth sample app ==="
-    package_oauth_sample
+    # Package React Vanilla sample
+    echo "=== Packaging React Vanilla sample app ==="
+    package_vanilla_sample
 
     # Package React SDK sample
     echo "=== Packaging React SDK sample app ==="
@@ -434,50 +434,50 @@ function package_sample_app() {
     echo "================================================================"
 }
 
-function package_oauth_sample() {
+function package_vanilla_sample() {
     # Use appropriate binary name based on OS
-    local binary_name="$OAUTH_SAMPLE_APP_SERVER_BINARY_NAME"
-    local executable_name="$OAUTH_SAMPLE_APP_SERVER_BINARY_NAME-$SAMPLE_DIST_OS-$SAMPLE_DIST_ARCH"
+    local binary_name="$VANILLA_SAMPLE_APP_SERVER_BINARY_NAME"
+    local executable_name="$VANILLA_SAMPLE_APP_SERVER_BINARY_NAME-$SAMPLE_DIST_OS-$SAMPLE_DIST_ARCH"
 
     if [ "$SAMPLE_DIST_OS" = "win" ]; then
-        binary_name="${OAUTH_SAMPLE_APP_SERVER_BINARY_NAME}.exe"
-        executable_name="${OAUTH_SAMPLE_APP_SERVER_BINARY_NAME}-${SAMPLE_DIST_OS}-${SAMPLE_DIST_ARCH}.exe"
+        binary_name="${VANILLA_SAMPLE_APP_SERVER_BINARY_NAME}.exe"
+        executable_name="${VANILLA_SAMPLE_APP_SERVER_BINARY_NAME}-${SAMPLE_DIST_OS}-${SAMPLE_DIST_ARCH}.exe"
     fi
 
-    mkdir -p "$DIST_DIR/$OAUTH_SAMPLE_APP_FOLDER"
+    mkdir -p "$DIST_DIR/$VANILLA_SAMPLE_APP_FOLDER"
 
     # Copy the built app files
-    cp -r "$OAUTH_SAMPLE_APP_SERVER_DIR/app" "$DIST_DIR/$OAUTH_SAMPLE_APP_FOLDER/"
+    cp -r "$VANILLA_SAMPLE_APP_SERVER_DIR/app" "$DIST_DIR/$VANILLA_SAMPLE_APP_FOLDER/"
 
-    cd "$OAUTH_SAMPLE_APP_SERVER_DIR" || exit 1
+    cd "$VANILLA_SAMPLE_APP_SERVER_DIR" || exit 1
 
     mkdir -p "executables"
 
-    npx pkg . -t "$SAMPLE_DIST_NODE_VERSION-$SAMPLE_DIST_OS-$SAMPLE_DIST_ARCH" -o "executables/$OAUTH_SAMPLE_APP_SERVER_BINARY_NAME-$SAMPLE_DIST_OS-$SAMPLE_DIST_ARCH"
+    npx pkg . -t "$SAMPLE_DIST_NODE_VERSION-$SAMPLE_DIST_OS-$SAMPLE_DIST_ARCH" -o "executables/$VANILLA_SAMPLE_APP_SERVER_BINARY_NAME-$SAMPLE_DIST_OS-$SAMPLE_DIST_ARCH"
 
     cd "$SCRIPT_DIR" || exit 1
 
     # Copy the server binary
-    cp "$OAUTH_SAMPLE_APP_SERVER_DIR/executables/$executable_name" "$DIST_DIR/$OAUTH_SAMPLE_APP_FOLDER/$binary_name"
+    cp "$VANILLA_SAMPLE_APP_SERVER_DIR/executables/$executable_name" "$DIST_DIR/$VANILLA_SAMPLE_APP_FOLDER/$binary_name"
 
     # Ensure the certificates exist in the sample app directory
-    echo "=== Ensuring certificates exist in the OAuth sample distribution ==="
-    ensure_certificates "$DIST_DIR/$OAUTH_SAMPLE_APP_FOLDER"
+    echo "=== Ensuring certificates exist in the React Vanilla sample distribution ==="
+    ensure_certificates "$DIST_DIR/$VANILLA_SAMPLE_APP_FOLDER"
 
     # Copy the appropriate startup script based on the target OS
     if [ "$SAMPLE_DIST_OS" = "win" ]; then
         echo "Including Windows start script (start.ps1)..."
-        cp -r "$OAUTH_SAMPLE_APP_SERVER_DIR/start.ps1" "$DIST_DIR/$OAUTH_SAMPLE_APP_FOLDER"
+        cp -r "$VANILLA_SAMPLE_APP_SERVER_DIR/start.ps1" "$DIST_DIR/$VANILLA_SAMPLE_APP_FOLDER"
     else
         echo "Including Unix start script (start.sh)..."
-        cp -r "$OAUTH_SAMPLE_APP_SERVER_DIR/start.sh" "$DIST_DIR/$OAUTH_SAMPLE_APP_FOLDER"
+        cp -r "$VANILLA_SAMPLE_APP_SERVER_DIR/start.sh" "$DIST_DIR/$VANILLA_SAMPLE_APP_FOLDER"
     fi
 
-    echo "Creating OAuth sample zip file..."
-    (cd "$DIST_DIR" && zip -r "$OAUTH_SAMPLE_APP_FOLDER.zip" "$OAUTH_SAMPLE_APP_FOLDER")
-    rm -rf "${DIST_DIR:?}/$OAUTH_SAMPLE_APP_FOLDER"
+    echo "Creating React Vanilla sample zip file..."
+    (cd "$DIST_DIR" && zip -r "$VANILLA_SAMPLE_APP_FOLDER.zip" "$VANILLA_SAMPLE_APP_FOLDER")
+    rm -rf "${DIST_DIR:?}/$VANILLA_SAMPLE_APP_FOLDER"
 
-    echo "✅ OAuth sample app packaged successfully as $DIST_DIR/$OAUTH_SAMPLE_APP_FOLDER.zip"
+    echo "✅ React Vanilla sample app packaged successfully as $DIST_DIR/$VANILLA_SAMPLE_APP_FOLDER.zip"
 }
 
 function package_react_sdk_sample() {
@@ -923,7 +923,7 @@ function run_backend() {
     ensure_certificates "$BACKEND_DIR/$SECURITY_DIR"
 
     echo "=== Ensuring sample app certificates exist ==="
-    ensure_certificates "$OAUTH_SAMPLE_APP_DIR"
+    ensure_certificates "$VANILLA_SAMPLE_APP_DIR"
 
     ensure_crypto_file "$BACKEND_DIR/$SECURITY_DIR"
 

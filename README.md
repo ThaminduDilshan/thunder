@@ -341,20 +341,39 @@ To try out the Client Credentials flow, follow these steps:
 
 ### Start the Sample App in Development Mode
 
+The sample apps support two configuration approaches:
+- **`.env` file**: Used during development (values are bundled at build time)
+- **`runtime.json` file**: Used for deployed/distributed apps (values loaded at runtime)
+
+For development, use the `.env` file approach:
+
 - Navigate to the sample app directory:
 
   ```bash
-  cd samples/apps/oauth
+  cd samples/apps/react-vanilla-sample
   ```
 
-- Create a file `.env` in the path `samples/apps/oauth/` and add below values.
+- Create a file `.env` in the path `samples/apps/react-vanilla-sample/` by copying `.env.example`:
 
+  ```bash
+  cp .env.example .env
   ```
+
+- Edit the `.env` file and configure the required values:
+
+  ```env
+  # Application ID registered in Thunder
+  VITE_REACT_APP_AUTH_APP_ID={your-application-id}
+  
+  # Thunder server endpoints
   VITE_REACT_APP_SERVER_FLOW_ENDPOINT=https://localhost:8090/flow
   VITE_REACT_APPLICATIONS_ENDPOINT=https://localhost:8090/applications
-  VITE_REACT_APP_AUTH_APP_ID={your-application-id}
+  
+  # Set to false for native flow, true for OAuth redirect flow
   VITE_REACT_APP_REDIRECT_BASED_LOGIN=false
   ```
+
+  > **Note**: For OAuth redirect flow, additional configurations like `VITE_REACT_APP_CLIENT_ID`, `VITE_REACT_APP_SERVER_AUTHORIZATION_ENDPOINT`, and `VITE_REACT_APP_SERVER_TOKEN_ENDPOINT` are required. See `.env.example` for the complete list.
 
 - Install the dependencies:
 

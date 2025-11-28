@@ -415,7 +415,7 @@ jobs:
         with:
           node-version: 'lts/*'
           package-manager: 'npm'
-          dependency-path: 'samples/apps/oauth'
+          dependency-path: 'samples/apps/react-vanilla-sample'
 
       - name: 📦 Install pnpm
         uses: pnpm/action-setup@v4
@@ -427,8 +427,8 @@ jobs:
           NEXT_VERSION="${{ steps.next_version.outputs.next_version }}"
           echo "📝 Setting sample apps version to $NEXT_VERSION"
 
-          # Update the oauth sample app package.json
-          cd samples/apps/oauth
+          # Update the react-vanilla sample app package.json
+          cd samples/apps/react-vanilla-sample
           npm version $NEXT_VERSION --no-git-tag-version --allow-same-version
 
           # Update the server package.json
@@ -438,7 +438,7 @@ jobs:
           cd "$GITHUB_WORKSPACE"
 
           # Update the react-sdk sample app package.json
-          cd samples/apps/react-sdk
+          cd samples/apps/react-sdk-sample
           pnpm version $NEXT_VERSION --no-git-tag-version --allow-same-version
 
           cd "$GITHUB_WORKSPACE"
@@ -452,7 +452,7 @@ jobs:
       #     NEXT_VERSION="${{ steps.next_version.outputs.next_version }}"
           
       #     # Add and commit the version changes
-      #     git add version.txt samples/apps/oauth/package.json samples/apps/oauth/server/package.json
+      #     git add version.txt samples/apps/react-vanilla-sample/package.json samples/apps/react-vanilla-sample/server/package.json
 
       #     if ! git diff --cached --quiet; then
       #         git commit -m "[Release] Update version to ${NEXT_VERSION} for the next development iteration"
@@ -480,7 +480,7 @@ jobs:
         with:
           node-version: 'lts/*'
           package-manager: 'npm'
-          dependency-path: 'samples/apps/oauth'
+          dependency-path: 'samples/apps/react-vanilla-sample'
 
       - name: 📦 Install pnpm
         uses: pnpm/action-setup@v4
@@ -512,8 +512,8 @@ jobs:
           SAMPLE_VERSION="${{ env.SAMPLE_VERSION }}"
           echo "📝 Setting sample apps version to $SAMPLE_VERSION"
 
-          # Update the oauth sample app package.json
-          cd samples/apps/oauth
+          # Update the react-vanilla sample app package.json
+          cd samples/apps/react-vanilla-sample
           npm version $SAMPLE_VERSION --no-git-tag-version --allow-same-version
 
           # Update the server package.json
@@ -523,7 +523,7 @@ jobs:
           cd "$GITHUB_WORKSPACE"
 
           # Update the react-sdk sample app package.json
-          cd samples/apps/react-sdk
+          cd samples/apps/react-sdk-sample
           pnpm version $SAMPLE_VERSION --no-git-tag-version --allow-same-version
 
           cd "$GITHUB_WORKSPACE"
@@ -570,7 +570,7 @@ jobs:
         with:
           node-version: 'lts/*'
           package-manager: 'npm'
-          dependency-path: 'samples/apps/oauth'
+          dependency-path: 'samples/apps/react-vanilla-sample'
 
       - name: 📦 Install pnpm
         uses: pnpm/action-setup@v4
@@ -602,8 +602,8 @@ jobs:
           SAMPLE_VERSION="${{ env.SAMPLE_VERSION }}"
           echo "📝 Setting sample apps version to $SAMPLE_VERSION"
 
-          # Update the oauth sample app package.json
-          cd samples/apps/oauth
+          # Update the react-vanilla sample app package.json
+          cd samples/apps/react-vanilla-sample
           npm version $SAMPLE_VERSION --no-git-tag-version --allow-same-version
 
           # Update the server package.json
@@ -613,7 +613,7 @@ jobs:
           cd "$GITHUB_WORKSPACE"
 
           # Update the react-sdk sample app package.json
-          cd samples/apps/react-sdk
+          cd samples/apps/react-sdk-sample
           pnpm version $SAMPLE_VERSION --no-git-tag-version --allow-same-version
 
           cd "$GITHUB_WORKSPACE"
@@ -805,13 +805,13 @@ jobs:
           # Add direct download links for Thunder server - replace download instruction and example paragraph
           # Create the Thunder downloads table with proper newlines using printf
           THUNDER_TABLE=$(printf "%s\n%s\n%s\n%s\n%s\n%s\n%s" \
-            "| OS | Architecture | Download Link |" \
-            "|-------|-------------|-------------|" \
-            "| macOS | ARM64 (Apple Silicon) | [thunder-${RELEASE_VERSION}-macos-arm64.zip](https://github.com/${{ github.repository }}/releases/download/v${RELEASE_VERSION}/thunder-${RELEASE_VERSION}-macos-arm64.zip) |" \
-            "| macOS | x64 (Intel) | [thunder-${RELEASE_VERSION}-macos-x64.zip](https://github.com/${{ github.repository }}/releases/download/v${RELEASE_VERSION}/thunder-${RELEASE_VERSION}-macos-x64.zip) |" \
-            "| Linux | x64 | [thunder-${RELEASE_VERSION}-linux-x64.zip](https://github.com/${{ github.repository }}/releases/download/v${RELEASE_VERSION}/thunder-${RELEASE_VERSION}-linux-x64.zip) |" \
-            "| Linux | ARM64 | [thunder-${RELEASE_VERSION}-linux-arm64.zip](https://github.com/${{ github.repository }}/releases/download/v${RELEASE_VERSION}/thunder-${RELEASE_VERSION}-linux-arm64.zip) |" \
-            "| Windows | x64 | [thunder-${RELEASE_VERSION}-win-x64.zip](https://github.com/${{ github.repository }}/releases/download/v${RELEASE_VERSION}/thunder-${RELEASE_VERSION}-win-x64.zip) |")
+            "   | OS | Architecture | Download Link |" \
+            "   |-------|-------------|-------------|" \
+            "   | macOS | ARM64 (Apple Silicon) | [thunder-${RELEASE_VERSION}-macos-arm64.zip](https://github.com/${{ github.repository }}/releases/download/v${RELEASE_VERSION}/thunder-${RELEASE_VERSION}-macos-arm64.zip) |" \
+            "   | macOS | x64 (Intel) | [thunder-${RELEASE_VERSION}-macos-x64.zip](https://github.com/${{ github.repository }}/releases/download/v${RELEASE_VERSION}/thunder-${RELEASE_VERSION}-macos-x64.zip) |" \
+            "   | Linux | x64 | [thunder-${RELEASE_VERSION}-linux-x64.zip](https://github.com/${{ github.repository }}/releases/download/v${RELEASE_VERSION}/thunder-${RELEASE_VERSION}-linux-x64.zip) |" \
+            "   | Linux | ARM64 | [thunder-${RELEASE_VERSION}-linux-arm64.zip](https://github.com/${{ github.repository }}/releases/download/v${RELEASE_VERSION}/thunder-${RELEASE_VERSION}-linux-arm64.zip) |" \
+            "   | Windows | x64 | [thunder-${RELEASE_VERSION}-win-x64.zip](https://github.com/${{ github.repository }}/releases/download/v${RELEASE_VERSION}/thunder-${RELEASE_VERSION}-win-x64.zip) |")
           
           # Replace the download instruction with the table using awk for proper handling
           QUICKSTART=$(echo "$QUICKSTART" | awk -v table="$THUNDER_TABLE" '
@@ -825,15 +825,30 @@ jobs:
           # Remove the example paragraph that follows (it's now redundant with the table)
           QUICKSTART=$(echo "$QUICKSTART" | sed '/For example, if you are using a MacOS machine with a Apple Silicon (ARM64) processor, you would download `thunder-'"$RELEASE_VERSION"'-macos-arm64\.zip`\./d')
           
-          # Create the Sample App downloads table with proper newlines using printf
-          SAMPLE_TABLE=$(printf "%s\n%s\n%s\n%s\n%s\n%s\n%s" \
-            "| OS | Architecture | Download Link |" \
-            "|-------|-------------|-------------|" \
-            "| macOS | ARM64 (Apple Silicon) | [sample-app-${RELEASE_VERSION}-macos-arm64.zip](https://github.com/${{ github.repository }}/releases/download/v${RELEASE_VERSION}/sample-app-${RELEASE_VERSION}-macos-arm64.zip) |" \
-            "| macOS | x64 (Intel) | [sample-app-${RELEASE_VERSION}-macos-x64.zip](https://github.com/${{ github.repository }}/releases/download/v${RELEASE_VERSION}/sample-app-${RELEASE_VERSION}-macos-x64.zip) |" \
-            "| Linux | x64 | [sample-app-${RELEASE_VERSION}-linux-x64.zip](https://github.com/${{ github.repository }}/releases/download/v${RELEASE_VERSION}/sample-app-${RELEASE_VERSION}-linux-x64.zip) |" \
-            "| Linux | ARM64 | [sample-app-${RELEASE_VERSION}-linux-arm64.zip](https://github.com/${{ github.repository }}/releases/download/v${RELEASE_VERSION}/sample-app-${RELEASE_VERSION}-linux-arm64.zip) |" \
-            "| Windows | x64 | [sample-app-${RELEASE_VERSION}-win-x64.zip](https://github.com/${{ github.repository }}/releases/download/v${RELEASE_VERSION}/sample-app-${RELEASE_VERSION}-win-x64.zip) |")
+          # Create the React Vanilla Sample App downloads table with proper newlines using printf
+          VANILLA_SAMPLE_TABLE=$(printf "%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s" \
+            "   **React Vanilla Sample App**" \
+            "   | OS | Architecture | Download Link |" \
+            "   |-------|-------------|-------------|" \
+            "   | macOS | ARM64 (Apple Silicon) | [sample-app-react-vanilla-${RELEASE_VERSION}-macos-arm64.zip](https://github.com/${{ github.repository }}/releases/download/v${RELEASE_VERSION}/sample-app-react-vanilla-${RELEASE_VERSION}-macos-arm64.zip) |" \
+            "   | macOS | x64 (Intel) | [sample-app-react-vanilla-${RELEASE_VERSION}-macos-x64.zip](https://github.com/${{ github.repository }}/releases/download/v${RELEASE_VERSION}/sample-app-react-vanilla-${RELEASE_VERSION}-macos-x64.zip) |" \
+            "   | Linux | x64 | [sample-app-react-vanilla-${RELEASE_VERSION}-linux-x64.zip](https://github.com/${{ github.repository }}/releases/download/v${RELEASE_VERSION}/sample-app-react-vanilla-${RELEASE_VERSION}-linux-x64.zip) |" \
+            "   | Linux | ARM64 | [sample-app-react-vanilla-${RELEASE_VERSION}-linux-arm64.zip](https://github.com/${{ github.repository }}/releases/download/v${RELEASE_VERSION}/sample-app-react-vanilla-${RELEASE_VERSION}-linux-arm64.zip) |" \
+            "   | Windows | x64 | [sample-app-react-vanilla-${RELEASE_VERSION}-win-x64.zip](https://github.com/${{ github.repository }}/releases/download/v${RELEASE_VERSION}/sample-app-react-vanilla-${RELEASE_VERSION}-win-x64.zip) |")
+          
+          # Create the React SDK Sample App downloads table with proper newlines using printf
+          SDK_SAMPLE_TABLE=$(printf "%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s" \
+            "   **React SDK Sample App**" \
+            "   | OS | Architecture | Download Link |" \
+            "   |-------|-------------|-------------|" \
+            "   | macOS | ARM64 (Apple Silicon) | [sample-app-react-sdk-${RELEASE_VERSION}-macos-arm64.zip](https://github.com/${{ github.repository }}/releases/download/v${RELEASE_VERSION}/sample-app-react-sdk-${RELEASE_VERSION}-macos-arm64.zip) |" \
+            "   | macOS | x64 (Intel) | [sample-app-react-sdk-${RELEASE_VERSION}-macos-x64.zip](https://github.com/${{ github.repository }}/releases/download/v${RELEASE_VERSION}/sample-app-react-sdk-${RELEASE_VERSION}-macos-x64.zip) |" \
+            "   | Linux | x64 | [sample-app-react-sdk-${RELEASE_VERSION}-linux-x64.zip](https://github.com/${{ github.repository }}/releases/download/v${RELEASE_VERSION}/sample-app-react-sdk-${RELEASE_VERSION}-linux-x64.zip) |" \
+            "   | Linux | ARM64 | [sample-app-react-sdk-${RELEASE_VERSION}-linux-arm64.zip](https://github.com/${{ github.repository }}/releases/download/v${RELEASE_VERSION}/sample-app-react-sdk-${RELEASE_VERSION}-linux-arm64.zip) |" \
+            "   | Windows | x64 | [sample-app-react-sdk-${RELEASE_VERSION}-win-x64.zip](https://github.com/${{ github.repository }}/releases/download/v${RELEASE_VERSION}/sample-app-react-sdk-${RELEASE_VERSION}-win-x64.zip) |")
+          
+          # Combine both sample tables
+          SAMPLE_TABLE=$(printf "%s\n\n%s" "$VANILLA_SAMPLE_TABLE" "$SDK_SAMPLE_TABLE")
           
           # Replace the sample app download instruction with the table using awk
           QUICKSTART=$(echo "$QUICKSTART" | awk -v table="$SAMPLE_TABLE" '

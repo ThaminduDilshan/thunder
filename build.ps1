@@ -120,14 +120,14 @@ $PRODUCT_FOLDER = "${BINARY_NAME}-${THUNDER_VERSION}-${GO_PACKAGE_OS}-${GO_PACKA
 $SAMPLE_PACKAGE_OS = $SAMPLE_DIST_OS
 $SAMPLE_PACKAGE_ARCH = $SAMPLE_DIST_ARCH
 
-# OAuth Sample
-$OAUTH_SAMPLE_APP_SERVER_BINARY_NAME = "server"
-$oauthPackageJson = Get-Content "samples/apps/oauth/package.json" -Raw | ConvertFrom-Json
-$OAUTH_SAMPLE_APP_VERSION = $oauthPackageJson.version
-$OAUTH_SAMPLE_APP_FOLDER = "sample-app-oauth-${OAUTH_SAMPLE_APP_VERSION}-${SAMPLE_PACKAGE_OS}-${SAMPLE_PACKAGE_ARCH}"
+# React Vanilla Sample
+$VANILLA_SAMPLE_APP_SERVER_BINARY_NAME = "server"
+$vanillaPackageJson = Get-Content "samples/apps/react-vanilla-sample/package.json" -Raw | ConvertFrom-Json
+$VANILLA_SAMPLE_APP_VERSION = $vanillaPackageJson.version
+$VANILLA_SAMPLE_APP_FOLDER = "sample-app-react-vanilla-${VANILLA_SAMPLE_APP_VERSION}-${SAMPLE_PACKAGE_OS}-${SAMPLE_PACKAGE_ARCH}"
 
 # React SDK Sample
-$reactSdkPackageJson = Get-Content "samples/apps/react-sdk/package.json" -Raw | ConvertFrom-Json
+$reactSdkPackageJson = Get-Content "samples/apps/react-sdk-sample/package.json" -Raw | ConvertFrom-Json
 $REACT_SDK_SAMPLE_APP_VERSION = $reactSdkPackageJson.version
 $REACT_SDK_SAMPLE_APP_FOLDER = "sample-app-react-sdk-${REACT_SDK_SAMPLE_APP_VERSION}-${SAMPLE_PACKAGE_OS}-${SAMPLE_PACKAGE_ARCH}"
 
@@ -153,9 +153,9 @@ $DEVELOP_APP_DIST_DIR = "apps/develop"
 $FRONTEND_GATE_APP_SOURCE_DIR = Join-Path $FRONTEND_BASE_DIR "apps/thunder-gate"
 $FRONTEND_DEVELOP_APP_SOURCE_DIR = Join-Path $FRONTEND_BASE_DIR "apps/thunder-develop"
 $SAMPLE_BASE_DIR = "samples"
-$OAUTH_SAMPLE_APP_DIR = Join-Path $SAMPLE_BASE_DIR "apps/oauth"
-$OAUTH_SAMPLE_APP_SERVER_DIR = Join-Path $OAUTH_SAMPLE_APP_DIR "server"
-$REACT_SDK_SAMPLE_APP_DIR = Join-Path $SAMPLE_BASE_DIR "apps/react-sdk"
+$VANILLA_SAMPLE_APP_DIR = Join-Path $SAMPLE_BASE_DIR "apps/react-vanilla-sample"
+$VANILLA_SAMPLE_APP_SERVER_DIR = Join-Path $VANILLA_SAMPLE_APP_DIR "server"
+$REACT_SDK_SAMPLE_APP_DIR = Join-Path $SAMPLE_BASE_DIR "apps/react-sdk-sample"
 
 function Get-CoverageExclusionPattern {
     # Read exclusion patterns (full package paths) from .excludecoverage file
@@ -198,11 +198,11 @@ function Clean-All {
         Remove-Item -Path (Join-Path $BACKEND_DIR $SECURITY_DIR) -Recurse -Force -ErrorAction SilentlyContinue
     }
 
-    Write-Host "Removing certificates in the OAuth sample app"
-    Remove-Item -Path (Join-Path $OAUTH_SAMPLE_APP_DIR "server.cert") -Force -ErrorAction SilentlyContinue
-    Remove-Item -Path (Join-Path $OAUTH_SAMPLE_APP_DIR "server.key") -Force -ErrorAction SilentlyContinue
-    Remove-Item -Path (Join-Path $OAUTH_SAMPLE_APP_SERVER_DIR "server.cert") -Force -ErrorAction SilentlyContinue
-    Remove-Item -Path (Join-Path $OAUTH_SAMPLE_APP_SERVER_DIR "server.key") -Force -ErrorAction SilentlyContinue
+    Write-Host "Removing certificates in the React Vanilla sample app"
+    Remove-Item -Path (Join-Path $VANILLA_SAMPLE_APP_DIR "server.cert") -Force -ErrorAction SilentlyContinue
+    Remove-Item -Path (Join-Path $VANILLA_SAMPLE_APP_DIR "server.key") -Force -ErrorAction SilentlyContinue
+    Remove-Item -Path (Join-Path $VANILLA_SAMPLE_APP_SERVER_DIR "server.cert") -Force -ErrorAction SilentlyContinue
+    Remove-Item -Path (Join-Path $VANILLA_SAMPLE_APP_SERVER_DIR "server.key") -Force -ErrorAction SilentlyContinue
     Write-Host "================================================================"
 }
 
@@ -218,9 +218,9 @@ function Clean {
         Remove-Item -Path (Join-Path $BACKEND_DIR $SECURITY_DIR) -Recurse -Force -ErrorAction SilentlyContinue
     }
 
-    Write-Host "Removing certificates in the OAuth sample app"
-    Remove-Item -Path (Join-Path $OAUTH_SAMPLE_APP_DIR "server.cert") -Force -ErrorAction SilentlyContinue
-    Remove-Item -Path (Join-Path $OAUTH_SAMPLE_APP_DIR "server.key") -Force -ErrorAction SilentlyContinue
+    Write-Host "Removing certificates in the React Vanilla sample app"
+    Remove-Item -Path (Join-Path $VANILLA_SAMPLE_APP_DIR "server.cert") -Force -ErrorAction SilentlyContinue
+    Remove-Item -Path (Join-Path $VANILLA_SAMPLE_APP_DIR "server.key") -Force -ErrorAction SilentlyContinue
 
     Write-Host "Removing certificates in the React SDK sample app"
     Remove-Item -Path (Join-Path $REACT_SDK_SAMPLE_APP_DIR "server.cert") -Force -ErrorAction SilentlyContinue
@@ -500,20 +500,20 @@ function Build-Sample-App {
     Write-Host "================================================================"
     Write-Host "Building sample apps..."
 
-    # Build OAuth sample
-    Write-Host "=== Building OAuth sample app ==="
-    Write-Host "=== Ensuring OAuth sample app certificates exist ==="
-    Ensure-Certificates -cert_dir $OAUTH_SAMPLE_APP_DIR
+    # Build React Vanilla sample
+    Write-Host "=== Building React Vanilla sample app ==="
+    Write-Host "=== Ensuring React Vanilla sample app certificates exist ==="
+    Ensure-Certificates -cert_dir $VANILLA_SAMPLE_APP_DIR
 
-    Push-Location $OAUTH_SAMPLE_APP_DIR
+    Push-Location $VANILLA_SAMPLE_APP_DIR
     try {
-        Write-Host "Installing OAuth sample dependencies..."
+        Write-Host "Installing React Vanilla sample dependencies..."
         & npm install
         if ($LASTEXITCODE -ne 0) {
             throw "npm install failed with exit code $LASTEXITCODE"
         }
 
-        Write-Host "Building OAuth sample app (TypeScript + Vite)..."
+        Write-Host "Building React Vanilla sample app (TypeScript + Vite)..."
 
         Write-Host " - Running TypeScript build (tsc -b)..."
         & npx tsc -b
@@ -528,7 +528,7 @@ function Build-Sample-App {
         }
 
         # Replicate npm script: copy dist to server/app and copy certs
-        $serverDir = Join-Path $OAUTH_SAMPLE_APP_DIR "server"
+        $serverDir = Join-Path $VANILLA_SAMPLE_APP_DIR "server"
         $serverAppDir = Join-Path $serverDir "app"
         if (Test-Path $serverAppDir) {
             Remove-Item -Path $serverAppDir -Recurse -Force
@@ -539,11 +539,11 @@ function Build-Sample-App {
         Copy-Item -Path (Join-Path $distFull "*") -Destination $serverAppDir -Recurse -Force
 
         # Copy server certs into server directory
-        if (Test-Path (Join-Path $OAUTH_SAMPLE_APP_DIR "server.key")) {
-            Copy-Item -Path (Join-Path $OAUTH_SAMPLE_APP_DIR "server.key") -Destination $serverDir -Force
+        if (Test-Path (Join-Path $VANILLA_SAMPLE_APP_DIR "server.key")) {
+            Copy-Item -Path (Join-Path $VANILLA_SAMPLE_APP_DIR "server.key") -Destination $serverDir -Force
         }
-        if (Test-Path (Join-Path $OAUTH_SAMPLE_APP_DIR "server.cert")) {
-            Copy-Item -Path (Join-Path $OAUTH_SAMPLE_APP_DIR "server.cert") -Destination $serverDir -Force
+        if (Test-Path (Join-Path $VANILLA_SAMPLE_APP_DIR "server.cert")) {
+            Copy-Item -Path (Join-Path $VANILLA_SAMPLE_APP_DIR "server.cert") -Destination $serverDir -Force
         }
 
         # Install server dependencies
@@ -563,7 +563,7 @@ function Build-Sample-App {
         Pop-Location
     }
 
-    Write-Host "✅ OAuth sample app built successfully."
+    Write-Host "✅ React Vanilla sample app built successfully."
 
     # Build React SDK sample
     Write-Host "=== Building React SDK sample app ==="
@@ -598,9 +598,9 @@ function Package-Sample-App {
     Write-Host "================================================================"
     Write-Host "Packaging sample apps..."
 
-    # Package OAuth sample
-    Write-Host "=== Packaging OAuth sample app ==="
-    Package-OAuth-Sample
+    # Package React Vanilla sample
+    Write-Host "=== Packaging React Vanilla sample app ==="
+    Package-Vanilla-Sample
 
     # Package React SDK sample
     Write-Host "=== Packaging React SDK sample app ==="
@@ -609,38 +609,38 @@ function Package-Sample-App {
     Write-Host "================================================================"
 }
 
-function Package-OAuth-Sample {
+function Package-Vanilla-Sample {
     # Use appropriate binary name based on OS
-    $binary_name = $OAUTH_SAMPLE_APP_SERVER_BINARY_NAME
-    $executable_name = "$OAUTH_SAMPLE_APP_SERVER_BINARY_NAME-$SAMPLE_DIST_OS-$SAMPLE_DIST_ARCH"
+    $binary_name = $VANILLA_SAMPLE_APP_SERVER_BINARY_NAME
+    $executable_name = "$VANILLA_SAMPLE_APP_SERVER_BINARY_NAME-$SAMPLE_DIST_OS-$SAMPLE_DIST_ARCH"
 
     if ($SAMPLE_DIST_OS -eq "win") {
-        $binary_name = "${OAUTH_SAMPLE_APP_SERVER_BINARY_NAME}.exe"
-        $executable_name = "${OAUTH_SAMPLE_APP_SERVER_BINARY_NAME}-${SAMPLE_DIST_OS}-${SAMPLE_DIST_ARCH}.exe"
+        $binary_name = "${VANILLA_SAMPLE_APP_SERVER_BINARY_NAME}.exe"
+        $executable_name = "${VANILLA_SAMPLE_APP_SERVER_BINARY_NAME}-${SAMPLE_DIST_OS}-${SAMPLE_DIST_ARCH}.exe"
     }
 
-    $oauth_sample_app_folder = Join-Path $DIST_DIR $OAUTH_SAMPLE_APP_FOLDER
-    New-Item -Path $oauth_sample_app_folder -ItemType Directory -Force | Out-Null
-    $oauth_sample_app_folder = (Resolve-Path -Path $oauth_sample_app_folder).Path
+    $vanilla_sample_app_folder = Join-Path $DIST_DIR $VANILLA_SAMPLE_APP_FOLDER
+    New-Item -Path $vanilla_sample_app_folder -ItemType Directory -Force | Out-Null
+    $vanilla_sample_app_folder = (Resolve-Path -Path $vanilla_sample_app_folder).Path
 
     # Copy the built app files
-    $serverAppSource = Join-Path $OAUTH_SAMPLE_APP_SERVER_DIR "app"
+    $serverAppSource = Join-Path $VANILLA_SAMPLE_APP_SERVER_DIR "app"
     if (-not (Test-Path $serverAppSource)) {
-        Write-Host "Server app folder '$serverAppSource' not found; falling back to copying from '$OAUTH_SAMPLE_APP_DIR/dist'..."
-        New-Item -Path $OAUTH_SAMPLE_APP_SERVER_DIR -ItemType Directory -Force | Out-Null
+        Write-Host "Server app folder '$serverAppSource' not found; falling back to copying from '$VANILLA_SAMPLE_APP_DIR/dist'..."
+        New-Item -Path $VANILLA_SAMPLE_APP_SERVER_DIR -ItemType Directory -Force | Out-Null
         New-Item -Path $serverAppSource -ItemType Directory -Force | Out-Null
 
-        $distFull = Resolve-Path -Path (Join-Path $OAUTH_SAMPLE_APP_DIR "dist") | Select-Object -ExpandProperty Path
+        $distFull = Resolve-Path -Path (Join-Path $VANILLA_SAMPLE_APP_DIR "dist") | Select-Object -ExpandProperty Path
         Copy-Item -Path (Join-Path $distFull "*") -Destination $serverAppSource -Recurse -Force
     }
 
-    Copy-Item -Path $serverAppSource -Destination $oauth_sample_app_folder -Recurse -Force
+    Copy-Item -Path $serverAppSource -Destination $vanilla_sample_app_folder -Recurse -Force
 
-    Push-Location $OAUTH_SAMPLE_APP_SERVER_DIR
+    Push-Location $VANILLA_SAMPLE_APP_SERVER_DIR
     try {
         New-Item -Path "executables" -ItemType Directory -Force | Out-Null
 
-        & npx pkg . -t $SAMPLE_DIST_NODE_VERSION-$SAMPLE_DIST_OS-$SAMPLE_DIST_ARCH -o executables/$OAUTH_SAMPLE_APP_SERVER_BINARY_NAME-$SAMPLE_DIST_OS-$SAMPLE_DIST_ARCH
+        & npx pkg . -t $SAMPLE_DIST_NODE_VERSION-$SAMPLE_DIST_OS-$SAMPLE_DIST_ARCH -o executables/$VANILLA_SAMPLE_APP_SERVER_BINARY_NAME-$SAMPLE_DIST_OS-$SAMPLE_DIST_ARCH
         if ($LASTEXITCODE -ne 0) {
             throw "npx pkg failed with exit code $LASTEXITCODE"
         }
@@ -650,35 +650,35 @@ function Package-OAuth-Sample {
     }
 
     # Copy the server binary
-    Copy-Item -Path (Join-Path $OAUTH_SAMPLE_APP_SERVER_DIR "executables/$executable_name") -Destination (Join-Path $oauth_sample_app_folder $binary_name) -Force
+    Copy-Item -Path (Join-Path $VANILLA_SAMPLE_APP_SERVER_DIR "executables/$executable_name") -Destination (Join-Path $vanilla_sample_app_folder $binary_name) -Force
 
     # Ensure the certificates exist in the sample app directory
-    Write-Host "=== Ensuring certificates exist in the OAuth sample distribution ==="
-    Ensure-Certificates -cert_dir $oauth_sample_app_folder
+    Write-Host "=== Ensuring certificates exist in the React Vanilla sample distribution ==="
+    Ensure-Certificates -cert_dir $vanilla_sample_app_folder
 
     # Copy the appropriate startup script based on the target OS
     if ($SAMPLE_DIST_OS -eq "win") {
         Write-Host "Including Windows start script (start.ps1)..."
-        Copy-Item -Path (Join-Path $OAUTH_SAMPLE_APP_SERVER_DIR "start.ps1") -Destination $oauth_sample_app_folder -Force
+        Copy-Item -Path (Join-Path $VANILLA_SAMPLE_APP_SERVER_DIR "start.ps1") -Destination $vanilla_sample_app_folder -Force
     }
     else {
         Write-Host "Including Unix start script (start.sh)..."
-        Copy-Item -Path (Join-Path $OAUTH_SAMPLE_APP_SERVER_DIR "start.sh") -Destination $oauth_sample_app_folder -Force
+        Copy-Item -Path (Join-Path $VANILLA_SAMPLE_APP_SERVER_DIR "start.sh") -Destination $vanilla_sample_app_folder -Force
     }
 
-    Write-Host "Creating OAuth sample zip file..."
+    Write-Host "Creating React Vanilla sample zip file..."
     $distAbs = (Resolve-Path -Path $DIST_DIR).Path
-    $zipFile = [System.IO.Path]::Combine($distAbs, "$OAUTH_SAMPLE_APP_FOLDER.zip")
+    $zipFile = [System.IO.Path]::Combine($distAbs, "$VANILLA_SAMPLE_APP_FOLDER.zip")
     if (Test-Path $zipFile) {
         Remove-Item $zipFile -Force
     }
 
     Add-Type -AssemblyName System.IO.Compression.FileSystem
-    [System.IO.Compression.ZipFile]::CreateFromDirectory($oauth_sample_app_folder, $zipFile)
+    [System.IO.Compression.ZipFile]::CreateFromDirectory($vanilla_sample_app_folder, $zipFile)
 
-    Remove-Item -Path $oauth_sample_app_folder -Recurse -Force
+    Remove-Item -Path $vanilla_sample_app_folder -Recurse -Force
 
-    Write-Host "✅ OAuth sample app packaged successfully as $zipFile"
+    Write-Host "✅ React Vanilla sample app packaged successfully as $zipFile"
 }
 
 function Package-React-SDK-Sample {
@@ -1365,8 +1365,8 @@ function Run-Backend {
     Write-Host "=== Ensuring server certificates exist ==="
     Ensure-Certificates -cert_dir (Join-Path $BACKEND_DIR $SECURITY_DIR)
 
-    Write-Host "=== Ensuring OAuth sample app certificates exist ==="
-    Ensure-Certificates -cert_dir $OAUTH_SAMPLE_APP_DIR
+    Write-Host "=== Ensuring React Vanilla sample app certificates exist ==="
+    Ensure-Certificates -cert_dir $VANILLA_SAMPLE_APP_DIR
 
     Write-Host "=== Ensuring crypto file exists for run ==="
     Ensure-Crypto-File -conf_dir (Join-Path $BACKEND_DIR "repository/conf")

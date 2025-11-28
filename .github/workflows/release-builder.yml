@@ -847,12 +847,18 @@ jobs:
             "   | Linux | ARM64 | [sample-app-react-sdk-${RELEASE_VERSION}-linux-arm64.zip](https://github.com/${{ github.repository }}/releases/download/v${RELEASE_VERSION}/sample-app-react-sdk-${RELEASE_VERSION}-linux-arm64.zip) |" \
             "   | Windows | x64 | [sample-app-react-sdk-${RELEASE_VERSION}-win-x64.zip](https://github.com/${{ github.repository }}/releases/download/v${RELEASE_VERSION}/sample-app-react-sdk-${RELEASE_VERSION}-win-x64.zip) |")
           
-          # Combine both sample tables
-          SAMPLE_TABLE=$(printf "%s\n\n%s" "$VANILLA_SAMPLE_TABLE" "$SDK_SAMPLE_TABLE")
+          # Replace the vanilla sample app download instruction with its table
+          QUICKSTART=$(echo "$QUICKSTART" | awk -v table="$VANILLA_SAMPLE_TABLE" '
+            /Download `sample-app-react-vanilla-.*-<os>-<arch>\.zip` from the \[.*release\]/ {
+              print table
+              next
+            }
+            { print }
+          ')
           
-          # Replace the sample app download instruction with the table using awk
-          QUICKSTART=$(echo "$QUICKSTART" | awk -v table="$SAMPLE_TABLE" '
-            /Download `sample-app-.*-<os>-<arch>\.zip` from the \[.*release\]/ {
+          # Replace the SDK sample app download instruction with its table
+          QUICKSTART=$(echo "$QUICKSTART" | awk -v table="$SDK_SAMPLE_TABLE" '
+            /Download `sample-app-react-sdk-.*-<os>-<arch>\.zip` from the \[.*release\]/ {
               print table
               next
             }

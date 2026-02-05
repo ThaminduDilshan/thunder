@@ -398,6 +398,27 @@ export interface OAuth2Config {
    * Defines how access tokens and ID tokens are generated
    */
   token?: OAuth2Token & Partial<TokenConfig>;
+
+  /**
+   * User Info configuration
+   * Defines which attributes are returned in the user info response
+   */
+  user_info?: UserInfoConfig;
+}
+
+/**
+ * User Info Configuration
+ *
+ * Configuration specific to the User Info endpoint response.
+ * Allows defining which user attributes should be returned in the user info response.
+ *
+ * @public
+ */
+export interface UserInfoConfig {
+  /**
+   * List of user attributes to include in the user info response
+   */
+  user_attributes: string[];
 }
 
 /**

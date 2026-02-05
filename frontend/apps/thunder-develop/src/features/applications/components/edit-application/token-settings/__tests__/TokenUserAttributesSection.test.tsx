@@ -358,4 +358,52 @@ describe('TokenUserAttributesSection', () => {
       expect(emailChip).toBeInTheDocument();
     });
   });
+  
+  describe('Refinements', () => {
+    it('should hide content when readOnly is true', () => {
+      render(<TestWrapper />);
+
+      render(
+        <TokenUserAttributesSection
+          tokenType="userinfo"
+          currentAttributes={[]}
+          userAttributes={[]}
+          isLoadingUserAttributes={false}
+          expandedSections={new Set()}
+          setExpandedSections={vi.fn()}
+          pendingAdditions={new Set()}
+          pendingRemovals={new Set()}
+          highlightedAttributes={new Set()}
+          onAttributeClick={vi.fn()}
+          activeTokenType="userinfo"
+          readOnly
+        />
+      );
+
+      // Content should be hidden
+      expect(screen.queryByText('User Attributes')).not.toBeInTheDocument();
+      expect(screen.queryByText('Default Attributes')).not.toBeInTheDocument();
+    });
+
+    it('should render headerAction', () => {
+      render(
+        <TokenUserAttributesSection
+          tokenType="userinfo"
+          currentAttributes={[]}
+          userAttributes={[]}
+          isLoadingUserAttributes={false}
+          expandedSections={new Set()}
+          setExpandedSections={vi.fn()}
+          pendingAdditions={new Set()}
+          pendingRemovals={new Set()}
+          highlightedAttributes={new Set()}
+          onAttributeClick={vi.fn()}
+          activeTokenType="userinfo"
+          headerAction={<button type="button">Test Action</button>}
+        />
+      );
+
+      expect(screen.getByText('Test Action')).toBeInTheDocument();
+    });
+  });
 });

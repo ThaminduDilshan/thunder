@@ -32,13 +32,19 @@ const TokenConstants = {
     'iss',
     'jti',
     'nbf',
-    'ouHandle',
-    'ouId',
-    'ouName',
     'scope',
     'sub',
-    'userType',
   ],
+
+  /**
+   * Default attributes for User Info response
+   */
+  USER_INFO_DEFAULT_ATTRIBUTES: ['sub'],
+  
+  /**
+   * Additional system attributes that can be configured as user attributes
+   */
+  ADDITIONAL_USER_ATTRIBUTES: ['ouHandle', 'ouId', 'ouName', 'userType'],
 } as const;
 
 export default TokenConstants;

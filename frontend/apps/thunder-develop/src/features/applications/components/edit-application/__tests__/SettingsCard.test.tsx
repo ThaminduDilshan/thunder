@@ -217,4 +217,39 @@ describe('SettingsCard', () => {
       expect(screen.getByRole('button', {name: 'Submit'})).toBeInTheDocument();
     });
   });
+  
+  it('should render headerAction if provided', () => {
+    render(
+      <SettingsCard title="Test Settings" headerAction={<button type="button">Action</button>}>
+        <div>Content</div>
+      </SettingsCard>,
+    );
+
+    expect(screen.getByText('Action')).toBeInTheDocument();
+  });
+
+  it('should not render content wrapper if valid children are not present', () => {
+    const { container } = render(
+      <SettingsCard title="Test Settings">
+        {false && <div>Content</div>}
+      </SettingsCard>,
+    );
+
+    // Should only have the outer paper, title box, but NO inner content paper
+    // The outer paper renders the title box div + potential content div
+    // We expect only the title box div to be present inside the outer Paper
+    const papers = container.querySelectorAll('.MuiPaper-root');
+    expect(papers.length).toBe(1); // Only the outer card, no inner content card
+  });
+
+  it('should render content wrapper if valid children are present', () => {
+    const {container} = render(
+      <SettingsCard title="Test Settings">
+        <div>Content</div>
+      </SettingsCard>,
+    );
+
+    const papers = container.querySelectorAll('.MuiPaper-root');
+    expect(papers.length).toBe(2); // Outer card + Inner content card
+  });
 });

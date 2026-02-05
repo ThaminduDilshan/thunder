@@ -17,7 +17,7 @@
  */
 
 import {describe, expect, it} from 'vitest';
-import {OAuth2GrantTypes, OAuth2ResponseTypes} from '../oauth';
+import {OAuth2GrantTypes, OAuth2ResponseTypes, getDefaultOAuthConfig} from '../oauth';
 import type {OAuth2GrantType, OAuth2ResponseType, TokenEndpointAuthMethod} from '../oauth';
 
 describe('OAuth Models', () => {
@@ -123,6 +123,31 @@ describe('OAuth Models', () => {
       validAuthMethods.forEach((method) => {
         expect(typeof method).toBe('string');
       });
+    });
+  });
+
+  describe('getDefaultOAuthConfig', () => {
+    it('should return a valid default configuration', () => {
+      const config = getDefaultOAuthConfig();
+
+      expect(config).toBeDefined();
+      expect(config.token).toBeDefined();
+      expect(config.grant_types).toContain(OAuth2GrantTypes.CLIENT_CREDENTIALS);
+      expect(config.pkce_required).toBe(false);
+    });
+
+    it('should not include user_info configuration by default (implying inheritance)', () => {
+      const config = getDefaultOAuthConfig();
+
+      expect(config.user_info).toBeUndefined();
+    });
+
+    it('should include default ID token scope claims', () => {
+      const config = getDefaultOAuthConfig();
+
+      expect(config.token?.id_token?.scope_claims).toBeDefined();
+      expect(config.token?.id_token?.scope_claims.email).toBeDefined();
+      expect(config.token?.id_token?.scope_claims.profile).toBeDefined();
     });
   });
 });

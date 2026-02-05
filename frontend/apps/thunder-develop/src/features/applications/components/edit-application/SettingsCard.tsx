@@ -40,6 +40,10 @@ interface SettingsCardProps {
    * Optional toggle change handler
    */
   onToggle?: (enabled: boolean) => void;
+  /**
+   * Optional custom action element to render in the header
+   */
+  headerAction?: ReactNode;
 }
 
 /**
@@ -74,6 +78,7 @@ export default function SettingsCard({
   children,
   enabled = undefined,
   onToggle = undefined,
+  headerAction = undefined,
 }: SettingsCardProps) {
   const hasToggle = enabled !== undefined && onToggle !== undefined;
 
@@ -82,13 +87,16 @@ export default function SettingsCard({
       <Box sx={{p: 3}}>
         <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={2}>
           <Typography variant="h5">{title}</Typography>
-          {hasToggle && (
-            <Switch
-              checked={enabled}
-              onChange={(e) => onToggle(e.target.checked)}
-              inputProps={{'aria-label': `Toggle ${title}`}}
-            />
-          )}
+          <Stack direction="row" alignItems="center" spacing={2}>
+            {headerAction}
+            {hasToggle && (
+              <Switch
+                checked={enabled}
+                onChange={(e) => onToggle(e.target.checked)}
+                inputProps={{'aria-label': `Toggle ${title}`}}
+              />
+            )}
+          </Stack>
         </Stack>
         {description && (
           <Typography variant="body2" sx={{mt: 0.5, color: 'text.disabled'}}>
@@ -96,10 +104,11 @@ export default function SettingsCard({
           </Typography>
         )}
       </Box>
-      <Paper sx={{p: 3}}>
-        {/* Only show content if toggle is enabled or if there's no toggle */}
-        {(!hasToggle || enabled) && children}
-      </Paper>
+      {(!hasToggle || enabled) && children && (
+        <Paper sx={{p: 3}}>
+          {children}
+        </Paper>
+      )}
     </Paper>
   );
 }

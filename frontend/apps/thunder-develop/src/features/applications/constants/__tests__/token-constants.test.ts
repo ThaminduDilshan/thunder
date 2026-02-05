@@ -87,4 +87,39 @@ describe('TokenConstants', () => {
       expect(TokenConstants.DEFAULT_TOKEN_ATTRIBUTES).toEqual(expectedAttributes);
     });
   });
+
+  describe('USER_INFO_DEFAULT_ATTRIBUTES', () => {
+    it('should be defined', () => {
+      expect(TokenConstants.USER_INFO_DEFAULT_ATTRIBUTES).toBeDefined();
+    });
+
+    it('should be an array', () => {
+      expect(Array.isArray(TokenConstants.USER_INFO_DEFAULT_ATTRIBUTES)).toBe(true);
+    });
+
+    it('should contain sub attribute', () => {
+      expect(TokenConstants.USER_INFO_DEFAULT_ATTRIBUTES).toContain('sub');
+    });
+
+    it('should match expected defaults', () => {
+      expect(TokenConstants.USER_INFO_DEFAULT_ATTRIBUTES).toEqual(['sub']);
+    });
+  });
+
+  describe('ADDITIONAL_USER_ATTRIBUTES', () => {
+    it('should be defined', () => {
+      expect(TokenConstants.ADDITIONAL_USER_ATTRIBUTES).toBeDefined();
+    });
+
+    it('should be an array', () => {
+      expect(Array.isArray(TokenConstants.ADDITIONAL_USER_ATTRIBUTES)).toBe(true);
+    });
+
+    it('should contain expected attributes', () => {
+      expect(TokenConstants.ADDITIONAL_USER_ATTRIBUTES).toContain('ouHandle');
+      expect(TokenConstants.ADDITIONAL_USER_ATTRIBUTES).toContain('ouId');
+      expect(TokenConstants.ADDITIONAL_USER_ATTRIBUTES).toContain('ouName');
+      expect(TokenConstants.ADDITIONAL_USER_ATTRIBUTES).toContain('userType');
+    });
+  });
 });

@@ -16,7 +16,7 @@
  * under the License.
  */
 
-import {Stack} from '@wso2/oxygen-ui';
+import {Stack, Checkbox, FormControlLabel, Divider} from '@wso2/oxygen-ui';
 import {useTranslation} from 'react-i18next';
 import {useState, useEffect, useMemo, useRef} from 'react';
 import {useForm} from 'react-hook-form';
@@ -133,7 +133,7 @@ export default function EditTokenSettings({
   const [userSchemas, setUserSchemas] = useState<ApiUserSchema[]>([]);
 
   const {data: userTypesData, isLoading: userTypesLoading} = useGetUserTypes();
-  const [activeTokenType, setActiveTokenType] = useState<'access' | 'id'>('access');
+  const [activeTokenType, setActiveTokenType] = useState<'access' | 'id' | 'userinfo'>('access');
   const [pendingAdditions, setPendingAdditions] = useState<Set<string>>(new Set());
   const [pendingRemovals, setPendingRemovals] = useState<Set<string>>(new Set());
   const [highlightedAttributes, setHighlightedAttributes] = useState<Set<string>>(new Set());
@@ -327,12 +327,83 @@ export default function EditTokenSettings({
     return oauth2Config?.token?.user_attributes ?? application.assertion?.user_attributes ?? [];
   }, [isOAuthMode, oauth2Config, application]);
 
+  const [userinfoEnabled, setUserinfoEnabled] = useState<boolean>(false);
+  const [currentUserInfoAttributes, setCurrentUserInfoAttributes] = useState<string[]>([]);
+
+  // Helper to compare two string arrays ignoring order
+  const areAttributesEqual = (arr1: string[], arr2: string[]): boolean => {
+    if (arr1.length !== arr2.length) return false;
+    const sorted1 = [...arr1].sort();
+    const sorted2 = [...arr2].sort();
+    return sorted1.every((val, index) => val === sorted2[index]);
+  };
+
   const currentAccessTokenAttributes = useMemo(
     () => oauth2Config?.token?.access_token?.user_attributes ?? [],
     [oauth2Config],
   );
 
   const currentIdTokenAttributes = useMemo(() => oauth2Config?.token?.id_token?.user_attributes ?? [], [oauth2Config]);
+
+  // Initialize userinfoEnabled based on config presence and difference from ID token
+  useEffect(() => {
+    if (!isOAuthMode || !oauth2Config) return;
+
+    const idTokenAttrs = oauth2Config.token?.id_token?.user_attributes ?? [];
+
+    const userInfoConfig = oauth2Config.user_info;
+
+    if (userInfoConfig) {
+      const userInfoAttrs = userInfoConfig.user_attributes || [];
+      const idTokenAttrsRef = idTokenAttrs || [];
+      setCurrentUserInfoAttributes(userInfoAttrs);
+      // Enable toggle only if attributes differ from ID token attributes
+      const isDifferent = !areAttributesEqual(userInfoAttrs, idTokenAttrsRef);
+      setUserinfoEnabled(isDifferent);
+    } else {
+      // If user_info is undefined, fallback logic applies, so toggle is OFF
+      setUserinfoEnabled(false);
+      setCurrentUserInfoAttributes(idTokenAttrs);
+    }
+  }, [isOAuthMode, oauth2Config]); // Run when config structure changes
+
+  const handleToggleUserInfo = (checked: boolean) => {
+    setUserinfoEnabled(checked);
+    if (checked) {
+      // When enabling, start with ID token attributes if current UserInfo attrs are empty/undefined
+      if (!oauth2Config?.user_info) {
+        setCurrentUserInfoAttributes([...currentIdTokenAttributes]);
+
+        // Update config immediately to initialize the structure
+        const updatedConfig = {
+          ...oauth2Config,
+          user_info: {
+            user_attributes: [...currentIdTokenAttributes]
+          }
+        };
+
+        const updatedInboundAuth = application.inbound_auth_config?.map((config) => {
+          if (config.type === 'oauth2') {
+            return { ...config, config: updatedConfig };
+          }
+          return config;
+        });
+        onFieldChange('inbound_auth_config', updatedInboundAuth);
+      }
+    } else if (oauth2Config) {
+      // When disabling, remove user_info from config to use fallback
+      const { user_info: userInfo, ...restConfig } = oauth2Config;
+      const updatedConfig = restConfig;
+
+      const updatedInboundAuth = application.inbound_auth_config?.map((config) => {
+        if (config.type === 'oauth2') {
+          return { ...config, config: updatedConfig };
+        }
+        return config;
+      });
+      onFieldChange('inbound_auth_config', updatedInboundAuth);
+    }
+  };
 
   /**
    * Effect to apply pending additions and removals after a debounce period.
@@ -377,7 +448,7 @@ export default function EditTokenSettings({
               return config;
             });
             onFieldChange('inbound_auth_config', updatedInboundAuth);
-          } else {
+          } else if (activeTokenType === 'id') {
             const newAttributes = [
               ...currentIdTokenAttributes,
               ...additionsArray.filter((attr) => !currentIdTokenAttributes.includes(attr)),
@@ -390,6 +461,24 @@ export default function EditTokenSettings({
                   ...oauth2Config.token?.id_token,
                   user_attributes: newAttributes,
                 },
+              },
+            };
+            const updatedInboundAuth = application.inbound_auth_config?.map((config) => {
+              if (config.type === 'oauth2') {
+                return {...config, config: updatedConfig};
+              }
+              return config;
+            });
+            onFieldChange('inbound_auth_config', updatedInboundAuth);
+          } else if (activeTokenType === 'userinfo') {
+            const newAttributes = [
+              ...currentUserInfoAttributes,
+              ...additionsArray.filter((attr) => !currentUserInfoAttributes.includes(attr)),
+            ];
+            const updatedConfig = {
+              ...oauth2Config,
+              user_info: {
+                user_attributes: newAttributes,
               },
             };
             const updatedInboundAuth = application.inbound_auth_config?.map((config) => {
@@ -439,7 +528,7 @@ export default function EditTokenSettings({
               return config;
             });
             onFieldChange('inbound_auth_config', updatedInboundAuth);
-          } else {
+          } else if (activeTokenType === 'id') {
             const newAttributes = currentIdTokenAttributes.filter((attr) => !removalsArray.includes(attr));
             const updatedConfig = {
               ...oauth2Config,
@@ -449,6 +538,21 @@ export default function EditTokenSettings({
                   ...oauth2Config.token?.id_token,
                   user_attributes: newAttributes,
                 },
+              },
+            };
+            const updatedInboundAuth = application.inbound_auth_config?.map((config) => {
+              if (config.type === 'oauth2') {
+                return {...config, config: updatedConfig};
+              }
+              return config;
+            });
+            onFieldChange('inbound_auth_config', updatedInboundAuth);
+          } else if (activeTokenType === 'userinfo') {
+            const newAttributes = currentUserInfoAttributes.filter((attr) => !removalsArray.includes(attr));
+            const updatedConfig = {
+              ...oauth2Config,
+              user_info: {
+                user_attributes: newAttributes,
               },
             };
             const updatedInboundAuth = application.inbound_auth_config?.map((config) => {
@@ -488,6 +592,7 @@ export default function EditTokenSettings({
     activeTokenType,
     currentAccessTokenAttributes,
     currentIdTokenAttributes,
+    currentUserInfoAttributes,
     sharedUserAttributes,
     application.inbound_auth_config,
     application.assertion,
@@ -514,7 +619,9 @@ export default function EditTokenSettings({
     if (pendingRemovals.size > 0) {
       let currentAttrs: string[];
       if (isOAuthMode) {
-        currentAttrs = activeTokenType === 'access' ? currentAccessTokenAttributes : currentIdTokenAttributes;
+        if (activeTokenType === 'access') currentAttrs = currentAccessTokenAttributes;
+        else if (activeTokenType === 'id') currentAttrs = currentIdTokenAttributes;
+        else currentAttrs = currentUserInfoAttributes;
       } else {
         currentAttrs = sharedUserAttributes;
       }
@@ -532,6 +639,7 @@ export default function EditTokenSettings({
   }, [
     currentAccessTokenAttributes,
     currentIdTokenAttributes,
+    currentUserInfoAttributes,
     sharedUserAttributes,
     isOAuthMode,
     activeTokenType,
@@ -540,7 +648,7 @@ export default function EditTokenSettings({
   ]);
 
   // Handle attribute click
-  const handleAttributeClick = (attr: string, tokenType: 'shared' | 'access' | 'id') => {
+  const handleAttributeClick = (attr: string, tokenType: 'shared' | 'access' | 'id' | 'userinfo') => {
     if (tokenType !== 'shared') {
       setActiveTokenType(tokenType);
     }
@@ -550,13 +658,15 @@ export default function EditTokenSettings({
       currentAttributes = sharedUserAttributes;
     } else if (tokenType === 'access') {
       currentAttributes = currentAccessTokenAttributes;
-    } else {
+    } else if (tokenType === 'id') {
       currentAttributes = currentIdTokenAttributes;
+    } else {
+      currentAttributes = currentUserInfoAttributes;
     }
 
     const isAdded = currentAttributes.includes(attr);
-    const isPendingAddition = pendingAdditions.has(attr) && (tokenType === 'shared' || activeTokenType === tokenType);
-    const isPendingRemoval = pendingRemovals.has(attr) && (tokenType === 'shared' || activeTokenType === tokenType);
+    const isPendingAddition = pendingAdditions.has(attr) && (tokenType === 'shared' || tokenType === activeTokenType);
+    const isPendingRemoval = pendingRemovals.has(attr) && (tokenType === 'shared' || tokenType === activeTokenType);
 
     setHighlightedAttributes((prev) => new Set([...prev, attr]));
     const currentlyActive = (isAdded && !isPendingRemoval) || isPendingAddition;
@@ -627,6 +737,39 @@ export default function EditTokenSettings({
 
           {/* ID Token Validation */}
           <TokenValidationSection control={control} errors={errors} tokenType="id" />
+
+          <Divider sx={{my: 2}} />
+
+          {/* User Info Attributes - Always rendered now, but with header action */}
+          <TokenUserAttributesSection
+            tokenType="userinfo"
+            currentAttributes={currentUserInfoAttributes}
+            userAttributes={userAttributes}
+            isLoadingUserAttributes={isLoadingUserAttributes}
+            expandedSections={expandedSections}
+            setExpandedSections={setExpandedSections}
+            pendingAdditions={pendingAdditions}
+            pendingRemovals={pendingRemovals}
+            highlightedAttributes={highlightedAttributes}
+            onAttributeClick={handleAttributeClick}
+            activeTokenType={activeTokenType}
+            oauth2Config={oauth2Config}
+            headerAction={
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={!userinfoEnabled}
+                    onChange={(e) => handleToggleUserInfo(!e.target.checked)}
+                    name="userinfo-inherit"
+                    size="small"
+                  />
+                }
+                label={t('applications:edit.token.inheritFromIdToken', 'Use same attributes as ID Token')}
+                sx={{mr: 0}}
+              />
+            }
+            readOnly={!userinfoEnabled}
+          />
         </>
       ) : (
         <>

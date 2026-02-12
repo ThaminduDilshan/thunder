@@ -1481,3 +1481,60 @@ func (s *FlowMgtServiceTestSuite) TestTryInferRegistrationFlow_DisabledAutoInfer
 	s.mockStore.AssertNotCalled(s.T(), "CreateFlow")
 	mockExecutorRegistry.AssertNotCalled(s.T(), "GetExecutor")
 }
+
+func (s *FlowMgtServiceTestSuite) TestTryInferRegistrationFlow_SkipsPasskeyRegistrationModes() {
+	// Enable auto-inference for this test
+	testConfig := &config.Config{
+		Flow: config.FlowConfig{
+			AutoInferRegistration: true,
+		},
+	}
+	config.ResetThunderRuntime()
+	_ = config.InitializeThunderRuntime("test", testConfig)
+
+	mockExecutorRegistry := executormock.NewExecutorRegistryInterfaceMock(s.T())
+	service := newFlowMgtService(s.mockStore, s.mockInference, s.mockGraphBuilder, mockExecutorRegistry)
+
+	// Auth flow with PasskeyAuthExecutor in register_start and register_finish modes
+	authFlowDef := &FlowDefinition{
+		Handle:   "auth-flow-passkey",
+		Name:     "Auth Flow With Passkey Registration",
+		FlowType: common.FlowTypeAuthentication,
+		Nodes: []NodeDefinition{
+			{ID: "start", Type: "START", OnSuccess: "basic_auth"},
+			{
+				ID:        "basic_auth",
+				Type:      "TASK_EXECUTION",
+				Executor:  &ExecutorDefinition{Name: "BasicAuthExecutor"},
+				OnSuccess: "passkey_register_start",
+			},
+			{
+				ID:   "passkey_register_start",
+				Type: "TASK_EXECUTION",
+				Executor: &ExecutorDefinition{
+					Name: "PasskeyAuthExecutor",
+					Mode: "register_start",
+				},
+				OnSuccess: "passkey_register_finish",
+			},
+			{
+				ID:   "passkey_register_finish",
+				Type: "TASK_EXECUTION",
+				Executor: &ExecutorDefinition{
+					Name: "PasskeyAuthExecutor",
+					Mode: "register_finish",
+				},
+				OnSuccess: "end",
+			},
+			{ID: "end", Type: "END"},
+		},
+	}
+
+	service.(*flowMgtService).tryInferRegistrationFlow("auth-flow-id", authFlowDef)
+
+	// InferRegistrationFlow and CreateFlow should NOT be called because
+	// the auth flow already contains passkey registration modes
+	s.mockInference.AssertNotCalled(s.T(), "InferRegistrationFlow")
+	s.mockStore.AssertNotCalled(s.T(), "CreateFlow")
+	mockExecutorRegistry.AssertNotCalled(s.T(), "GetExecutor")
+}

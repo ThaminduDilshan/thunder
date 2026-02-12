@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025, WSO2 LLC. (https://www.wso2.com).
+ * Copyright (c) 2025-2026, WSO2 LLC. (https://www.wso2.com).
  *
  * WSO2 LLC. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -17,17 +17,12 @@
  */
 
 import type {JSX} from 'react';
-import {useNavigate} from 'react-router';
-import {Box, Stack, Typography, Button} from '@wso2/oxygen-ui';
-import {Plus} from '@wso2/oxygen-ui-icons-react';
+import {Box, Stack, Typography} from '@wso2/oxygen-ui';
 import {useTranslation} from 'react-i18next';
-import {useLogger} from '@thunder/logger/react';
-import OrganizationUnitsList from '../components/OrganizationUnitsList';
+import OrganizationUnitsTreeView from '../components/OrganizationUnitsTreeView';
 
 export default function OrganizationUnitsListPage(): JSX.Element {
-  const navigate = useNavigate();
   const {t} = useTranslation();
-  const logger = useLogger('OrganizationUnitsListPage');
 
   return (
     <Box>
@@ -40,26 +35,9 @@ export default function OrganizationUnitsListPage(): JSX.Element {
             {t('organizationUnits:listing.subtitle')}
           </Typography>
         </Box>
-        <Stack direction="row" spacing={2}>
-          <Button
-            variant="contained"
-            startIcon={<Plus size={18} />}
-            onClick={() => {
-              const handler = async () => {
-                await navigate('/organization-units/create');
-              };
-
-              handler().catch((error: unknown) => {
-                logger.error('Failed to navigate to create organization unit page', {error});
-              });
-            }}
-          >
-            {t('organizationUnits:listing.addOrganizationUnit')}
-          </Button>
-        </Stack>
       </Stack>
 
-      <OrganizationUnitsList />
+      <OrganizationUnitsTreeView />
     </Box>
   );
 }

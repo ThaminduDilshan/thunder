@@ -33,6 +33,7 @@ _How should users update their code/configuration to adapt to the breaking chang
 - [ ] Followed the contribution guidelines.
 - [ ] Manual test round performed and verified.
 - [ ] Documentation provided. (Add links if there are any)
+    - [ ] Ran Vale and fixed all errors and warnings
 - [ ] Tests provided. (Add links if there are any)
     - [ ] Unit Tests
     - [ ] Integration Tests

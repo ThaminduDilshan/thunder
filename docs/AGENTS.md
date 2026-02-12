@@ -36,19 +36,156 @@ You must follow these standards when creating documentation content for Thunder.
 - Keep a professional, friendly, neutral tone.
 - Avoid slang, jokes, sarcasm, and marketing language.
 
-### Terminology and Consistency
+## Terminology and Consistency
 
-- Use consistent product names and feature names.
-- Define acronyms on first use. If the acronym is widely known (for example, API, URL), you can use it without definition.
-- Use the same term for the same concept throughout the document.
-- Use standard technical terms where applicable (for example, “server,” “database,” “API,” “endpoint”).
-- Avoid ambiguous pronouns like “it” or “this” when the referent is unclear.
-- Avoid using "am", "is", "are" as much as possible; prefer strong verbs.
-- Prefer concrete nouns and verbs.
+### 1. Product and Feature Names
 
-### Headings
+- Use official product and feature names exactly as defined.
+- Do not invent shorthand names.
+- Do not change capitalization.
+- Do not alternate between long and short forms unless formally introduced.
 
-- You must use title case for all headings. This includes h1, h2, h3 and all titles. Pronouns need to be capitalized as per standard grammar rules.
+**Correct:**
+- Thunder Console  
+- Passkey Authentication  
+
+**Incorrect:**
+- Thunder console  
+- Console  
+- Passkey auth  
+
+### 2. Acronyms and Abbreviations
+
+- Define acronyms on first use unless universally known (API, URL, JSON, HTTP).
+- After definition, use the acronym consistently.
+- Do not redefine an acronym within the same document.
+- Do not mix expanded and abbreviated forms randomly.
+
+**Correct:**
+
+> Multi-Factor Authentication (MFA)  
+> Enable MFA for the application.
+
+**Incorrect:**
+
+> Multi-Factor Authentication (MFA)  
+> Enable multi-factor authentication for the application.
+
+### 3. Term Consistency
+
+- Use one term per concept.
+- Do not switch terminology mid-document.
+- If two terms are synonymous, choose one and use it consistently.
+
+**Incorrect examples:**
+- application / app  
+- organization / tenant  
+- sign in / login (unless intentionally differentiated)
+
+Consistency overrides preference.
+
+### 4. Use Standard Technical Terminology
+
+- Prefer established technical terms.
+- Avoid inventing alternative phrases for common concepts.
+
+**Prefer:**
+- server  
+- endpoint  
+- token  
+- request  
+- response  
+- database  
+- session  
+
+**Avoid:**
+- backend machine  
+- link point  
+- data store system (unless specific)
+
+### 5. Avoid Ambiguous Pronouns
+
+- Avoid “it,” “this,” “that,” or “they” if the referent is unclear.
+- Replace pronouns with explicit nouns when ambiguity exists.
+
+**Ambiguous:**
+
+> Configure the server and restart it.
+
+**Clear:**
+
+> Configure the server and restart the server.
+
+### 6. Avoid Weak “Be” Verb Constructions
+
+Reduce unnecessary use of:
+- am  
+- is  
+- are  
+- was  
+- were  
+
+Prefer direct verbs.
+
+**Instead of:**
+
+> The configuration is located in `deployment.toml`.
+
+**Write:**
+
+> The configuration file is `deployment.toml`.  
+> Or:  
+> Find the configuration in `deployment.toml`.
+
+**Instead of:**
+
+> The token is used to authenticate requests.
+
+**Write:**
+
+> The token authenticates requests.
+
+Use “is” only when it improves clarity.
+
+### 7. Prefer Concrete Language
+
+- Use precise nouns and strong verbs.
+- Avoid vague verbs such as:
+  - handle  
+  - manage  
+  - deal with  
+  - perform  
+  - utilize  
+
+**Instead of:**
+
+> The system handles authentication.
+
+**Write:**
+
+> The system validates credentials and issues tokens.
+
+### 8. Formal Language Policy
+
+Avoid informal shorthand in prose:
+
+- config → configuration  
+- dev → development  
+- prod → production  
+- env → environment  
+- repo → repository  
+
+These are allowed only inside code blocks, file paths, commands, or environment variable names.
+
+### Heading Capitalization Rules
+
+- Use **Title Case** for all headings (document titles).
+  - Capitalize all major words (nouns, verbs, adjectives, adverbs, and pronouns).
+  - Do not capitalize short articles, coordinating conjunctions, or prepositions unless they are the first or last word.
+
+  Example:
+  `# Configure Passwordless Authentication`
+
 - Use consistent heading levels to reflect document structure.
 - Make headings task-focused and descriptive. Do not use generic headings like “Introduction” or “Details.”
 
@@ -112,62 +249,28 @@ When documenting configuration:
 - Do not reference an image unless the user explicitly confirms it exists and is accessible.
 - Do not make images required to complete a task. Provide text alternatives.
 
-## Example Document Template
 
-For a guide, use the following structure. You must follow this structure exactly. You are free to change the title names where appropriate, but the sections must remain the same and in the same order.
+## Documentation Structure Requirements
 
-### Structure
+All task-based documentation must follow a logical, goal-oriented structure that guides the reader from start to finish. This should only apply to Guides and Tutorials. Community, Reference and API documentation may follow a different structure as appropriate.
 
-- Title
-- Purpose
-- When to Use
-- Prerequisites
-- Steps (numbered procedure)
-- Validate (how to confirm it worked)
-- Troubleshoot (optional)
-- Next Steps (optional)
+The document must clearly communicate:
 
-## Creation Workflow
+- What the reader will achieve.
+- When the task is applicable.
+- What prerequisites are required.
+- How to complete the task (clear, sequential steps).
+- How to confirm the outcome.
+- How to troubleshoot common issues (if applicable).
+- What to do next (related tasks or follow-up actions).
 
-### Step 1: Clarify the User Goal (Internally)
+Each section must build on the previous one and move the reader toward successful task completion.
 
-Before writing, identify:
-
-- Primary user goal (what they want to achieve).
-- Target audience (role, assumed knowledge).
-- Product scope (feature, component, environment).
-- Success criteria (what “done” means).
-
-- If the user request is ambiguous, proceed with reasonable assumptions and clearly state them in a short “Assumptions” section near the top.
-
-### Step 2: Outline Before Drafting
-
-- Create a short outline using the required sections for the chosen document type.
-- Keep the outline aligned with the user’s goal.
-
-### Step 3: Write the First Draft
-
-- Start with the minimal content needed to complete the user goal.
-- Use clear steps and expected outcomes.
-- Keep paragraphs short (2–4 lines where possible).
-
-### Step 4: Add Examples
-
-Add only examples that help complete the task.
-
-- Keep examples minimal.
-- Ensure examples are syntactically correct.
-- Explain what the example does.
-
-### Step 5: Validate for Completeness
-
-Confirm the draft includes:
-
-- A clear outcome in the overview.
-- Prerequisites (if needed).
-- Steps that are executable.
-- Validation guidance.
-- Consistent formatting and terminology.
+Avoid:
+- Unnecessary background information.
+- Repetition.
+- Conceptual digressions unrelated to the task.
+- Sections with no actionable value.
 
 ## Quality Checklist (Must Pass)
 
@@ -182,6 +285,7 @@ Before finalizing output, ensure:
 - No unverified claims or placeholders remain.
 - No secrets or sensitive data appear in examples.
 - After creating content, run Vale locally and resolve all warnings.
+- If Vale flags a word as a spelling error, check whether it is a legitimate product term, technical term, or widely accepted term. If yes, add it to `.vale/styles/config/vocabularies/vocab/accept.txt`. If not, fix the spelling instead.
 
 ## Output Requirements
 
@@ -195,13 +299,8 @@ Before finalizing output, ensure:
 
 Before finalizing documentation output:
 
-- Verify that Vale has been run against the file.
-- If Vale results are available, resolve all reported errors and warnings.
-- If Vale is not installed or Vale results cannot be verified:
-  - Prompt the user to install Vale locally.
-  - Provide the official installation instructions.
-  - Ask the user to rerun Vale and share the results.
-  - Do not assume compliance or guess fixes without Vale feedback.
+- If Vale output is provided, resolve all reported errors and warnings before finalizing.
+- If Vale output is not available, remind the user to run Vale locally.
 
 ### CI Feedback Handling
 
@@ -211,9 +310,6 @@ When Vale feedback is provided through CI checks:
 - Ignore resolved or outdated annotations from previous commits.
 - Do NOT repeat or expand on previously addressed Vale findings.
 - If the latest CI run is clean, do not comment on earlier issues.
-
-Vale installation reference:
-- [Vale CLI installation instructions](https://vale.sh/docs/vale-cli/installation/)
 
 ## Vocabulary Guidelines
 

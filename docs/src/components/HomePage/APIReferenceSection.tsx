@@ -16,17 +16,13 @@
  * under the License.
  */
 
-import React, {JSX, useState} from 'react';
-import {Box, Card, Typography, Container, Stack, IconButton} from '@wso2/oxygen-ui';
-import {ArrowUpRightIcon, ChevronDownIcon, ChevronRightIcon} from '@wso2/oxygen-ui-icons-react';
+import React, {JSX} from 'react';
+import {Box, Card, Typography, Container, Stack} from '@wso2/oxygen-ui';
+import {ChevronDownIcon} from '@wso2/oxygen-ui-icons-react';
 import Head from '@docusaurus/Head';
 import Link from '@docusaurus/Link';
 
 export default function APIReferenceSection(): JSX.Element {
-  const [authExpanded, setAuthExpanded] = useState(true);
-  const [bodyExpanded, setBodyExpanded] = useState(true);
-  const [responseExpanded, setResponseExpanded] = useState(true);
-
   return (
     <Box sx={{px: {xs: 2, sm: 3}}}>
       <Head>
@@ -47,26 +43,6 @@ export default function APIReferenceSection(): JSX.Element {
           color: 'white',
         }}
       >
-        <IconButton
-          component={Link}
-          href="/api"
-          aria-label="API Reference"
-          target="_blank"
-          sx={{
-            position: 'absolute',
-            top: 32,
-            right: 32,
-            width: 64,
-            height: 64,
-            bgcolor: 'rgba(255, 255, 255, 0.1)',
-            '&:hover': {
-              bgcolor: 'rgba(255, 255, 255, 0.2)',
-            },
-          }}
-        >
-          <ArrowUpRightIcon style={{fontSize: 24, color: 'rgba(255, 255, 255, 0.7)'}} />
-        </IconButton>
-
         <Box
           sx={{
             display: 'flex',
@@ -85,7 +61,7 @@ export default function APIReferenceSection(): JSX.Element {
               our comprehensive REST APIs. Manage users, applications, flows, and more programmatically.
             </Typography>
             <Link
-              href="/api"
+              href="/apis"
               style={{
                 color: '#a5b4fc',
                 fontWeight: 500,
@@ -275,7 +251,6 @@ export default function APIReferenceSection(): JSX.Element {
 
                 <Box sx={{mb: 2.5}}>
                   <Box
-                    onClick={() => setAuthExpanded(!authExpanded)}
                     sx={{
                       display: 'flex',
                       alignItems: 'center',
@@ -286,18 +261,8 @@ export default function APIReferenceSection(): JSX.Element {
                       mb: 1,
                       textTransform: 'uppercase',
                       letterSpacing: '0.5px',
-                      cursor: 'pointer',
-                      userSelect: 'none',
-                      '&:hover': {
-                        color: '#1e293b',
-                      },
                     }}
                   >
-                    {authExpanded ? (
-                      <ChevronDownIcon style={{fontSize: 14}} />
-                    ) : (
-                      <ChevronRightIcon style={{fontSize: 14}} />
-                    )}
                     <Typography
                       component="span"
                       sx={{
@@ -310,53 +275,49 @@ export default function APIReferenceSection(): JSX.Element {
                       Authorization
                     </Typography>
                   </Box>
-                  {authExpanded && (
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 1,
+                    }}
+                  >
+                    <Typography
+                      sx={{
+                        fontSize: '0.7rem',
+                        color: '#64748b',
+                        minWidth: '80px',
+                      }}
+                    >
+                      Bearer Token
+                    </Typography>
                     <Box
                       sx={{
+                        flex: 1,
+                        height: 28,
+                        bgcolor: '#f1f5f9',
+                        borderRadius: 1,
+                        border: '1px solid #cbd5e1',
                         display: 'flex',
                         alignItems: 'center',
-                        gap: 1,
-                        ml: 2,
+                        px: 1.5,
                       }}
                     >
                       <Typography
                         sx={{
-                          fontSize: '0.7rem',
-                          color: '#64748b',
-                          minWidth: '80px',
+                          fontSize: '0.65rem',
+                          color: '#94a3b8',
+                          fontFamily: 'monospace',
                         }}
                       >
-                        Bearer Token
+                        eyJhbGciOiJIUzI1NiIsInR5...
                       </Typography>
-                      <Box
-                        sx={{
-                          flex: 1,
-                          height: 28,
-                          bgcolor: '#f1f5f9',
-                          borderRadius: 1,
-                          border: '1px solid #cbd5e1',
-                          display: 'flex',
-                          alignItems: 'center',
-                          px: 1.5,
-                        }}
-                      >
-                        <Typography
-                          sx={{
-                            fontSize: '0.65rem',
-                            color: '#94a3b8',
-                            fontFamily: 'monospace',
-                          }}
-                        >
-                          eyJhbGciOiJIUzI1NiIsInR5...
-                        </Typography>
-                      </Box>
                     </Box>
-                  )}
+                  </Box>
                 </Box>
 
                 <Box>
                   <Box
-                    onClick={() => setBodyExpanded(!bodyExpanded)}
                     sx={{
                       display: 'flex',
                       alignItems: 'center',
@@ -367,18 +328,8 @@ export default function APIReferenceSection(): JSX.Element {
                       mb: 1,
                       textTransform: 'uppercase',
                       letterSpacing: '0.5px',
-                      cursor: 'pointer',
-                      userSelect: 'none',
-                      '&:hover': {
-                        color: '#1e293b',
-                      },
                     }}
                   >
-                    {bodyExpanded ? (
-                      <ChevronDownIcon style={{fontSize: 14}} />
-                    ) : (
-                      <ChevronRightIcon style={{fontSize: 14}} />
-                    )}
                     <Typography
                       component="span"
                       sx={{
@@ -391,170 +342,155 @@ export default function APIReferenceSection(): JSX.Element {
                       Request Body
                     </Typography>
                   </Box>
-                  {bodyExpanded && (
+                  <Box
+                    sx={{
+                      bgcolor: '#0f172a',
+                      borderRadius: 1.5,
+                      p: 2,
+                      fontSize: '0.7rem',
+                      fontFamily: 'Consolas, Monaco, "Courier New", monospace',
+                      lineHeight: 1.7,
+                      border: '1px solid #1e293b',
+                      position: 'relative',
+                    }}
+                  >
                     <Box
                       sx={{
-                        bgcolor: '#0f172a',
-                        borderRadius: 1.5,
-                        p: 2,
-                        ml: 2,
-                        fontSize: '0.7rem',
-                        fontFamily: 'Consolas, Monaco, "Courier New", monospace',
-                        lineHeight: 1.7,
-                        border: '1px solid #1e293b',
-                        position: 'relative',
+                        position: 'absolute',
+                        top: 8,
+                        right: 8,
+                        bgcolor: '#1e293b',
+                        px: 1,
+                        py: 0.5,
+                        borderRadius: 0.5,
+                        fontSize: '0.6rem',
+                        color: '#64748b',
                       }}
                     >
-                      <Box
-                        sx={{
-                          position: 'absolute',
-                          top: 8,
-                          right: 8,
-                          bgcolor: '#1e293b',
-                          px: 1,
-                          py: 0.5,
-                          borderRadius: 0.5,
-                          fontSize: '0.6rem',
-                          color: '#64748b',
-                        }}
-                      >
-                        JSON
+                      JSON
+                    </Box>
+                    <Box sx={{color: '#e2e8f0'}}>
+                      <Box sx={{display: 'flex'}}>
+                        <span
+                          style={{
+                            color: '#475569',
+                            width: '20px',
+                            textAlign: 'right',
+                            marginRight: '12px',
+                            userSelect: 'none',
+                          }}
+                        >
+                          1
+                        </span>
+                        <span style={{color: '#cbd5e1'}}>{'{'}</span>
                       </Box>
-                      <Box sx={{color: '#e2e8f0'}}>
-                        <Box sx={{display: 'flex'}}>
-                          <span
-                            style={{
-                              color: '#475569',
-                              width: '20px',
-                              textAlign: 'right',
-                              marginRight: '12px',
-                              userSelect: 'none',
-                            }}
-                          >
-                            1
-                          </span>
-                          <span style={{color: '#cbd5e1'}}>{'{'}</span>
-                        </Box>
-                        <Box sx={{display: 'flex'}}>
-                          <span
-                            style={{
-                              color: '#475569',
-                              width: '20px',
-                              textAlign: 'right',
-                              marginRight: '12px',
-                              userSelect: 'none',
-                            }}
-                          >
-                            2
-                          </span>
-                          <span>
-                            {'  '}
-                            <span style={{color: '#f472b6'}}>&quot;name&quot;</span>
-                            <span style={{color: '#cbd5e1'}}>: </span>
-                            <span style={{color: '#fbbf24'}}>&quot;My Web Application&quot;</span>
-                            <span style={{color: '#cbd5e1'}}>,</span>
-                          </span>
-                        </Box>
-                        <Box sx={{display: 'flex'}}>
-                          <span
-                            style={{
-                              color: '#475569',
-                              width: '20px',
-                              textAlign: 'right',
-                              marginRight: '12px',
-                              userSelect: 'none',
-                            }}
-                          >
-                            3
-                          </span>
-                          <span>
-                            {'  '}
-                            <span style={{color: '#f472b6'}}>&quot;description&quot;</span>
-                            <span style={{color: '#cbd5e1'}}>: </span>
-                            <span style={{color: '#fbbf24'}}>&quot;Customer portal&quot;</span>
-                            <span style={{color: '#cbd5e1'}}>,</span>
-                          </span>
-                        </Box>
-                        <Box sx={{display: 'flex'}}>
-                          <span
-                            style={{
-                              color: '#475569',
-                              width: '20px',
-                              textAlign: 'right',
-                              marginRight: '12px',
-                              userSelect: 'none',
-                            }}
-                          >
-                            4
-                          </span>
-                          <span>
-                            {'  '}
-                            <span style={{color: '#f472b6'}}>&quot;auth_flow_id&quot;</span>
-                            <span style={{color: '#cbd5e1'}}>: </span>
-                            <span style={{color: '#fbbf24'}}>&quot;edc013d0-e893-4dc0...&quot;</span>
-                            <span style={{color: '#cbd5e1'}}>,</span>
-                          </span>
-                        </Box>
-                        <Box sx={{display: 'flex'}}>
-                          <span
-                            style={{
-                              color: '#475569',
-                              width: '20px',
-                              textAlign: 'right',
-                              marginRight: '12px',
-                              userSelect: 'none',
-                            }}
-                          >
-                            5
-                          </span>
-                          <span>
-                            {'  '}
-                            <span style={{color: '#f472b6'}}>&quot;template&quot;</span>
-                            <span style={{color: '#cbd5e1'}}>: </span>
-                            <span style={{color: '#fbbf24'}}>&quot;spa&quot;</span>
-                          </span>
-                        </Box>
-                        <Box sx={{display: 'flex'}}>
-                          <span
-                            style={{
-                              color: '#475569',
-                              width: '20px',
-                              textAlign: 'right',
-                              marginRight: '12px',
-                              userSelect: 'none',
-                            }}
-                          >
-                            6
-                          </span>
-                          <span style={{color: '#cbd5e1'}}>{'}'}</span>
-                        </Box>
+                      <Box sx={{display: 'flex'}}>
+                        <span
+                          style={{
+                            color: '#475569',
+                            width: '20px',
+                            textAlign: 'right',
+                            marginRight: '12px',
+                            userSelect: 'none',
+                          }}
+                        >
+                          2
+                        </span>
+                        <span>
+                          {'  '}
+                          <span style={{color: '#f472b6'}}>&quot;name&quot;</span>
+                          <span style={{color: '#cbd5e1'}}>: </span>
+                          <span style={{color: '#fbbf24'}}>&quot;My Web Application&quot;</span>
+                          <span style={{color: '#cbd5e1'}}>,</span>
+                        </span>
+                      </Box>
+                      <Box sx={{display: 'flex'}}>
+                        <span
+                          style={{
+                            color: '#475569',
+                            width: '20px',
+                            textAlign: 'right',
+                            marginRight: '12px',
+                            userSelect: 'none',
+                          }}
+                        >
+                          3
+                        </span>
+                        <span>
+                          {'  '}
+                          <span style={{color: '#f472b6'}}>&quot;description&quot;</span>
+                          <span style={{color: '#cbd5e1'}}>: </span>
+                          <span style={{color: '#fbbf24'}}>&quot;Customer portal&quot;</span>
+                          <span style={{color: '#cbd5e1'}}>,</span>
+                        </span>
+                      </Box>
+                      <Box sx={{display: 'flex'}}>
+                        <span
+                          style={{
+                            color: '#475569',
+                            width: '20px',
+                            textAlign: 'right',
+                            marginRight: '12px',
+                            userSelect: 'none',
+                          }}
+                        >
+                          4
+                        </span>
+                        <span>
+                          {'  '}
+                          <span style={{color: '#f472b6'}}>&quot;auth_flow_id&quot;</span>
+                          <span style={{color: '#cbd5e1'}}>: </span>
+                          <span style={{color: '#fbbf24'}}>&quot;edc013d0-e893-4dc0...&quot;</span>
+                          <span style={{color: '#cbd5e1'}}>,</span>
+                        </span>
+                      </Box>
+                      <Box sx={{display: 'flex'}}>
+                        <span
+                          style={{
+                            color: '#475569',
+                            width: '20px',
+                            textAlign: 'right',
+                            marginRight: '12px',
+                            userSelect: 'none',
+                          }}
+                        >
+                          5
+                        </span>
+                        <span>
+                          {'  '}
+                          <span style={{color: '#f472b6'}}>&quot;template&quot;</span>
+                          <span style={{color: '#cbd5e1'}}>: </span>
+                          <span style={{color: '#fbbf24'}}>&quot;spa&quot;</span>
+                        </span>
+                      </Box>
+                      <Box sx={{display: 'flex'}}>
+                        <span
+                          style={{
+                            color: '#475569',
+                            width: '20px',
+                            textAlign: 'right',
+                            marginRight: '12px',
+                            userSelect: 'none',
+                          }}
+                        >
+                          6
+                        </span>
+                        <span style={{color: '#cbd5e1'}}>{'}'}</span>
                       </Box>
                     </Box>
-                  )}
+                  </Box>
                 </Box>
 
                 <Box sx={{mt: 2.5}}>
                   <Box
-                    onClick={() => setResponseExpanded(!responseExpanded)}
                     sx={{
                       display: 'flex',
                       alignItems: 'center',
                       gap: 0.5,
                       mb: 1,
-                      cursor: 'pointer',
-                      userSelect: 'none',
-                      '&:hover .response-title': {
-                        color: '#1e293b',
-                      },
                     }}
                   >
-                    {responseExpanded ? (
-                      <ChevronDownIcon style={{fontSize: 14, color: '#475569'}} />
-                    ) : (
-                      <ChevronRightIcon style={{fontSize: 14, color: '#475569'}} />
-                    )}
                     <Typography
-                      className="response-title"
                       sx={{
                         fontSize: '0.7rem',
                         fontWeight: 600,
@@ -579,22 +515,19 @@ export default function APIReferenceSection(): JSX.Element {
                       201
                     </Box>
                   </Box>
-                  {responseExpanded && (
-                    <Box
-                      sx={{
-                        bgcolor: '#f8fafc',
-                        borderRadius: 1,
-                        p: 1.5,
-                        ml: 2,
-                        fontSize: '0.65rem',
-                        fontFamily: 'monospace',
-                        color: '#64748b',
-                        border: '1px solid #e2e8f0',
-                      }}
-                    >
-                      Application created successfully
-                    </Box>
-                  )}
+                  <Box
+                    sx={{
+                      bgcolor: '#f8fafc',
+                      borderRadius: 1,
+                      p: 1.5,
+                      fontSize: '0.65rem',
+                      fontFamily: 'monospace',
+                      color: '#64748b',
+                      border: '1px solid #e2e8f0',
+                    }}
+                  >
+                    Application created successfully
+                  </Box>
                 </Box>
               </Box>
             </Card>

@@ -98,6 +98,8 @@ func (n *taskExecutionNode) Execute(ctx *NodeContext) (*common.NodeResponse, *se
 	// Set executor mode in context
 	ctx.ExecutorMode = n.mode
 
+	n.enrichRuntimeData(ctx)
+
 	execResp, svcErr := n.triggerExecutor(ctx, logger)
 	if svcErr != nil {
 		return nil, svcErr
@@ -123,6 +125,26 @@ func (n *taskExecutionNode) Execute(ctx *NodeContext) (*common.NodeResponse, *se
 	}
 
 	return nodeResp, nil
+}
+
+// enrichRuntimeData initializes the runtime data map and attaches identifiers like application, IDP,
+// and sender IDs so downstream executors and placeholders can use them.
+func (n *taskExecutionNode) enrichRuntimeData(ctx *NodeContext) {
+	if ctx.RuntimeData == nil {
+		ctx.RuntimeData = make(map[string]string)
+	}
+
+	if ctx.AppID != "" {
+		ctx.RuntimeData["applicationId"] = ctx.AppID
+	}
+
+	if idpID, ok := ctx.NodeProperties["idpId"].(string); ok && idpID != "" {
+		ctx.RuntimeData["idpId"] = idpID
+	}
+
+	if senderID, ok := ctx.NodeProperties["senderId"].(string); ok && senderID != "" {
+		ctx.RuntimeData["senderId"] = senderID
+	}
 }
 
 // triggerExecutor triggers the executor configured for the node.

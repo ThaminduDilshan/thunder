@@ -443,16 +443,3 @@ func isZeroValue(v reflect.Value) bool {
 		return false
 	}
 }
-
-// Store modes for Declarative configurations.
-const (
-	// StoreModeMutable uses only the database store. All OUs are mutable and support full CRUD.
-	StoreModeMutable = "mutable"
-
-	// StoreModeDeclarative uses only the file-based store. All OUs are declarative (read-only from YAML).
-	StoreModeDeclarative = "declarative"
-
-	// StoreModeComposite (hybrid) uses both file-based (declarative) and database (mutable) stores.
-	// Reads merge both stores, writes only go to database store.
-	StoreModeComposite = "composite"
-)

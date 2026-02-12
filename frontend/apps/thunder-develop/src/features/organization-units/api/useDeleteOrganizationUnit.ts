@@ -79,6 +79,10 @@ export default function useDeleteOrganizationUnit(): UseMutationResult<void, Err
       queryClient.invalidateQueries({queryKey: [OrganizationUnitQueryKeys.ORGANIZATION_UNITS]}).catch(() => {
         // Ignore invalidation errors
       });
+      // Invalidate child OUs cache so tree view reflects the deletion
+      queryClient.invalidateQueries({queryKey: [OrganizationUnitQueryKeys.CHILD_ORGANIZATION_UNITS]}).catch(() => {
+        // Ignore invalidation errors
+      });
     },
   });
 }

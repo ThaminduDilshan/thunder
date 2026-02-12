@@ -24,6 +24,7 @@ import (
 
 	"github.com/asgardeo/thunder/internal/system/declarative_resource/entity"
 
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -355,14 +356,38 @@ func (suite *CompositeStoreTestSuite) TestCompositeStore_ListOperations() {
 		suite.NoError(err)
 		suite.Len(list, 3) // 2 from DB + 1 from file
 
-		// Verify all OUs are present
+		// Verify all OUs are present and verify IsReadOnly flags
 		ids := make(map[string]bool)
 		for _, ou := range list {
 			ids[ou.ID] = true
+			// Verify IsReadOnly flags are correct
+			if ou.ID == "db-ou-1" || ou.ID == "db-ou-2" {
+				suite.False(ou.IsReadOnly, "DB OU %s should have IsReadOnly=false", ou.ID)
+			} else if ou.ID == "file-ou-1" {
+				suite.True(ou.IsReadOnly, "File OU %s should have IsReadOnly=true", ou.ID)
+			}
 		}
 		suite.True(ids["db-ou-1"])
 		suite.True(ids["db-ou-2"])
 		suite.True(ids["file-ou-1"])
+	})
+
+	suite.Run("GetOrganizationUnitList caps results to max composite limit", func() {
+		fileStoreMock := newOrganizationUnitStoreInterfaceMock(suite.T())
+		suite.dbStoreMock = newOrganizationUnitStoreInterfaceMock(suite.T())
+		suite.compositeStore = newCompositeOUStore(fileStoreMock, suite.dbStoreMock)
+
+		suite.dbStoreMock.On("GetOrganizationUnitListCount").Return(600, nil).Once()
+		fileStoreMock.On("GetOrganizationUnitListCount").Return(700, nil).Once()
+
+		result, err := suite.compositeStore.GetOrganizationUnitList(100, 900)
+		// When limit is exceeded (1300 > 1000), should return error
+		suite.Error(err)
+		suite.ErrorIs(err, ErrResultLimitExceededInCompositeMode)
+		suite.Nil(result)
+
+		suite.dbStoreMock.AssertNotCalled(suite.T(), "GetOrganizationUnitList", mock.Anything, mock.Anything)
+		fileStoreMock.AssertNotCalled(suite.T(), "GetOrganizationUnitList", mock.Anything, mock.Anything)
 	})
 
 	suite.Run("user/group operations use DB store only", func() {
@@ -902,9 +927,64 @@ func (suite *CompositeStoreCoverageTestSuite) TestCompositeStore_UserAndGroupOpe
 	})
 }
 
+// TestMergeAndDeduplicateOUs tests the merge helper function for OUs.
+func (suite *CompositeStoreCoverageTestSuite) TestMergeAndDeduplicateOUs() {
+	suite.Run("marks DB OUs as mutable and file OUs as immutable", func() {
+		dbOUs := []OrganizationUnitBasic{
+			{ID: "db-1", Handle: "db1", Name: "DB 1"},
+			{ID: "db-2", Handle: "db2", Name: "DB 2"},
+		}
+		fileOUs := []OrganizationUnitBasic{
+			{ID: "file-1", Handle: "file1", Name: "File 1"},
+			{ID: "file-2", Handle: "file2", Name: "File 2"},
+		}
+
+		result := mergeAndDeduplicateOUs(dbOUs, fileOUs)
+		suite.Len(result, 4)
+
+		// Verify IsReadOnly flags
+		for _, ou := range result {
+			if ou.ID == "db-1" || ou.ID == "db-2" {
+				suite.False(ou.IsReadOnly, "DB OU %s should have IsReadOnly=false", ou.ID)
+			} else if ou.ID == "file-1" || ou.ID == "file-2" {
+				suite.True(ou.IsReadOnly, "File OU %s should have IsReadOnly=true", ou.ID)
+			}
+		}
+	})
+
+	suite.Run("DB takes precedence for duplicate IDs and marks as mutable", func() {
+		dbOUs := []OrganizationUnitBasic{
+			{ID: "duplicate", Handle: "db-handle", Name: "DB OU"},
+		}
+		fileOUs := []OrganizationUnitBasic{
+			{ID: "duplicate", Handle: "file-handle", Name: "File OU"},
+		}
+
+		result := mergeAndDeduplicateOUs(dbOUs, fileOUs)
+		suite.Len(result, 1)
+		suite.Equal("db-handle", result[0].Handle)
+		suite.False(result[0].IsReadOnly, "DB OU should be marked as mutable (IsReadOnly=false)")
+	})
+
+	suite.Run("handles empty slices and sets correct IsReadOnly", func() {
+		result := mergeAndDeduplicateOUs([]OrganizationUnitBasic{}, []OrganizationUnitBasic{})
+		suite.Empty(result)
+
+		dbOUs := []OrganizationUnitBasic{{ID: "db-1", Handle: "db1", Name: "DB 1"}}
+		result = mergeAndDeduplicateOUs(dbOUs, []OrganizationUnitBasic{})
+		suite.Len(result, 1)
+		suite.False(result[0].IsReadOnly, "DB OU should have IsReadOnly=false")
+
+		fileOUs := []OrganizationUnitBasic{{ID: "file-1", Handle: "file1", Name: "File 1"}}
+		result = mergeAndDeduplicateOUs([]OrganizationUnitBasic{}, fileOUs)
+		suite.Len(result, 1)
+		suite.True(result[0].IsReadOnly, "File OU should have IsReadOnly=true")
+	})
+}
+
 // TestMergeAndDeduplicateChildren tests the merge helper function.
 func (suite *CompositeStoreCoverageTestSuite) TestMergeAndDeduplicateChildren() {
-	suite.Run("merges without duplicates", func() {
+	suite.Run("merges without duplicates and sets IsReadOnly flags", func() {
 		dbChildren := []OrganizationUnitBasic{
 			{ID: "db-1", Handle: "db1", Name: "DB 1"},
 			{ID: "db-2", Handle: "db2", Name: "DB 2"},
@@ -915,9 +995,18 @@ func (suite *CompositeStoreCoverageTestSuite) TestMergeAndDeduplicateChildren() 
 
 		result := mergeAndDeduplicateChildren(dbChildren, fileChildren)
 		suite.Len(result, 3)
+
+		// Verify IsReadOnly flags
+		for _, child := range result {
+			if child.ID == "db-1" || child.ID == "db-2" {
+				suite.False(child.IsReadOnly, "DB child %s should have IsReadOnly=false", child.ID)
+			} else if child.ID == "file-1" {
+				suite.True(child.IsReadOnly, "File child %s should have IsReadOnly=true", child.ID)
+			}
+		}
 	})
 
-	suite.Run("removes duplicates and DB takes precedence", func() {
+	suite.Run("removes duplicates with DB taking precedence and marked as mutable", func() {
 		dbChildren := []OrganizationUnitBasic{
 			{ID: "child-1", Handle: "db-handle", Name: "DB Child"},
 		}
@@ -928,22 +1017,25 @@ func (suite *CompositeStoreCoverageTestSuite) TestMergeAndDeduplicateChildren() 
 		result := mergeAndDeduplicateChildren(dbChildren, fileChildren)
 		suite.Len(result, 1)
 		suite.Equal("db-handle", result[0].Handle)
+		suite.False(result[0].IsReadOnly, "DB child should be marked as mutable (IsReadOnly=false)")
 	})
 
-	suite.Run("handles empty slices", func() {
+	suite.Run("handles empty slices and sets correct IsReadOnly", func() {
 		result := mergeAndDeduplicateChildren([]OrganizationUnitBasic{}, []OrganizationUnitBasic{})
 		suite.Empty(result)
 
 		dbChildren := []OrganizationUnitBasic{{ID: "db-1", Handle: "db1", Name: "DB 1"}}
 		result = mergeAndDeduplicateChildren(dbChildren, []OrganizationUnitBasic{})
 		suite.Len(result, 1)
+		suite.False(result[0].IsReadOnly, "DB child should have IsReadOnly=false")
 
 		fileChildren := []OrganizationUnitBasic{{ID: "file-1", Handle: "file1", Name: "File 1"}}
 		result = mergeAndDeduplicateChildren([]OrganizationUnitBasic{}, fileChildren)
 		suite.Len(result, 1)
+		suite.True(result[0].IsReadOnly, "File child should have IsReadOnly=true")
 	})
 
-	suite.Run("handles multiple duplicates", func() {
+	suite.Run("handles multiple duplicates with correct IsReadOnly flags", func() {
 		dbChildren := []OrganizationUnitBasic{
 			{ID: "child-1", Handle: "db1", Name: "DB 1"},
 			{ID: "child-2", Handle: "db2", Name: "DB 2"},
@@ -959,12 +1051,15 @@ func (suite *CompositeStoreCoverageTestSuite) TestMergeAndDeduplicateChildren() 
 		for _, child := range result {
 			if child.ID == "child-1" {
 				suite.Equal("db1", child.Handle)
+				suite.False(child.IsReadOnly, "DB child %s should have IsReadOnly=false", child.ID)
 			}
 			if child.ID == "child-2" {
 				suite.Equal("db2", child.Handle)
+				suite.False(child.IsReadOnly, "DB child %s should have IsReadOnly=false", child.ID)
 			}
 			if child.ID == "child-3" {
 				suite.Equal("file3", child.Handle)
+				suite.True(child.IsReadOnly, "File child %s should have IsReadOnly=true", child.ID)
 			}
 		}
 	})

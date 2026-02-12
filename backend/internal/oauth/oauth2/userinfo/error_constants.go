@@ -45,4 +45,12 @@ var (
 		Error:            "Invalid access token",
 		ErrorDescription: "UserInfo endpoint is not applicable for client_credentials grant type",
 	}
+
+	// errorInsufficientScope is returned when the access token lacks the required 'openid' scope
+	errorInsufficientScope = serviceerror.ServiceError{
+		Type:             serviceerror.ClientErrorType,
+		Code:             "insufficient_scope",
+		Error:            "Insufficient scope",
+		ErrorDescription: "The 'openid' scope is required for this request",
+	}
 )

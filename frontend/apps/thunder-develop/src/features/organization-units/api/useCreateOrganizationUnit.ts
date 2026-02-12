@@ -81,6 +81,10 @@ export default function useCreateOrganizationUnit(): UseMutationResult<
       queryClient.invalidateQueries({queryKey: [OrganizationUnitQueryKeys.ORGANIZATION_UNITS]}).catch(() => {
         // Ignore invalidation errors
       });
+      // Invalidate child OUs cache so tree view picks up the new child
+      queryClient.invalidateQueries({queryKey: [OrganizationUnitQueryKeys.CHILD_ORGANIZATION_UNITS]}).catch(() => {
+        // Ignore invalidation errors
+      });
     },
   });
 }

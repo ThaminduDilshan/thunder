@@ -98,6 +98,10 @@ func (ous *organizationUnitService) GetOrganizationUnitList(limit, offset int) (
 
 	ouList, err := ous.ouStore.GetOrganizationUnitList(limit, offset)
 	if err != nil {
+		// Check if it's a limit exceeded error
+		if errors.Is(err, ErrResultLimitExceededInCompositeMode) {
+			return nil, &ErrorResultLimitExceeded
+		}
 		logger.Error("Failed to list organization units", log.Error(err))
 		return nil, &ErrorInternalServerError
 	}
@@ -533,6 +537,7 @@ func (ous *organizationUnitService) GetOrganizationUnitUsers(
 			return ous.ouStore.GetOrganizationUnitUsersList(id, limit, offset)
 		},
 		ous.ouStore.GetOrganizationUnitUsersCount,
+		false, // No composite error mapping for users
 	)
 	if svcErr != nil {
 		return nil, svcErr
@@ -550,6 +555,7 @@ func (ous *organizationUnitService) GetOrganizationUnitGroups(
 			return ous.ouStore.GetOrganizationUnitGroupsList(id, limit, offset)
 		},
 		ous.ouStore.GetOrganizationUnitGroupsCount,
+		false, // No composite error mapping for groups
 	)
 	if svcErr != nil {
 		return nil, svcErr
@@ -567,6 +573,7 @@ func (ous *organizationUnitService) GetOrganizationUnitChildren(
 			return ous.ouStore.GetOrganizationUnitChildrenList(id, limit, offset)
 		},
 		ous.ouStore.GetOrganizationUnitChildrenCount,
+		true, // Map composite limit error for children
 	)
 	if svcErr != nil {
 		return nil, svcErr
@@ -771,10 +778,12 @@ func buildPaginationLinks(limit, offset, totalCount int) []Link {
 
 // getResourceListWithExistenceCheck is a generic function to get resources for an
 // organization unit with existence check.
+// If mapCompositeError is true, it will map ErrResultLimitExceededInCompositeMode to ErrorResultLimitExceeded.
 func (ous *organizationUnitService) getResourceListWithExistenceCheck(
 	id string, limit, offset int, resourceType string,
 	getListFunc func(string, int, int) (interface{}, error),
 	getCountFunc func(string) (int, error),
+	mapCompositeError bool,
 ) (interface{}, int, *serviceerror.ServiceError) {
 	logger := log.GetLogger().With(log.String(log.LoggerKeyComponentName, loggerComponentNameService))
 	logger.Debug("Getting resource for organization unit", log.String("resource_type", resourceType),
@@ -796,6 +805,10 @@ func (ous *organizationUnitService) getResourceListWithExistenceCheck(
 
 	items, err := getListFunc(id, limit, offset)
 	if err != nil {
+		// Map composite limit error if requested
+		if mapCompositeError && errors.Is(err, ErrResultLimitExceededInCompositeMode) {
+			return nil, 0, &ErrorResultLimitExceeded
+		}
 		logger.Error("Failed to list resource", log.String("resource_type", resourceType), log.Error(err))
 		return nil, 0, &ErrorInternalServerError
 	}

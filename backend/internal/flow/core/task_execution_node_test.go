@@ -340,6 +340,42 @@ func (s *TaskExecutionNodeTestSuite) TestExecuteWithMode() {
 	s.Equal("send", capturedCtx.ExecutorMode, "Mode should be set in context before calling executor")
 }
 
+func (s *TaskExecutionNodeTestSuite) TestExecuteEnrichesRuntimeData() {
+	mockExec := NewExecutorInterfaceMock(s.T())
+	props := map[string]interface{}{
+		"idpId":    "idp-123",
+		"senderId": "sender-456",
+	}
+	node := newTaskExecutionNode("task-1", props, false, false)
+	execNode, _ := node.(ExecutorBackedNodeInterface)
+
+	var capturedCtx *NodeContext
+	mockExec.On("GetName").Return("test-executor").Once()
+	mockExec.On("Execute", mock.Anything).Run(func(args mock.Arguments) {
+		capturedCtx = args.Get(0).(*NodeContext)
+	}).Return(
+		&common.ExecutorResponse{Status: common.ExecComplete}, nil,
+	).Once()
+
+	execNode.SetExecutor(mockExec)
+
+	ctx := &NodeContext{
+		FlowID:      "test-flow",
+		AppID:       "app-789",
+		RuntimeData: map[string]string{"existing": "value"},
+	}
+	resp, err := node.Execute(ctx)
+
+	s.Nil(err)
+	s.NotNil(resp)
+	s.NotNil(capturedCtx)
+	s.Equal("value", capturedCtx.RuntimeData["existing"])
+	s.Equal("app-789", capturedCtx.RuntimeData["applicationId"])
+	s.Equal("idp-123", capturedCtx.RuntimeData["idpId"])
+	s.Equal("sender-456", capturedCtx.RuntimeData["senderId"])
+	s.Equal("app-789", ctx.RuntimeData["applicationId"])
+}
+
 func (s *TaskExecutionNodeTestSuite) TestOnSuccessMethods() {
 	node := newTaskExecutionNode("task-1", map[string]interface{}{}, false, false)
 	execNode, ok := node.(ExecutorBackedNodeInterface)

@@ -22,7 +22,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/asgardeo/thunder/internal/system/config"
+	serverconst "github.com/asgardeo/thunder/internal/system/constants"
 	declarativeresource "github.com/asgardeo/thunder/internal/system/declarative_resource"
 	"github.com/asgardeo/thunder/internal/system/middleware"
 )
@@ -77,7 +77,7 @@ func initializeStore() (organizationUnitStoreInterface, error) {
 	storeMode := getOrganizationUnitStoreMode()
 
 	switch storeMode {
-	case config.StoreModeComposite:
+	case serverconst.StoreModeComposite:
 		fileStore := newFileBasedStore()
 		dbStore := newOrganizationUnitStore()
 		ouStore = newCompositeOUStore(fileStore, dbStore)
@@ -85,7 +85,7 @@ func initializeStore() (organizationUnitStoreInterface, error) {
 			return nil, err
 		}
 
-	case config.StoreModeDeclarative:
+	case serverconst.StoreModeDeclarative:
 		fileStore := newFileBasedStore()
 		ouStore = fileStore
 

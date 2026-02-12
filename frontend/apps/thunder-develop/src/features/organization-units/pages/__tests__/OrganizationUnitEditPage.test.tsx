@@ -98,6 +98,13 @@ vi.mock('../../api/useGetOrganizationUnitGroups', () => ({
   }),
 }));
 
+// Mock useOrganizationUnit hook
+vi.mock('../../contexts/useOrganizationUnit', () => ({
+  default: () => ({
+    resetTreeState: vi.fn(),
+  }),
+}));
+
 // Mock useDataGridLocaleText
 vi.mock('../../../../hooks/useDataGridLocaleText', () => ({
   default: () => ({}),

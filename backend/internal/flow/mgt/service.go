@@ -536,6 +536,14 @@ func (s *flowMgtService) tryInferRegistrationFlow(authFlowID string, authFlowDef
 		return
 	}
 
+	// Check if auth flow already contains PasskeyAuthExecutor with registration modes
+	// If so, skip registration flow inference as the auth flow handles registration internally
+	if s.hasPasskeyRegistrationModes(authFlowDef) {
+		logger.Debug("Authentication flow contains PasskeyAuthExecutor with " +
+			"register_start and register_finish modes, skipping registration inference")
+		return
+	}
+
 	logger.Debug("Inferring registration flow from authentication flow",
 		log.String("flowName", authFlowDef.Name))
 
@@ -602,4 +610,28 @@ func (s *flowMgtService) applyExecutorDefaultMeta(flowDef *FlowDefinition) *serv
 	}
 
 	return nil
+}
+
+// hasPasskeyRegistrationModes checks if the flow contains PasskeyAuthExecutor with both
+// register_start and register_finish modes, indicating the auth flow handles passkey registration internally.
+func (s *flowMgtService) hasPasskeyRegistrationModes(flowDef *FlowDefinition) bool {
+	hasRegStart := false
+	hasRegFinish := false
+
+	for _, node := range flowDef.Nodes {
+		if node.Executor != nil && node.Executor.Name == executor.ExecutorNamePasskeyAuth {
+			switch node.Executor.Mode {
+			case "register_start":
+				hasRegStart = true
+			case "register_finish":
+				hasRegFinish = true
+			}
+		}
+		// Early exit if both modes are found
+		if hasRegStart && hasRegFinish {
+			return true
+		}
+	}
+
+	return hasRegStart && hasRegFinish
 }

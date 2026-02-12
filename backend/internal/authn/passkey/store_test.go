@@ -323,36 +323,6 @@ func (suite *SessionStoreTestSuite) TestDeleteSession_ExecuteError() {
 	suite.Error(err)
 }
 
-func (suite *SessionStoreTestSuite) TestDeleteExpiredSessions_Success() {
-	suite.mockDBProvider.On("GetRuntimeDBClient").Return(suite.mockDBClient, nil).Once()
-	suite.mockDBClient.On("Execute", mock.AnythingOfType("model.DBQuery"),
-		mock.AnythingOfType("time.Time"), "test-deployment-id").
-		Return(int64(5), nil).Once()
-
-	err := suite.store.deleteExpiredSessions()
-
-	suite.NoError(err)
-}
-
-func (suite *SessionStoreTestSuite) TestDeleteExpiredSessions_DBClientError() {
-	suite.mockDBProvider.On("GetRuntimeDBClient").Return(nil, assert.AnError).Once()
-
-	err := suite.store.deleteExpiredSessions()
-
-	suite.Error(err)
-}
-
-func (suite *SessionStoreTestSuite) TestDeleteExpiredSessions_ExecuteError() {
-	suite.mockDBProvider.On("GetRuntimeDBClient").Return(suite.mockDBClient, nil).Once()
-	suite.mockDBClient.On("Execute", mock.AnythingOfType("model.DBQuery"),
-		mock.AnythingOfType("time.Time"), "test-deployment-id").
-		Return(int64(0), assert.AnError).Once()
-
-	err := suite.store.deleteExpiredSessions()
-
-	suite.Error(err)
-}
-
 func (suite *SessionStoreTestSuite) TestSerializeSessionData_MinimalData() {
 	sessionData := &sessionData{
 		Challenge:        "challenge123",

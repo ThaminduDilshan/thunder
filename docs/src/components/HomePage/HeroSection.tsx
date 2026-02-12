@@ -187,7 +187,7 @@ export default function HeroSection(): JSX.Element {
               mt: 4,
               display: 'flex',
               gap: 3,
-              flexWrap: 'wrap',
+              flexWrap: 'nowrap',
               alignItems: 'center',
               justifyContent: 'center',
               maxWidth: '1100px',
@@ -200,9 +200,9 @@ export default function HeroSection(): JSX.Element {
               },
             }}
           >
-            <LoginBox variant="social" sx={{mr: '-100px'}} />
+            <LoginBox variant="social" sx={{mr: {xs: 0, md: '-100px'}, display: {xs: 'none', md: 'block'}}} />
             <LoginBox variant="email" sx={{zIndex: 1}} />
-            <LoginBox variant="mfa" sx={{ml: '-100px'}} />
+            <LoginBox variant="mfa" sx={{ml: {xs: 0, md: '-100px'}, display: {xs: 'none', md: 'block'}}} />
           </Box>
         </Box>
       </Container>

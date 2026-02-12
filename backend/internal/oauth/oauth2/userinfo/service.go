@@ -20,6 +20,8 @@
 package userinfo
 
 import (
+	"slices"
+
 	"github.com/asgardeo/thunder/internal/application"
 	appmodel "github.com/asgardeo/thunder/internal/application/model"
 	"github.com/asgardeo/thunder/internal/oauth/oauth2/constants"
@@ -86,8 +88,10 @@ func (s *userInfoService) GetUserInfo(accessToken string) (map[string]interface{
 	}
 
 	scopes := s.extractScopes(tokenClaims)
-	if len(scopes) == 0 {
-		return map[string]interface{}{"sub": sub}, nil
+
+	// Validate that the 'openid' scope is present
+	if svcErr := s.validateOpenIDScope(scopes); svcErr != nil {
+		return nil, svcErr
 	}
 
 	oauthApp := s.getOAuthApp(tokenClaims)
@@ -174,6 +178,16 @@ func (s *userInfoService) extractScopes(claims map[string]interface{}) []string 
 	}
 
 	return tokenservice.ParseScopes(scopeString)
+}
+
+// validateOpenIDScope validates that the access token contains the required 'openid' scope.
+func (s *userInfoService) validateOpenIDScope(scopes []string) *serviceerror.ServiceError {
+	if !slices.Contains(scopes, "openid") {
+		s.logger.Debug("UserInfo request missing required 'openid' scope",
+			log.String("scopes", tokenservice.JoinScopes(scopes)))
+		return &errorInsufficientScope
+	}
+	return nil
 }
 
 // getOAuthApp retrieves the OAuth application configuration if client_id is present in claims.

@@ -711,7 +711,6 @@ components:
           type: string
           format: uuid
           description: The ID of the layout configuration associated with this application.
-          example: "770e8400-e29b-41d4-a716-446655440002"
           example: "660e8400-e29b-41d4-a716-446655440001"
         template:
           type: string
@@ -801,7 +800,6 @@ components:
           format: uuid
           description: The ID of the layout configuration associated with this application.
           example: "770e8400-e29b-41d4-a716-446655440002"
-          example: "660e8400-e29b-41d4-a716-446655440001"
         template:
           type: string
           description: The template type of the application.
@@ -895,7 +893,6 @@ components:
           format: uuid
           description: The ID of the layout configuration associated with this application.
           example: "770e8400-e29b-41d4-a716-446655440002"
-          example: "660e8400-e29b-41d4-a716-446655440001"
         template:
           type: string
           description: The template type of the application.

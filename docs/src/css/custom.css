@@ -91,11 +91,19 @@
   --ifm-menu-color-background-hover: none;
 
   --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.1);
+
+  /* Body Background */
+  --site-background-attachment: fixed;
+  --site-background-blend-mode: normal;
+  --site-background: radial-gradient(circle at 65% 30%, rgba(255, 116, 0, 0.1) 10%, rgba(255, 255, 255, 0) 40% 40%), radial-gradient(circle at 15% 50%, rgba(74, 41, 165, 0.1) 1%, rgba(255, 255, 255, 0) 40% 70%), radial-gradient(circle at center, rgba(255, 255, 255, 0.6) 0%, var(--oxygen-palette-background-default) 100%);
 }
 
 /* For readability concerns, you should choose a lighter palette in dark mode. */
 [data-theme='dark'] {
   --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.3);
+
+  /* Body Background */
+  --site-background: radial-gradient(circle at 65% 30%, rgb(255 116 0 / 13%) 10%, rgba(0, 0, 0, 0) 60% 40%), radial-gradient(circle at 15% 50%, rgb(132 40 0 / 18%) 1%, rgba(0, 0, 0, 0) 40% 70%), radial-gradient(circle at center, rgba(0, 0, 0, 0.6) 0%, var(--oxygen-palette-background-default) 100%);
 }
 
 /* ------------------------------ Custom CSS -------------------------- */
@@ -104,15 +112,15 @@
 
 /* Manually inject the radial background since `@wso2/oxygen-ui` adds it to the body. */
 html[data-color-scheme='light'] #__docusaurus {
-    background-attachment: fixed;
-    background-image: radial-gradient(circle at 65% 30%, rgba(255, 116, 0, 0.1) 10%, rgba(255, 255, 255, 0) 40% 40%), radial-gradient(circle at 15% 50%, rgba(74, 41, 165, 0.1) 1%, rgba(255, 255, 255, 0) 40% 70%), radial-gradient(circle at center, rgba(255, 255, 255, 0.6) 0%, var(--oxygen-palette-background-default) 100%);
-    background-blend-mode: normal;
+    background-attachment: var(--site-background-attachment);
+    background-image: var(--site-background);
+    background-blend-mode: var(--site-background-blend-mode);
 }
 
 html[data-color-scheme='dark'] #__docusaurus {
-    background-attachment: fixed;
-    background-image: radial-gradient(circle at 65% 30%, rgb(255 116 0 / 13%) 10%, rgba(0, 0, 0, 0) 60% 40%), radial-gradient(circle at 15% 50%, rgb(132 40 0 / 18%) 1%, rgba(0, 0, 0, 0) 40% 70%), radial-gradient(circle at center, rgba(0, 0, 0, 0.6) 0%, var(--oxygen-palette-background-default) 100%);
-    background-blend-mode: screen;
+    background-attachment: var(--site-background-attachment);
+    background-image: var(--site-background);
+    background-blend-mode: var(--site-background-blend-mode);
 }
 
 /* ------------------------------ Font Adjustments ---------------------- */
@@ -230,6 +238,17 @@ html[data-theme='dark'] .dropdown>.navbar__link:after {
 }
 
 /* ------------------------------ API Doc Adjustments ---------------------- */
+
+.apis-page .scalar-api-reference aside {
+  width: var(--doc-sidebar-width);
+  background: var(--oxygen-palette-background-paper);
+}
+
+.apis-page .scalar-api-reference main, .apis-page .scalar-api-reference .narrow-references-container {
+  background-attachment: var(--site-background-attachment);
+  background-image: var(--site-background);
+  background-blend-mode: var(--site-background-blend-mode);
+}
 
 /* Capitalize the Scalar side bar item text transformation */
 .apis-page .scalar-api-reference aside .group\/items > .group\/item .group\/button {

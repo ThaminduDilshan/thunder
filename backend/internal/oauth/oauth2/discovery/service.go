@@ -69,6 +69,7 @@ func (ds *discoveryService) GetOIDCMetadata() *OIDCProviderMetadata {
 		SubjectTypesSupported:             ds.getSupportedSubjectTypes(),
 		IDTokenSigningAlgValuesSupported:  ds.getSupportedIDTokenSigningAlgorithms(),
 		ClaimsSupported:                   ds.getSupportedClaims(),
+		ClaimsParameterSupported:          true,
 	}
 }
 

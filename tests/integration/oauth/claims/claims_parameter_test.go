@@ -1513,36 +1513,26 @@ func (ts *ClaimsParameterTestSuite) TestClaimsParameter_RefreshToken_MultipleRef
 
 // TestClaimsParameter_WithoutOpenIDScope_ShouldIgnore tests claims parameter without openid scope
 func (ts *ClaimsParameterTestSuite) TestClaimsParameter_WithoutOpenIDScope_ShouldIgnore() {
-	// OpenID Connect requests must contain the openid scope value.
-	// OIDC scopes (profile, email, phone, address) require openid scope.
-	// Without openid scope, this is NOT an OIDC request.
-	//
-	// For strict OIDC compliance:
-	// - NO claims should be returned (including scope-based claims)
-	// - This is NOT an OIDC request, just OAuth 2.0
+	// UserInfo endpoint requires openid scope.
+	// Without openid scope, the endpoint returns HTTP 403 with insufficient_scope error.
 	claimsParam := `{"userinfo":{"email":null}}`
 
-	// Note: This should succeed (OAuth 2.0 flow), but NO OIDC claims should be returned
+	// Get access token with scope "profile" (no openid scope)
 	accessToken, _, err := ts.getTokenWithClaims("profile", claimsParam)
 	ts.Require().NoError(err, "Authorization should succeed without openid scope (OAuth 2.0)")
 
-	// Call UserInfo endpoint
+	// Call UserInfo endpoint - should fail with insufficient_scope
 	userInfo, err := ts.callUserInfo(accessToken)
-	ts.Require().NoError(err, "UserInfo should be accessible")
+	ts.Require().Error(err, "UserInfo should reject requests without openid scope")
+	ts.Require().Nil(userInfo, "UserInfo should not return claims without openid scope")
 
-	// WITHOUT openid scope, this is NOT an OIDC request
-	// NO OIDC claims should be present (including scope-based claims like profile)
-	assert.NotContains(ts.T(), userInfo, "email",
-		"Claims parameter should be ignored without openid scope")
-	assert.NotContains(ts.T(), userInfo, "firstName",
-		"OIDC scope-based claims (profile) should NOT be present without openid scope")
-	assert.NotContains(ts.T(), userInfo, "lastName",
-		"OIDC scope-based claims (profile) should NOT be present without openid scope")
+	// Verify the error indicates HTTP 403 Forbidden
+	assert.Contains(ts.T(), err.Error(), "403",
+		"UserInfo should return HTTP 403 for missing openid scope")
+	assert.Contains(ts.T(), err.Error(), "insufficient_scope",
+		"Error should indicate insufficient_scope")
 
-	// Only sub should be present (as it's part of the base response, not OIDC claims)
-	assert.Contains(ts.T(), userInfo, "sub", "Sub should always be present in UserInfo response")
-
-	ts.T().Logf("UserInfo response without openid scope (OIDC compliant): %+v", userInfo)
+	ts.T().Logf("UserInfo correctly rejected request without openid scope: %v", err)
 }
 
 // TestClaimsParameter_VoluntaryClaim_MissingAttribute tests voluntary claim when user doesn't have it

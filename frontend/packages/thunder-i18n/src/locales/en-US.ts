@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025, WSO2 LLC. (https://www.wso2.com).
+ * Copyright (c) 2025-2026, WSO2 LLC. (https://www.wso2.com).
  *
  * WSO2 LLC. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -407,15 +407,16 @@ const translations = {
   // ============================================================================
   organizationUnits: {
     // Listing page
-    'listing.title': 'Organization Units',
+    'listing.title': 'Organization Units (OU)',
     'listing.subtitle': 'Manage organization units and hierarchies',
-    'listing.addOrganizationUnit': 'Add Organization Unit',
-    'listing.columns.name': 'Name',
-    'listing.columns.handle': 'Handle',
-    'listing.columns.description': 'Description',
-    'listing.columns.actions': 'Actions',
+    'listing.addRootOrganizationUnit': 'Add Root Organization Unit',
     'listing.error.title': 'Failed to load organization units',
     'listing.error.unknown': 'An unknown error occurred',
+    'listing.treeView.empty': 'No organization units found',
+    'listing.treeView.noChildren': 'No child organization units',
+    'listing.treeView.loadError': 'Failed to load child organization units',
+    'listing.treeView.addChild': 'Add Child OU',
+    'listing.treeView.addChildOrganizationUnit': 'Add Child Organization Unit',
 
     // Create page
     'create.title': 'Create Organization Unit',
@@ -467,6 +468,7 @@ const translations = {
     'delete.message': 'Are you sure you want to delete this organization unit? This action cannot be undone.',
     'delete.disclaimer': 'Warning: All associated data will be permanently removed.',
     'delete.error': 'Failed to delete organization unit. Please try again.',
+    'delete.success': 'Organization unit deleted successfully.',
 
     // Form fields
     'form.handle': 'Handle',
@@ -477,8 +479,7 @@ const translations = {
     'form.description': 'Description',
     'form.descriptionPlaceholder': 'Enter a description for this organization unit',
     'form.parent': 'Parent Organization Unit',
-    'form.parentPlaceholder': 'Select a parent organization unit (optional)',
-    'form.parentHelperText': 'Choose a parent to create a hierarchical structure',
+    'form.parentHelperText': 'The parent organization unit for this new unit',
     'form.validation.nameRequired': 'Name is required',
     'form.validation.handleRequired': 'Handle is required',
     'form.validation.handleFormat': 'Handle must be lowercase alphanumeric with hyphens only',

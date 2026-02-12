@@ -170,7 +170,7 @@ func (s *UserInfoServiceTestSuite) TestGetUserInfo_EmptySubClaim() {
 	s.mockJWTService.AssertExpectations(s.T())
 }
 
-// TestGetUserInfo_NoScopes tests that token with no scopes returns only sub claim
+// TestGetUserInfo_NoScopes tests that token with no scopes returns insufficient_scope error
 func (s *UserInfoServiceTestSuite) TestGetUserInfo_NoScopes() {
 	claims := map[string]interface{}{
 		"exp": float64(time.Now().Add(time.Hour).Unix()),
@@ -182,14 +182,13 @@ func (s *UserInfoServiceTestSuite) TestGetUserInfo_NoScopes() {
 	s.mockJWTService.On("VerifyJWT", token, "", "").Return(nil)
 
 	response, svcErr := s.userInfoService.GetUserInfo(token)
-	assert.Nil(s.T(), svcErr)
-	assert.NotNil(s.T(), response)
-	assert.Equal(s.T(), "user123", response["sub"])
-	assert.Len(s.T(), response, 1) // Only sub claim
+	assert.NotNil(s.T(), svcErr)
+	assert.Equal(s.T(), "insufficient_scope", svcErr.Code)
+	assert.Nil(s.T(), response)
 	s.mockJWTService.AssertExpectations(s.T())
 }
 
-// TestGetUserInfo_NoScopesEmptyScopeString tests that empty scope string returns only sub claim
+// TestGetUserInfo_NoScopesEmptyScopeString tests that empty scope string returns insufficient_scope error
 func (s *UserInfoServiceTestSuite) TestGetUserInfo_NoScopesEmptyScopeString() {
 	claims := map[string]interface{}{
 		"exp":   float64(time.Now().Add(time.Hour).Unix()),
@@ -202,10 +201,9 @@ func (s *UserInfoServiceTestSuite) TestGetUserInfo_NoScopesEmptyScopeString() {
 	s.mockJWTService.On("VerifyJWT", token, "", "").Return(nil)
 
 	response, svcErr := s.userInfoService.GetUserInfo(token)
-	assert.Nil(s.T(), svcErr)
-	assert.NotNil(s.T(), response)
-	assert.Equal(s.T(), "user123", response["sub"])
-	assert.Len(s.T(), response, 1) // Only sub claim
+	assert.NotNil(s.T(), svcErr)
+	assert.Equal(s.T(), "insufficient_scope", svcErr.Code)
+	assert.Nil(s.T(), response)
 	s.mockJWTService.AssertExpectations(s.T())
 }
 
@@ -625,7 +623,7 @@ func (s *UserInfoServiceTestSuite) TestGetUserInfo_Success_InvalidSubClaimType()
 	s.mockJWTService.AssertExpectations(s.T())
 }
 
-// TestGetUserInfo_Success_ScopeAsNonString tests that non-string scope is handled
+// TestGetUserInfo_Success_ScopeAsNonString tests that non-string scope returns insufficient_scope error
 func (s *UserInfoServiceTestSuite) TestGetUserInfo_Success_ScopeAsNonString() {
 	claims := map[string]interface{}{
 		"exp":   float64(time.Now().Add(time.Hour).Unix()),
@@ -638,15 +636,13 @@ func (s *UserInfoServiceTestSuite) TestGetUserInfo_Success_ScopeAsNonString() {
 	s.mockJWTService.On("VerifyJWT", token, "", "").Return(nil)
 
 	response, svcErr := s.userInfoService.GetUserInfo(token)
-	assert.Nil(s.T(), svcErr)
-	assert.NotNil(s.T(), response)
-	assert.Equal(s.T(), "user123", response["sub"])
-	// No scopes parsed, so only sub claim
-	assert.Len(s.T(), response, 1)
+	assert.NotNil(s.T(), svcErr)
+	assert.Equal(s.T(), "insufficient_scope", svcErr.Code)
+	assert.Nil(s.T(), response)
 	s.mockJWTService.AssertExpectations(s.T())
 }
 
-// TestGetUserInfo_ScopeExistsButNotString tests when scope exists but is not a string
+// TestGetUserInfo_ScopeExistsButNotString tests when scope exists but is not a string returns insufficient_scope error
 func (s *UserInfoServiceTestSuite) TestGetUserInfo_ScopeExistsButNotString() {
 	claims := map[string]interface{}{
 		"exp":   float64(time.Now().Add(time.Hour).Unix()),
@@ -659,11 +655,9 @@ func (s *UserInfoServiceTestSuite) TestGetUserInfo_ScopeExistsButNotString() {
 	s.mockJWTService.On("VerifyJWT", token, "", "").Return(nil)
 
 	response, svcErr := s.userInfoService.GetUserInfo(token)
-	assert.Nil(s.T(), svcErr)
-	assert.NotNil(s.T(), response)
-	assert.Equal(s.T(), "user123", response["sub"])
-	// No scopes parsed (not a string), so only sub claim
-	assert.Len(s.T(), response, 1)
+	assert.NotNil(s.T(), svcErr)
+	assert.Equal(s.T(), "insufficient_scope", svcErr.Code)
+	assert.Nil(s.T(), response)
 	s.mockJWTService.AssertExpectations(s.T())
 }
 
@@ -971,4 +965,154 @@ func (s *UserInfoServiceTestSuite) TestGetUserInfo_NoGrantType_Allowed() {
 // TestGetUserInfo_GrantTypeNotString_Allowed tests that non-string grant_type is ignored and allowed
 func (s *UserInfoServiceTestSuite) TestGetUserInfo_GrantTypeNotString_Allowed() {
 	s.testGetUserInfoAllowedGrantType(123, "non-string grant_type should be ignored and allowed")
+}
+
+// TestGetUserInfo_MissingOpenIDScope_WithOtherScopes tests that missing openid scope returns insufficient_scope error
+func (s *UserInfoServiceTestSuite) TestGetUserInfo_MissingOpenIDScope_WithOtherScopes() {
+	claims := map[string]interface{}{
+		"exp":   float64(time.Now().Add(time.Hour).Unix()),
+		"nbf":   float64(time.Now().Add(-time.Minute).Unix()),
+		"sub":   "user123",
+		"scope": "profile email", // Missing 'openid' scope
+	}
+	token := s.createToken(claims)
+
+	s.mockJWTService.On("VerifyJWT", token, "", "").Return(nil)
+
+	response, svcErr := s.userInfoService.GetUserInfo(token)
+	assert.NotNil(s.T(), svcErr)
+	assert.Equal(s.T(), "insufficient_scope", svcErr.Code)
+	assert.Contains(s.T(), svcErr.ErrorDescription, "openid")
+	assert.Nil(s.T(), response)
+	s.mockJWTService.AssertExpectations(s.T())
+	// Verify that user service is NOT called (fail fast)
+	s.mockUserService.AssertNotCalled(s.T(), "GetUser")
+}
+
+// TestGetUserInfo_OpenIDScope_CaseSensitive tests that scope matching is case-sensitive
+func (s *UserInfoServiceTestSuite) TestGetUserInfo_OpenIDScope_CaseSensitive() {
+	claims := map[string]interface{}{
+		"exp":   float64(time.Now().Add(time.Hour).Unix()),
+		"nbf":   float64(time.Now().Add(-time.Minute).Unix()),
+		"sub":   "user123",
+		"scope": "OpenID profile", // Wrong case - should fail
+	}
+	token := s.createToken(claims)
+
+	s.mockJWTService.On("VerifyJWT", token, "", "").Return(nil)
+
+	response, svcErr := s.userInfoService.GetUserInfo(token)
+	assert.NotNil(s.T(), svcErr)
+	assert.Equal(s.T(), "insufficient_scope", svcErr.Code)
+	assert.Nil(s.T(), response)
+	s.mockJWTService.AssertExpectations(s.T())
+}
+
+// TestGetUserInfo_OnlyOpenIDScope_Success tests that only openid scope returns sub claim
+func (s *UserInfoServiceTestSuite) TestGetUserInfo_OnlyOpenIDScope_Success() {
+	claims := map[string]interface{}{
+		"exp":   float64(time.Now().Add(time.Hour).Unix()),
+		"nbf":   float64(time.Now().Add(-time.Minute).Unix()),
+		"sub":   "user123",
+		"scope": "openid", // Only openid scope
+	}
+	token := s.createToken(claims)
+
+	userAttrs := map[string]interface{}{}
+	userAttrsJSON, _ := json.Marshal(userAttrs)
+
+	s.mockJWTService.On("VerifyJWT", token, "", "").Return(nil)
+	s.mockUserService.On("GetUser", mock.Anything, "user123").Return(&user.User{
+		ID:         "user123",
+		Attributes: userAttrsJSON,
+	}, nil)
+
+	response, svcErr := s.userInfoService.GetUserInfo(token)
+	assert.Nil(s.T(), svcErr)
+	assert.NotNil(s.T(), response)
+	assert.Equal(s.T(), "user123", response["sub"])
+	// Only sub claim should be present
+	assert.Len(s.T(), response, 1)
+	s.mockJWTService.AssertExpectations(s.T())
+	s.mockUserService.AssertExpectations(s.T())
+}
+
+// TestGetUserInfo_OpenIDScope_InMiddleOfScopeString tests openid scope in middle position
+func (s *UserInfoServiceTestSuite) TestGetUserInfo_OpenIDScope_InMiddleOfScopeString() {
+	claims := map[string]interface{}{
+		"exp":       float64(time.Now().Add(time.Hour).Unix()),
+		"nbf":       float64(time.Now().Add(-time.Minute).Unix()),
+		"sub":       "user123",
+		"scope":     "profile openid email", // openid in middle
+		"client_id": "client123",
+	}
+	token := s.createToken(claims)
+
+	userAttrs := map[string]interface{}{
+		"name":  "John Doe",
+		"email": "john@example.com",
+	}
+	userAttrsJSON, _ := json.Marshal(userAttrs)
+
+	oauthApp := &appmodel.OAuthAppConfigProcessedDTO{
+		UserInfo: &appmodel.UserInfoConfig{
+			UserAttributes: []string{"name", "email"},
+		},
+	}
+
+	s.mockJWTService.On("VerifyJWT", token, "", "").Return(nil)
+	s.mockUserService.On("GetUser", mock.Anything, "user123").Return(&user.User{
+		ID:         "user123",
+		Attributes: userAttrsJSON,
+	}, nil)
+	s.mockAppService.On("GetOAuthApplication", "client123").Return(oauthApp, nil)
+
+	response, svcErr := s.userInfoService.GetUserInfo(token)
+	assert.Nil(s.T(), svcErr)
+	assert.NotNil(s.T(), response)
+	assert.Equal(s.T(), "user123", response["sub"])
+	assert.Equal(s.T(), "John Doe", response["name"])
+	assert.Equal(s.T(), "john@example.com", response["email"])
+	s.mockJWTService.AssertExpectations(s.T())
+	s.mockUserService.AssertExpectations(s.T())
+	s.mockAppService.AssertExpectations(s.T())
+}
+
+// TestGetUserInfo_OpenIDScope_AtEnd tests openid scope at end of scope string
+func (s *UserInfoServiceTestSuite) TestGetUserInfo_OpenIDScope_AtEnd() {
+	claims := map[string]interface{}{
+		"exp":       float64(time.Now().Add(time.Hour).Unix()),
+		"nbf":       float64(time.Now().Add(-time.Minute).Unix()),
+		"sub":       "user123",
+		"scope":     "profile email openid", // openid at end
+		"client_id": "client123",
+	}
+	token := s.createToken(claims)
+
+	userAttrs := map[string]interface{}{
+		"email": "john@example.com",
+	}
+	userAttrsJSON, _ := json.Marshal(userAttrs)
+
+	oauthApp := &appmodel.OAuthAppConfigProcessedDTO{
+		UserInfo: &appmodel.UserInfoConfig{
+			UserAttributes: []string{"email"},
+		},
+	}
+
+	s.mockJWTService.On("VerifyJWT", token, "", "").Return(nil)
+	s.mockUserService.On("GetUser", mock.Anything, "user123").Return(&user.User{
+		ID:         "user123",
+		Attributes: userAttrsJSON,
+	}, nil)
+	s.mockAppService.On("GetOAuthApplication", "client123").Return(oauthApp, nil)
+
+	response, svcErr := s.userInfoService.GetUserInfo(token)
+	assert.Nil(s.T(), svcErr)
+	assert.NotNil(s.T(), response)
+	assert.Equal(s.T(), "user123", response["sub"])
+	assert.Equal(s.T(), "john@example.com", response["email"])
+	s.mockJWTService.AssertExpectations(s.T())
+	s.mockUserService.AssertExpectations(s.T())
+	s.mockAppService.AssertExpectations(s.T())
 }

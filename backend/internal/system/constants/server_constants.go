@@ -79,3 +79,24 @@ const DefaultPageSize = 30
 
 // MaxPageSize is the maximum allowed limit for pagination.
 const MaxPageSize = 100
+
+// MaxCompositeStoreRecords is the maximum number of records that can be fetched in composite/hybrid store mode.
+// This limit prevents memory exhaustion when merging results from multiple data sources (database + file-based).
+// For larger datasets, use search functionality instead of list operations.
+const MaxCompositeStoreRecords = 1000
+
+// CompositeStoreLimitWarning is the message displayed when the composite store result limit is exceeded.
+const CompositeStoreLimitWarning = "Result limit exceeded in hybrid mode. Use search for larger datasets."
+
+// StoreMode represents the storage mode for resources.
+type StoreMode string
+
+// Store mode constants define how resources are persisted and retrieved.
+const (
+	// StoreModeMutable indicates resources are stored only in the database and can be modified via API.
+	StoreModeMutable StoreMode = "mutable"
+	// StoreModeDeclarative indicates resources are loaded only from declarative files (read-only).
+	StoreModeDeclarative StoreMode = "declarative"
+	// StoreModeComposite indicates resources are merged from both database and declarative files (hybrid mode).
+	StoreModeComposite StoreMode = "composite"
+)

@@ -121,6 +121,9 @@ func (suite *DiscoveryTestSuite) TestOIDCDiscovery() {
 	assert.Contains(suite.T(), metadata.ClaimsSupported, constants.ClaimSub)
 	assert.Contains(suite.T(), metadata.ClaimsSupported, constants.ClaimIss)
 	assert.Contains(suite.T(), metadata.ClaimsSupported, constants.ClaimAud)
+
+	// Verify claims parameter support
+	assert.True(suite.T(), metadata.ClaimsParameterSupported, "claims_parameter_supported should be true")
 }
 
 // TestGrantTypeIsValid tests the GrantType.IsValid() method

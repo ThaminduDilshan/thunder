@@ -59,9 +59,3 @@ var queryDeleteSession = dbmodel.DBQuery{
 	ID:    "WEBAUTHN-SS-03",
 	Query: "DELETE FROM WEBAUTHN_SESSION WHERE SESSION_KEY = $1 AND DEPLOYMENT_ID = $2",
 }
-
-// queryDeleteExpiredSessions is the query to delete expired WebAuthn sessions.
-var queryDeleteExpiredSessions = dbmodel.DBQuery{
-	ID:    "WEBAUTHN-SS-04",
-	Query: "DELETE FROM WEBAUTHN_SESSION WHERE EXPIRY_TIME <= $1 AND DEPLOYMENT_ID = $2",
-}

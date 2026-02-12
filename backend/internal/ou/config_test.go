@@ -22,6 +22,7 @@ import (
 	"testing"
 
 	"github.com/asgardeo/thunder/internal/system/config"
+	serverconst "github.com/asgardeo/thunder/internal/system/constants"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -38,61 +39,61 @@ func TestGetOrganizationUnitStoreMode(t *testing.T) {
 		name                      string
 		ouStoreConfig             string
 		immutableResourcesEnabled bool
-		expectedMode              string
+		expectedMode              serverconst.StoreMode
 	}{
 		{
 			name:                      "explicit mutable mode",
 			ouStoreConfig:             "mutable",
 			immutableResourcesEnabled: true, // Should be ignored
-			expectedMode:              config.StoreModeMutable,
+			expectedMode:              serverconst.StoreModeMutable,
 		},
 		{
 			name:                      "explicit declarative mode",
 			ouStoreConfig:             "declarative",
 			immutableResourcesEnabled: false, // Should be ignored
-			expectedMode:              config.StoreModeDeclarative,
+			expectedMode:              serverconst.StoreModeDeclarative,
 		},
 		{
 			name:                      "explicit composite mode",
 			ouStoreConfig:             "composite",
 			immutableResourcesEnabled: false, // Should be ignored
-			expectedMode:              config.StoreModeComposite,
+			expectedMode:              serverconst.StoreModeComposite,
 		},
 		{
 			name:                      "uppercase explicit mode",
 			ouStoreConfig:             "COMPOSITE",
 			immutableResourcesEnabled: false,
-			expectedMode:              config.StoreModeComposite,
+			expectedMode:              serverconst.StoreModeComposite,
 		},
 		{
 			name:                      "whitespace in explicit mode",
 			ouStoreConfig:             "  mutable  ",
 			immutableResourcesEnabled: true,
-			expectedMode:              config.StoreModeMutable,
+			expectedMode:              serverconst.StoreModeMutable,
 		},
 		{
 			name:                      "invalid mode falls back to global config - immutable",
 			ouStoreConfig:             "invalid",
 			immutableResourcesEnabled: true,
-			expectedMode:              config.StoreModeDeclarative,
+			expectedMode:              serverconst.StoreModeDeclarative,
 		},
 		{
 			name:                      "invalid mode falls back to global config - mutable",
 			ouStoreConfig:             "invalid",
 			immutableResourcesEnabled: false,
-			expectedMode:              config.StoreModeMutable,
+			expectedMode:              serverconst.StoreModeMutable,
 		},
 		{
 			name:                      "empty config falls back to global - immutable",
 			ouStoreConfig:             "",
 			immutableResourcesEnabled: true,
-			expectedMode:              config.StoreModeDeclarative,
+			expectedMode:              serverconst.StoreModeDeclarative,
 		},
 		{
 			name:                      "empty config falls back to global - mutable",
 			ouStoreConfig:             "",
 			immutableResourcesEnabled: false,
-			expectedMode:              config.StoreModeMutable,
+			expectedMode:              serverconst.StoreModeMutable,
 		},
 	}
 

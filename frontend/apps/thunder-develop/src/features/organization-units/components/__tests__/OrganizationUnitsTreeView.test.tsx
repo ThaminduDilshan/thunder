@@ -1,0 +1,781 @@
+/**
+ * Copyright (c) 2025-2026, WSO2 LLC. (https://www.wso2.com).
+ *
+ * WSO2 LLC. licenses this file to you under the Apache License,
+ * Version 2.0 (the "License"); you may not use this file except
+ * in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
+import {describe, it, expect, vi, beforeEach} from 'vitest';
+import {screen, fireEvent, waitFor, within, renderWithProviders} from '@thunder/test-utils';
+import OrganizationUnitsTreeView from '../OrganizationUnitsTreeView';
+import type {OrganizationUnitListResponse} from '../../types/organization-units';
+
+// Mock navigate
+const mockNavigate = vi.fn();
+vi.mock('react-router', async () => {
+  const actual = await vi.importActual('react-router');
+  return {
+    ...actual,
+    useNavigate: () => mockNavigate,
+  };
+});
+
+// Mock logger
+// Mock logger — stable reference to avoid useCallback churn
+const stableLogger = {error: vi.fn(), info: vi.fn(), debug: vi.fn()};
+vi.mock('@thunder/logger/react', () => ({
+  useLogger: () => stableLogger,
+}));
+
+// Mock the API hook
+const mockUseGetOrganizationUnits = vi.fn();
+vi.mock('../../api/useGetOrganizationUnits', () => ({
+  default: () =>
+    mockUseGetOrganizationUnits() as {
+      data: OrganizationUnitListResponse | undefined;
+      isLoading: boolean;
+      error: Error | null;
+    },
+}));
+
+// Mock Asgardeo — stable reference to avoid useCallback churn
+const mockHttpRequest = vi.fn();
+const stableHttp = {request: mockHttpRequest};
+vi.mock('@asgardeo/react', () => ({
+  useAsgardeo: () => ({http: stableHttp}),
+}));
+
+// Mock useOrganizationUnit hook with React state for reactivity
+// Allow tests to pre-seed expandedItems via mockOrganizationUnitConfig.initialExpandedItems
+const mockOrganizationUnitConfig = {initialExpandedItems: [] as string[]};
+vi.mock('../../contexts/useOrganizationUnit', async () => {
+  const {useState, useCallback} = await import('react');
+  type OUTreeItem = import('../../models/organizationUnit').OUTreeItem;
+  function useOrganizationUnit() {
+    const [treeItems, setTreeItems] = useState<OUTreeItem[]>([]);
+    const [expandedItems, setExpandedItems] = useState<string[]>(mockOrganizationUnitConfig.initialExpandedItems);
+    const [loadedItems, setLoadedItems] = useState<Set<string>>(new Set());
+    const resetTreeState = useCallback(() => {
+      setTreeItems([]);
+      setLoadedItems(new Set());
+    }, []);
+    return {treeItems, setTreeItems, expandedItems, setExpandedItems, loadedItems, setLoadedItems, resetTreeState};
+  }
+  return {default: useOrganizationUnit};
+});
+
+// Mock config — stable reference to avoid useCallback churn
+const stableConfig = {getServerUrl: () => 'http://localhost:8080'};
+vi.mock('@thunder/shared-contexts', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@thunder/shared-contexts')>();
+  return {
+    ...actual,
+    useConfig: () => stableConfig,
+  };
+});
+
+// Mock delete hook — controllable per test
+const mockDeleteMutate = vi.fn();
+const mockDeleteHook = {mutate: mockDeleteMutate, isPending: false};
+vi.mock('../../api/useDeleteOrganizationUnit', () => ({
+  default: () => mockDeleteHook,
+}));
+
+// Mock translations — stable t function to avoid useCallback churn
+const translations: Record<string, string> = {
+  'organizationUnits:listing.error.title': 'Error loading organization units',
+  'organizationUnits:listing.error.unknown': 'An unknown error occurred',
+  'organizationUnits:listing.treeView.empty': 'No organization units found',
+  'organizationUnits:listing.treeView.noChildren': 'No child organization units',
+  'organizationUnits:listing.treeView.loadError': 'Failed to load child organization units',
+  'common:actions.view': 'View',
+  'common:actions.edit': 'Edit',
+  'common:actions.delete': 'Delete',
+  'organizationUnits:listing.treeView.addChild': 'Add child organization unit',
+  'organizationUnits:delete.title': 'Delete Organization Unit',
+  'organizationUnits:delete.message': 'Are you sure?',
+  'organizationUnits:delete.disclaimer': 'This cannot be undone.',
+  'organizationUnits:delete.success': 'Organization unit deleted successfully',
+  'organizationUnits:delete.error': 'Failed to delete organization unit',
+  'organizationUnits:listing.addRootOrganizationUnit': 'Add Root Organization Unit',
+  'organizationUnits:listing.treeView.addChildOrganizationUnit': 'Add Engineering Unit',
+  'common:actions.cancel': 'Cancel',
+};
+const stableT = (key: string): string => translations[key] ?? key;
+const stableTranslation = {t: stableT};
+vi.mock('react-i18next', () => ({
+  useTranslation: () => stableTranslation,
+}));
+
+describe('OrganizationUnitsTreeView', () => {
+  const mockOUData: OrganizationUnitListResponse = {
+    totalResults: 2,
+    startIndex: 1,
+    count: 2,
+    organizationUnits: [
+      {id: 'ou-1', handle: 'root', name: 'Root Organization', description: 'Root OU', parent: null},
+      {id: 'ou-2', handle: 'engineering', name: 'Engineering', description: null, parent: null},
+    ],
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockNavigate.mockReset();
+    mockOrganizationUnitConfig.initialExpandedItems = [];
+    mockUseGetOrganizationUnits.mockReturnValue({
+      data: mockOUData,
+      isLoading: false,
+      error: null,
+    });
+  });
+
+  it('should render tree view with organization unit names', async () => {
+    renderWithProviders(<OrganizationUnitsTreeView />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Root Organization')).toBeInTheDocument();
+      expect(screen.getByText('Engineering')).toBeInTheDocument();
+    });
+  });
+
+  it('should show error state when fetch fails', async () => {
+    mockUseGetOrganizationUnits.mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      error: new Error('Network error'),
+    });
+
+    renderWithProviders(<OrganizationUnitsTreeView />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Error loading organization units')).toBeInTheDocument();
+      expect(screen.getByText('Network error')).toBeInTheDocument();
+    });
+  });
+
+  it('should show fallback error message when error has no message', async () => {
+    mockUseGetOrganizationUnits.mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      error: {},
+    });
+
+    renderWithProviders(<OrganizationUnitsTreeView />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Error loading organization units')).toBeInTheDocument();
+      expect(screen.getByText('An unknown error occurred')).toBeInTheDocument();
+    });
+  });
+
+  it('should show loading state', () => {
+    mockUseGetOrganizationUnits.mockReturnValue({
+      data: undefined,
+      isLoading: true,
+      error: null,
+    });
+
+    renderWithProviders(<OrganizationUnitsTreeView />);
+
+    expect(screen.getByRole('progressbar')).toBeInTheDocument();
+  });
+
+  it('should show empty state when no organization units', async () => {
+    mockUseGetOrganizationUnits.mockReturnValue({
+      data: {
+        totalResults: 0,
+        startIndex: 1,
+        count: 0,
+        organizationUnits: [],
+      },
+      isLoading: false,
+      error: null,
+    });
+
+    renderWithProviders(<OrganizationUnitsTreeView />);
+
+    await waitFor(() => {
+      expect(screen.getByText('No organization units found')).toBeInTheDocument();
+    });
+  });
+
+  it('should render avatar for each tree item', async () => {
+    renderWithProviders(<OrganizationUnitsTreeView />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Root Organization')).toBeInTheDocument();
+    });
+
+    const avatars = document.querySelectorAll('.MuiAvatar-root');
+    expect(avatars.length).toBeGreaterThan(0);
+  });
+
+  it('should render action button for each tree item', async () => {
+    renderWithProviders(<OrganizationUnitsTreeView />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Root Organization')).toBeInTheDocument();
+    });
+
+    const actionButtons = screen.getAllByLabelText('Actions');
+    expect(actionButtons.length).toBe(2);
+  });
+
+  it('should open menu with actions when action button is clicked', async () => {
+    renderWithProviders(<OrganizationUnitsTreeView />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Root Organization')).toBeInTheDocument();
+    });
+
+    const actionButtons = screen.getAllByLabelText('Actions');
+    fireEvent.click(actionButtons[0]);
+
+    await waitFor(() => {
+      expect(screen.getByText('Add child organization unit')).toBeInTheDocument();
+      expect(screen.getByText('Edit')).toBeInTheDocument();
+      expect(screen.getByText('Delete')).toBeInTheDocument();
+    });
+  });
+
+  it('should navigate to create page with parentId when add child menu item is clicked', async () => {
+    renderWithProviders(<OrganizationUnitsTreeView />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Root Organization')).toBeInTheDocument();
+    });
+
+    const actionButtons = screen.getAllByLabelText('Actions');
+    fireEvent.click(actionButtons[0]);
+
+    await waitFor(() => {
+      expect(screen.getByText('Add child organization unit')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByText('Add child organization unit'));
+
+    await waitFor(() => {
+      expect(mockNavigate).toHaveBeenCalledWith('/organization-units/create', {
+        state: {parentId: 'ou-1', parentName: 'Root Organization', parentHandle: 'root'},
+      });
+    });
+  });
+
+  it('should navigate when edit menu item is clicked', async () => {
+    renderWithProviders(<OrganizationUnitsTreeView />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Root Organization')).toBeInTheDocument();
+    });
+
+    const actionButtons = screen.getAllByLabelText('Actions');
+    fireEvent.click(actionButtons[0]);
+
+    await waitFor(() => {
+      expect(screen.getByText('Edit')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByText('Edit'));
+
+    await waitFor(() => {
+      expect(mockNavigate).toHaveBeenCalledWith('/organization-units/ou-1');
+    });
+  });
+
+  it('should open delete dialog when delete menu item is clicked', async () => {
+    renderWithProviders(<OrganizationUnitsTreeView />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Root Organization')).toBeInTheDocument();
+    });
+
+    const actionButtons = screen.getAllByLabelText('Actions');
+    fireEvent.click(actionButtons[0]);
+
+    await waitFor(() => {
+      expect(screen.getByText('Delete')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByText('Delete'));
+
+    await waitFor(() => {
+      expect(screen.getByText('Delete Organization Unit')).toBeInTheDocument();
+      expect(screen.getByText('Are you sure?')).toBeInTheDocument();
+    });
+  });
+
+  it('should handle undefined data gracefully', () => {
+    mockUseGetOrganizationUnits.mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      error: null,
+    });
+
+    renderWithProviders(<OrganizationUnitsTreeView />);
+
+    // When data is undefined and not loading, a loading spinner is shown
+    expect(screen.getByRole('progressbar')).toBeInTheDocument();
+  });
+
+  it('should close delete dialog when cancel is clicked', async () => {
+    renderWithProviders(<OrganizationUnitsTreeView />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Root Organization')).toBeInTheDocument();
+    });
+
+    // Open actions menu and click delete
+    const actionButtons = screen.getAllByLabelText('Actions');
+    fireEvent.click(actionButtons[0]);
+
+    await waitFor(() => {
+      expect(screen.getByText('Delete')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByText('Delete'));
+
+    await waitFor(() => {
+      expect(screen.getByText('Delete Organization Unit')).toBeInTheDocument();
+    });
+
+    // Cancel the dialog
+    fireEvent.click(screen.getByText('Cancel'));
+
+    await waitFor(() => {
+      expect(screen.queryByText('Delete Organization Unit')).not.toBeInTheDocument();
+    });
+  });
+
+  it('should show success snackbar after successful deletion', async () => {
+    mockDeleteMutate.mockImplementation((_id: string, options: {onSuccess: () => void}) => {
+      options.onSuccess();
+    });
+
+    renderWithProviders(<OrganizationUnitsTreeView />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Root Organization')).toBeInTheDocument();
+    });
+
+    // Open actions menu and click delete to open dialog, then confirm
+    const actionButtons1 = screen.getAllByLabelText('Actions');
+    fireEvent.click(actionButtons1[0]);
+
+    await waitFor(() => {
+      expect(screen.getByText('Delete')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByText('Delete'));
+
+    await waitFor(() => {
+      expect(screen.getByText('Delete Organization Unit')).toBeInTheDocument();
+    });
+
+    // Use within to scope to the dialog's Delete button (avoids ambiguity with menu item)
+    const dialog = screen.getByRole('dialog');
+    fireEvent.click(within(dialog).getByText('Delete'));
+
+    await waitFor(() => {
+      expect(screen.getByText('Organization unit deleted successfully')).toBeInTheDocument();
+    });
+  });
+
+  it('should show error snackbar after failed deletion', async () => {
+    mockDeleteMutate.mockImplementation(
+      (_id: string, options: {onError: (err: Error) => void}) => {
+        options.onError(
+          Object.assign(new Error('Delete failed'), {
+            response: {data: {code: 'ERR', message: 'fail', description: 'Server error occurred'}},
+          }),
+        );
+      },
+    );
+
+    renderWithProviders(<OrganizationUnitsTreeView />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Root Organization')).toBeInTheDocument();
+    });
+
+    // Open actions menu and click delete to open dialog, then confirm
+    const actionButtons2 = screen.getAllByLabelText('Actions');
+    fireEvent.click(actionButtons2[0]);
+
+    await waitFor(() => {
+      expect(screen.getByText('Delete')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByText('Delete'));
+
+    await waitFor(() => {
+      expect(screen.getByText('Delete Organization Unit')).toBeInTheDocument();
+    });
+
+    // Use within to scope to the dialog's Delete button (avoids ambiguity with menu item)
+    const dialog2 = screen.getByRole('dialog');
+    fireEvent.click(within(dialog2).getByText('Delete'));
+
+    await waitFor(() => {
+      expect(screen.getByText('Server error occurred')).toBeInTheDocument();
+    });
+  });
+
+  it('should log error when edit navigation fails', async () => {
+    mockNavigate.mockRejectedValueOnce(new Error('Navigation failed'));
+
+    renderWithProviders(<OrganizationUnitsTreeView />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Root Organization')).toBeInTheDocument();
+    });
+
+    const actionButtons3 = screen.getAllByLabelText('Actions');
+    fireEvent.click(actionButtons3[0]);
+
+    await waitFor(() => {
+      expect(screen.getByText('Edit')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByText('Edit'));
+
+    await waitFor(() => {
+      expect(stableLogger.error).toHaveBeenCalledWith(
+        'Failed to navigate to organization unit',
+        expect.objectContaining({ouId: 'ou-1'}),
+      );
+    });
+  });
+
+  it('should log error when add child navigation fails', async () => {
+    mockNavigate.mockRejectedValueOnce(new Error('Navigation failed'));
+
+    renderWithProviders(<OrganizationUnitsTreeView />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Root Organization')).toBeInTheDocument();
+    });
+
+    const actionButtons4 = screen.getAllByLabelText('Actions');
+    fireEvent.click(actionButtons4[0]);
+
+    await waitFor(() => {
+      expect(screen.getByText('Add child organization unit')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByText('Add child organization unit'));
+
+    await waitFor(() => {
+      expect(stableLogger.error).toHaveBeenCalledWith(
+        'Failed to navigate to create child organization unit',
+        expect.objectContaining({parentId: 'ou-1'}),
+      );
+    });
+  });
+
+  it('should fetch and display child OUs when a node is expanded', async () => {
+    const childOUResponse: OrganizationUnitListResponse = {
+      totalResults: 1,
+      startIndex: 1,
+      count: 1,
+      organizationUnits: [
+        {id: 'ou-child-1', handle: 'child1', name: 'Fetched Child', description: 'A child', parent: 'ou-1'},
+      ],
+    };
+
+    mockHttpRequest.mockResolvedValue({data: childOUResponse});
+
+    renderWithProviders(<OrganizationUnitsTreeView />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Root Organization')).toBeInTheDocument();
+    });
+
+    // Click the expand icon on the first tree item to trigger expansion
+    const expandIcons = document.querySelectorAll('.MuiTreeItem-iconContainer');
+    expect(expandIcons.length).toBeGreaterThan(0);
+    fireEvent.click(expandIcons[0]);
+
+    // The component should fetch children and display them
+    await waitFor(() => {
+      expect(mockHttpRequest).toHaveBeenCalled();
+    });
+  });
+
+  it('should show error placeholder and log error when fetching child OUs fails', async () => {
+    mockHttpRequest.mockRejectedValue(new Error('Network failure'));
+
+    renderWithProviders(<OrganizationUnitsTreeView />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Root Organization')).toBeInTheDocument();
+    });
+
+    // Click the expand icon on the first tree item
+    const expandIcons = document.querySelectorAll('.MuiTreeItem-iconContainer');
+    expect(expandIcons.length).toBeGreaterThan(0);
+    fireEvent.click(expandIcons[0]);
+
+    await waitFor(() => {
+      expect(stableLogger.error).toHaveBeenCalledWith(
+        'Failed to load child organization units',
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        expect.objectContaining({parentId: expect.any(String)}),
+      );
+    });
+
+    // The error placeholder should be visible instead of a perpetual spinner
+    await waitFor(() => {
+      expect(screen.getByText('Failed to load child organization units')).toBeInTheDocument();
+    });
+  });
+
+  it('should rebuild tree with expanded items restored when expandedItems exist', async () => {
+    // Pre-seed expanded items so the rebuild path is triggered
+    mockOrganizationUnitConfig.initialExpandedItems = ['ou-1'];
+
+    const childOUResponse: OrganizationUnitListResponse = {
+      totalResults: 1,
+      startIndex: 1,
+      count: 1,
+      organizationUnits: [
+        {id: 'ou-child-1', handle: 'child1', name: 'Restored Child', description: null, parent: 'ou-1'},
+      ],
+    };
+
+    mockHttpRequest.mockResolvedValue({data: childOUResponse});
+
+    renderWithProviders(<OrganizationUnitsTreeView />);
+
+    // The useEffect should detect expandedItems=['ou-1'] and call rebuildTree,
+    // which calls expandLevel → fetchChildItems for 'ou-1'
+    await waitFor(() => {
+      expect(mockHttpRequest).toHaveBeenCalled();
+    });
+  });
+
+  it('should still render root items when child fetch fails during rebuild', async () => {
+    // Pre-seed expanded items to trigger the rebuild path (expandLevel)
+    mockOrganizationUnitConfig.initialExpandedItems = ['ou-1'];
+
+    // Make the child fetch fail — expandLevel catches this internally
+    // and filters out failed results, so the tree still renders root items
+    mockHttpRequest.mockRejectedValue(new Error('Child fetch failed'));
+
+    renderWithProviders(<OrganizationUnitsTreeView />);
+
+    // Root items should still be rendered even though child fetch failed
+    await waitFor(() => {
+      expect(screen.getByText('Root Organization')).toBeInTheDocument();
+      expect(screen.getByText('Engineering')).toBeInTheDocument();
+    });
+  });
+
+  it('should close snackbar when close action is triggered', async () => {
+    // Trigger a success snackbar first
+    mockDeleteMutate.mockImplementation((_id: string, options: {onSuccess: () => void}) => {
+      options.onSuccess();
+    });
+
+    renderWithProviders(<OrganizationUnitsTreeView />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Root Organization')).toBeInTheDocument();
+    });
+
+    // Open actions menu and click delete to trigger snackbar
+    const actionButtons5 = screen.getAllByLabelText('Actions');
+    fireEvent.click(actionButtons5[0]);
+
+    await waitFor(() => {
+      expect(screen.getByText('Delete')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByText('Delete'));
+
+    await waitFor(() => {
+      expect(screen.getByText('Delete Organization Unit')).toBeInTheDocument();
+    });
+
+    // Use within to scope to the dialog's Delete button (avoids ambiguity with menu item)
+    const dialog3 = screen.getByRole('dialog');
+    fireEvent.click(within(dialog3).getByText('Delete'));
+
+    await waitFor(() => {
+      expect(screen.getByText('Organization unit deleted successfully')).toBeInTheDocument();
+    });
+
+    // Close the snackbar via the Alert close button
+    const alert = screen.getByRole('alert');
+    const alertCloseButton = alert.querySelector('button');
+    if (alertCloseButton) {
+      fireEvent.click(alertCloseButton);
+    }
+
+    await waitFor(() => {
+      expect(screen.queryByText('Organization unit deleted successfully')).not.toBeInTheDocument();
+    });
+  });
+
+  it('should display handle text for tree items that have handles', async () => {
+    renderWithProviders(<OrganizationUnitsTreeView />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Root Organization')).toBeInTheDocument();
+    });
+
+    // The 'root' and 'engineering' handles should be shown as caption text
+    expect(screen.getByText('root')).toBeInTheDocument();
+    expect(screen.getByText('engineering')).toBeInTheDocument();
+  });
+
+  it('should render add root organization unit row below tree items', async () => {
+    renderWithProviders(<OrganizationUnitsTreeView />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Root Organization')).toBeInTheDocument();
+    });
+
+    expect(screen.getByText('Add Root Organization Unit')).toBeInTheDocument();
+  });
+
+  it('should navigate to create page when add root row is clicked', async () => {
+    renderWithProviders(<OrganizationUnitsTreeView />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Root Organization')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByText('Add Root Organization Unit'));
+
+    await waitFor(() => {
+      expect(mockNavigate).toHaveBeenCalledWith('/organization-units/create');
+    });
+  });
+
+  it('should render add child button when a node is expanded and children are loaded', async () => {
+    const childOUResponse: OrganizationUnitListResponse = {
+      totalResults: 1,
+      startIndex: 1,
+      count: 1,
+      organizationUnits: [
+        {id: 'ou-child-1', handle: 'child1', name: 'Fetched Child', description: null, parent: 'ou-1'},
+      ],
+    };
+
+    mockHttpRequest.mockResolvedValue({data: childOUResponse});
+
+    renderWithProviders(<OrganizationUnitsTreeView />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Root Organization')).toBeInTheDocument();
+    });
+
+    // Expand the first tree item
+    const expandIcons = document.querySelectorAll('.MuiTreeItem-iconContainer');
+    fireEvent.click(expandIcons[0]);
+
+    // After expansion, the add child button should appear
+    await waitFor(() => {
+      expect(screen.getByText('Add Engineering Unit')).toBeInTheDocument();
+    });
+  });
+
+  it('should navigate to create page with parent state when add child button in tree is clicked', async () => {
+    const childOUResponse: OrganizationUnitListResponse = {
+      totalResults: 1,
+      startIndex: 1,
+      count: 1,
+      organizationUnits: [
+        {id: 'ou-child-1', handle: 'child1', name: 'Fetched Child', description: null, parent: 'ou-1'},
+      ],
+    };
+
+    mockHttpRequest.mockResolvedValue({data: childOUResponse});
+
+    renderWithProviders(<OrganizationUnitsTreeView />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Root Organization')).toBeInTheDocument();
+    });
+
+    // Expand the first tree item
+    const expandIcons = document.querySelectorAll('.MuiTreeItem-iconContainer');
+    fireEvent.click(expandIcons[0]);
+
+    await waitFor(() => {
+      expect(screen.getByText('Add Engineering Unit')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByText('Add Engineering Unit'));
+
+    await waitFor(() => {
+      expect(mockNavigate).toHaveBeenCalledWith('/organization-units/create', {
+        state: {parentId: 'ou-1', parentName: 'Root Organization', parentHandle: 'root'},
+      });
+    });
+  });
+
+  it('should show add child button when node has no children', async () => {
+    const emptyChildOUResponse: OrganizationUnitListResponse = {
+      totalResults: 0,
+      startIndex: 1,
+      count: 0,
+      organizationUnits: [],
+    };
+
+    mockHttpRequest.mockResolvedValue({data: emptyChildOUResponse});
+
+    renderWithProviders(<OrganizationUnitsTreeView />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Root Organization')).toBeInTheDocument();
+    });
+
+    // Expand the first tree item
+    const expandIcons = document.querySelectorAll('.MuiTreeItem-iconContainer');
+    fireEvent.click(expandIcons[0]);
+
+    // Even with no children, the add child button should appear
+    await waitFor(() => {
+      expect(screen.getByText('Add Engineering Unit')).toBeInTheDocument();
+    });
+  });
+
+  it('should show add root row in empty state', async () => {
+    mockUseGetOrganizationUnits.mockReturnValue({
+      data: {
+        totalResults: 0,
+        startIndex: 1,
+        count: 0,
+        organizationUnits: [],
+      },
+      isLoading: false,
+      error: null,
+    });
+
+    renderWithProviders(<OrganizationUnitsTreeView />);
+
+    await waitFor(() => {
+      expect(screen.getByText('No organization units found')).toBeInTheDocument();
+    });
+
+    expect(screen.getByText('Add Root Organization Unit')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByText('Add Root Organization Unit'));
+
+    await waitFor(() => {
+      expect(mockNavigate).toHaveBeenCalledWith('/organization-units/create');
+    });
+  });
+});

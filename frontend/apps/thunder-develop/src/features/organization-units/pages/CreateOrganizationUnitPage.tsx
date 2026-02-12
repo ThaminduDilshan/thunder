@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025, WSO2 LLC. (https://www.wso2.com).
+ * Copyright (c) 2025-2026, WSO2 LLC. (https://www.wso2.com).
  *
  * WSO2 LLC. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -17,7 +17,7 @@
  */
 
 import {useState, useMemo, useRef, type JSX} from 'react';
-import {useNavigate} from 'react-router';
+import {useNavigate, useLocation} from 'react-router';
 import {
   Box,
   Stack,
@@ -31,7 +31,6 @@ import {
   FormLabel,
   Chip,
   useTheme,
-  Autocomplete,
 } from '@wso2/oxygen-ui';
 import {X, Lightbulb} from '@wso2/oxygen-ui-icons-react';
 import {useTranslation} from 'react-i18next';
@@ -40,8 +39,8 @@ import {zodResolver} from '@hookform/resolvers/zod';
 import {z} from 'zod';
 import {useLogger} from '@thunder/logger/react';
 import useCreateOrganizationUnit from '../api/useCreateOrganizationUnit';
-import useGetOrganizationUnits from '../api/useGetOrganizationUnits';
-import type {CreateOrganizationUnitRequest, OrganizationUnit} from '../types/organization-units';
+import useOrganizationUnit from '../contexts/useOrganizationUnit';
+import type {CreateOrganizationUnitRequest} from '../types/organization-units';
 import generateOUNameSuggestions from '../utils/generateOUNameSuggestions';
 
 /**
@@ -67,11 +66,17 @@ type FormData = z.infer<ReturnType<typeof createFormSchema>>;
 
 export default function CreateOrganizationUnitPage(): JSX.Element {
   const navigate = useNavigate();
+  const location = useLocation();
   const {t} = useTranslation();
   const theme = useTheme();
   const logger = useLogger('CreateOrganizationUnitPage');
   const createOrganizationUnit = useCreateOrganizationUnit();
-  const {data: organizationUnitsData} = useGetOrganizationUnits();
+  const {resetTreeState} = useOrganizationUnit();
+
+  const navigationState = location.state as {parentId?: string; parentName?: string; parentHandle?: string} | null;
+  const preselectedParentId = navigationState?.parentId ?? null;
+  const parentDisplayName = navigationState?.parentName ?? null;
+  const parentDisplayHandle = navigationState?.parentHandle ?? null;
 
   const [error, setError] = useState<string | null>(null);
   const isHandleManuallyEditedRef = useRef<boolean>(false);
@@ -90,24 +95,22 @@ export default function CreateOrganizationUnitPage(): JSX.Element {
       name: '',
       handle: '',
       description: '',
-      parentId: null,
+      parentId: preselectedParentId,
     },
   });
 
   const nameSuggestions: string[] = useMemo((): string[] => generateOUNameSuggestions(), []);
-  const availableParentOUs: OrganizationUnit[] = useMemo(
-    () => organizationUnitsData?.organizationUnits ?? [],
-    [organizationUnitsData],
-  );
 
   /**
    * Generates a handle from the name by lowercasing and replacing spaces with hyphens.
    */
   const generateHandleFromName = (nameValue: string): string => nameValue.toLowerCase().replace(/\s+/g, '-');
 
+  const listUrl = '/organization-units';
+
   const handleClose = (): void => {
     (async (): Promise<void> => {
-      await navigate('/organization-units');
+      await navigate(listUrl);
     })().catch((_error: unknown) => {
       logger.error('Failed to navigate back to organization units list', {error: _error});
     });
@@ -146,8 +149,9 @@ export default function CreateOrganizationUnitPage(): JSX.Element {
 
     createOrganizationUnit.mutate(requestData, {
       onSuccess: () => {
+        resetTreeState();
         (async (): Promise<void> => {
-          await navigate('/organization-units');
+          await navigate(listUrl);
         })().catch((_error: unknown) => {
           logger.error('Failed to navigate after creating organization unit', {error: _error});
         });
@@ -318,31 +322,19 @@ export default function CreateOrganizationUnitPage(): JSX.Element {
                       />
                     </FormControl>
 
-                    {/* Parent OU field */}
+                    {/* Parent OU field - read-only */}
                     <FormControl fullWidth>
                       <FormLabel htmlFor="ou-parent-input">{t('organizationUnits:form.parent')}</FormLabel>
-                      <Controller
-                        name="parentId"
-                        control={control}
-                        render={({field}) => (
-                          <Autocomplete
-                            id="ou-parent-input"
-                            options={availableParentOUs}
-                            getOptionLabel={(option: OrganizationUnit) => option.name}
-                            value={availableParentOUs.find((ou) => ou.id === field.value) ?? null}
-                            onChange={(_event, newValue: OrganizationUnit | null) =>
-                              field.onChange(newValue?.id ?? null)
-                            }
-                            renderInput={(params) => (
-                              <TextField
-                                {...params}
-                                placeholder={t('organizationUnits:form.parentPlaceholder')}
-                                helperText={t('organizationUnits:form.parentHelperText')}
-                              />
-                            )}
-                            isOptionEqualToValue={(option, value) => option.id === value.id}
-                          />
-                        )}
+                      <TextField
+                        id="ou-parent-input"
+                        fullWidth
+                        value={
+                          parentDisplayName
+                            ? `${parentDisplayName}${parentDisplayHandle ? ` (${parentDisplayHandle})` : ''}`
+                            : t('organizationUnits:view.general.noParent')
+                        }
+                        slotProps={{input: {readOnly: true}}}
+                        helperText={t('organizationUnits:form.parentHelperText')}
                       />
                     </FormControl>
 

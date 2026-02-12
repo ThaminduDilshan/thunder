@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025, WSO2 LLC. (https://www.wso2.com).
+ * Copyright (c) 2025-2026, WSO2 LLC. (https://www.wso2.com).
  *
  * WSO2 LLC. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -19,15 +19,22 @@
 import {describe, it, expect, vi, beforeEach} from 'vitest';
 import {screen, fireEvent, waitFor, renderWithProviders} from '@thunder/test-utils';
 import CreateOrganizationUnitPage from '../CreateOrganizationUnitPage';
-import type {OrganizationUnitListResponse} from '../../types/organization-units';
 
-// Mock navigate
+// Mock navigate and location
 const mockNavigate = vi.fn();
+let mockLocationState: Record<string, unknown> | null = null;
 vi.mock('react-router', async () => {
   const actual = await vi.importActual('react-router');
   return {
     ...actual,
     useNavigate: () => mockNavigate,
+    useLocation: () => ({
+      pathname: '/organization-units/create',
+      search: '',
+      hash: '',
+      state: mockLocationState,
+      key: 'default',
+    }),
   };
 });
 
@@ -49,22 +56,10 @@ vi.mock('../../api/useCreateOrganizationUnit', () => ({
   }),
 }));
 
-// Mock get OUs hook
-const mockOUsData: OrganizationUnitListResponse = {
-  totalResults: 2,
-  startIndex: 1,
-  count: 2,
-  organizationUnits: [
-    {id: 'ou-1', handle: 'parent-one', name: 'Parent One', description: null, parent: null},
-    {id: 'ou-2', handle: 'parent-two', name: 'Parent Two', description: null, parent: null},
-  ],
-};
-
-vi.mock('../../api/useGetOrganizationUnits', () => ({
+// Mock useOrganizationUnit hook
+vi.mock('../../contexts/useOrganizationUnit', () => ({
   default: () => ({
-    data: mockOUsData,
-    isLoading: false,
-    error: null,
+    resetTreeState: vi.fn(),
   }),
 }));
 
@@ -90,8 +85,8 @@ vi.mock('react-i18next', () => ({
         'organizationUnits:form.description': 'Description',
         'organizationUnits:form.descriptionPlaceholder': 'Enter description',
         'organizationUnits:form.parent': 'Parent Organization Unit',
-        'organizationUnits:form.parentPlaceholder': 'Select parent',
-        'organizationUnits:form.parentHelperText': 'Optional parent organization unit',
+        'organizationUnits:form.parentHelperText': 'The parent organization unit for this new unit',
+        'organizationUnits:view.general.noParent': 'Root Organization Unit',
         'common:actions.create': 'Create',
         'common:status.saving': 'Creating...',
       };
@@ -105,6 +100,7 @@ describe('CreateOrganizationUnitPage', () => {
     vi.clearAllMocks();
     mockNavigate.mockReset();
     mockMutate.mockReset();
+    mockLocationState = null;
   });
 
   it('should render page title and heading', () => {
@@ -374,7 +370,15 @@ describe('CreateOrganizationUnitPage', () => {
     });
   });
 
-  it('should set parent to null when not selected', async () => {
+  it('should show "Root Organization Unit" in parent field when no parent is provided', () => {
+    renderWithProviders(<CreateOrganizationUnitPage />);
+
+    const parentInput = screen.getByLabelText(/Parent Organization Unit/i);
+    expect(parentInput).toHaveValue('Root Organization Unit');
+    expect(parentInput).toHaveAttribute('readOnly');
+  });
+
+  it('should set parent to null when no parent is in navigation state', async () => {
     renderWithProviders(<CreateOrganizationUnitPage />);
 
     const nameInput = screen.getByLabelText(/Name/i);
@@ -399,28 +403,33 @@ describe('CreateOrganizationUnitPage', () => {
     });
   });
 
-  it('should select parent OU from autocomplete', async () => {
+  it('should display parent name and handle when navigated with parent state', () => {
+    mockLocationState = {parentId: 'ou-1', parentName: 'Engineering', parentHandle: 'engineering'};
+
     renderWithProviders(<CreateOrganizationUnitPage />);
 
-    // Find the parent autocomplete input
     const parentInput = screen.getByLabelText(/Parent Organization Unit/i);
+    expect(parentInput).toHaveValue('Engineering (engineering)');
+    expect(parentInput).toHaveAttribute('readOnly');
+  });
 
-    // Open the autocomplete dropdown
-    fireEvent.mouseDown(parentInput);
-    fireEvent.click(parentInput);
+  it('should display parent name without handle when handle is not provided', () => {
+    mockLocationState = {parentId: 'ou-1', parentName: 'Engineering'};
 
-    await waitFor(() => {
-      expect(screen.getByText('Parent One')).toBeInTheDocument();
-    });
+    renderWithProviders(<CreateOrganizationUnitPage />);
 
-    // Select a parent
-    fireEvent.click(screen.getByText('Parent One'));
+    const parentInput = screen.getByLabelText(/Parent Organization Unit/i);
+    expect(parentInput).toHaveValue('Engineering');
+  });
 
-    // Fill required fields and submit
+  it('should submit with parent ID from navigation state', async () => {
+    mockLocationState = {parentId: 'ou-1', parentName: 'Engineering', parentHandle: 'engineering'};
+
+    renderWithProviders(<CreateOrganizationUnitPage />);
+
     const nameInput = screen.getByLabelText(/Name/i);
-    fireEvent.change(nameInput, {target: {value: 'Test Organization'}});
+    fireEvent.change(nameInput, {target: {value: 'Child Organization'}});
 
-    // Wait for form validation to complete
     await waitFor(() => {
       const createButton = screen.getByText('Create');
       expect(createButton).not.toBeDisabled();
@@ -515,19 +524,6 @@ describe('CreateOrganizationUnitPage', () => {
     });
   });
 
-  it('should render parent autocomplete with options', async () => {
-    renderWithProviders(<CreateOrganizationUnitPage />);
-
-    const parentInput = screen.getByLabelText(/Parent Organization Unit/i);
-    fireEvent.focus(parentInput);
-    fireEvent.mouseDown(parentInput);
-
-    await waitFor(() => {
-      expect(screen.getByText('Parent One')).toBeInTheDocument();
-      expect(screen.getByText('Parent Two')).toBeInTheDocument();
-    });
-  });
-
   it('should trim whitespace from inputs on submit', async () => {
     renderWithProviders(<CreateOrganizationUnitPage />);
 
@@ -570,32 +566,5 @@ describe('CreateOrganizationUnitPage', () => {
     renderWithProviders(<CreateOrganizationUnitPage />);
 
     expect(screen.getByText('Try these suggestions:')).toBeInTheDocument();
-  });
-
-  it('should compare autocomplete options by id', async () => {
-    renderWithProviders(<CreateOrganizationUnitPage />);
-
-    const parentInput = screen.getByLabelText(/Parent Organization Unit/i);
-
-    // Open the dropdown
-    fireEvent.mouseDown(parentInput);
-
-    await waitFor(() => {
-      expect(screen.getByText('Parent One')).toBeInTheDocument();
-    });
-
-    // Select Parent One
-    fireEvent.click(screen.getByText('Parent One'));
-
-    // Open the dropdown again
-    fireEvent.mouseDown(parentInput);
-
-    await waitFor(() => {
-      // Parent One should still be selectable/visible as an option
-      expect(screen.getByText('Parent One')).toBeInTheDocument();
-    });
-
-    // The isOptionEqualToValue (line 343) is used to compare options
-    // This verifies the selected option is properly maintained
   });
 });

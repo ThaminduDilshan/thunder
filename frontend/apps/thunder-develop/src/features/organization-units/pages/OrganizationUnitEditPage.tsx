@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025, WSO2 LLC. (https://www.wso2.com).
+ * Copyright (c) 2025-2026, WSO2 LLC. (https://www.wso2.com).
  *
  * WSO2 LLC. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -16,7 +16,8 @@
  * under the License.
  */
 
-import {useState, useCallback, useMemo, type JSX} from 'react';
+import {useState, useCallback, useMemo} from 'react';
+import type {ReactNode, SyntheticEvent, JSX} from 'react';
 import {useNavigate, useParams, useLocation} from 'react-router';
 import {
   Box,
@@ -30,6 +31,7 @@ import {
   CircularProgress,
   Tabs,
   Tab,
+  Snackbar,
 } from '@wso2/oxygen-ui';
 import {ArrowLeft, Edit, Building} from '@wso2/oxygen-ui-icons-react';
 import {useTranslation} from 'react-i18next';
@@ -38,6 +40,7 @@ import useGetOrganizationUnit from '../api/useGetOrganizationUnit';
 import useUpdateOrganizationUnit from '../api/useUpdateOrganizationUnit';
 import type {OrganizationUnit, OUNavigationState} from '../types/organization-units';
 import OrganizationUnitDeleteDialog from '../components/OrganizationUnitDeleteDialog';
+import useOrganizationUnit from '../contexts/useOrganizationUnit';
 import EditGeneralSettings from '../components/edit-organization-unit/general-settings/EditGeneralSettings';
 import EditChildOUs from '../components/edit-organization-unit/child-ous/EditChildOUs';
 import EditUsers from '../components/edit-organization-unit/users/EditUsers';
@@ -45,7 +48,7 @@ import EditGroups from '../components/edit-organization-unit/groups/EditGroups';
 import EditAdvancedSettings from '../components/edit-organization-unit/advanced-settings/EditAdvancedSettings';
 
 interface TabPanelProps {
-  children?: React.ReactNode;
+  children?: ReactNode;
   index: number;
   value: number;
 }
@@ -77,20 +80,24 @@ export default function OrganizationUnitEditPage(): JSX.Element {
 
   const {data: organizationUnit, isLoading, error: fetchError, refetch} = useGetOrganizationUnit(id);
   const updateOrganizationUnit = useUpdateOrganizationUnit();
+  const {resetTreeState} = useOrganizationUnit();
 
   const [activeTab, setActiveTab] = useState(0);
   const [editedOU, setEditedOU] = useState<Partial<OrganizationUnit>>({});
   const [deleteDialogOpen, setDeleteDialogOpen] = useState<boolean>(false);
+  const [snackbar, setSnackbar] = useState<{open: boolean; message: string}>({open: false, message: ''});
   const [isEditingName, setIsEditingName] = useState(false);
   const [isEditingDescription, setIsEditingDescription] = useState(false);
   const [tempName, setTempName] = useState('');
   const [tempDescription, setTempDescription] = useState('');
 
+  const listUrl = '/organization-units';
+
   const handleBack = async (): Promise<void> => {
     if (fromOU) {
       await navigate(`/organization-units/${fromOU.id}`);
     } else {
-      await navigate('/organization-units');
+      await navigate(listUrl);
     }
   };
 
@@ -98,7 +105,7 @@ export default function OrganizationUnitEditPage(): JSX.Element {
     ? t('organizationUnits:view.backToOU', {name: fromOU.name})
     : t('organizationUnits:view.back');
 
-  const handleTabChange = (_event: React.SyntheticEvent, newValue: number): void => {
+  const handleTabChange = (_event: SyntheticEvent, newValue: number): void => {
     setActiveTab(newValue);
   };
 
@@ -112,7 +119,7 @@ export default function OrganizationUnitEditPage(): JSX.Element {
     const updatedData = {
       handle: editedOU.handle ?? organizationUnit.handle,
       name: editedOU.name ?? organizationUnit.name,
-      description: editedOU.description ?? organizationUnit.description,
+      description: editedOU.description !== undefined ? editedOU.description : organizationUnit.description,
     };
 
     try {
@@ -120,21 +127,27 @@ export default function OrganizationUnitEditPage(): JSX.Element {
         id,
         data: updatedData,
       });
+      resetTreeState();
       setEditedOU({});
       await refetch();
     } catch {
       logger.error('Failed to update organization unit');
     }
-  }, [organizationUnit, id, editedOU, updateOrganizationUnit, refetch, logger]);
+  }, [organizationUnit, id, editedOU, updateOrganizationUnit, resetTreeState, refetch, logger]);
 
   const hasChanges = useMemo(() => Object.keys(editedOU).length > 0, [editedOU]);
 
   const handleDeleteSuccess = (): void => {
+    resetTreeState();
     (async (): Promise<void> => {
-      await navigate('/organization-units');
+      await navigate(listUrl);
     })().catch((_error: unknown) => {
       logger.error('Failed to navigate after deleting organization unit', {error: _error});
     });
+  };
+
+  const handleDeleteError = (message: string): void => {
+    setSnackbar({open: true, message});
   };
 
   if (isLoading) {
@@ -287,7 +300,11 @@ export default function OrganizationUnitEditPage(): JSX.Element {
                       }
                       setIsEditingDescription(false);
                     } else if (e.key === 'Escape') {
-                      setTempDescription(editedOU.description ?? organizationUnit.description ?? '');
+                      setTempDescription(
+                        (editedOU.description !== undefined
+                          ? editedOU.description
+                          : organizationUnit.description) ?? '',
+                      );
                       setIsEditingDescription(false);
                     }
                   }}
@@ -303,12 +320,19 @@ export default function OrganizationUnitEditPage(): JSX.Element {
               ) : (
                 <>
                   <Typography variant="body2" color="text.secondary">
-                    {editedOU.description ?? organizationUnit.description ?? t('organizationUnits:view.description.empty')}
+                    {(editedOU.description !== undefined
+                      ? editedOU.description
+                      : organizationUnit.description) ??
+                      t('organizationUnits:view.description.empty')}
                   </Typography>
                   <IconButton
                     size="small"
                     onClick={() => {
-                      setTempDescription(editedOU.description ?? organizationUnit.description ?? '');
+                      setTempDescription(
+                        (editedOU.description !== undefined
+                          ? editedOU.description
+                          : organizationUnit.description) ?? '',
+                      );
                       setIsEditingDescription(true);
                     }}
                     sx={{
@@ -394,7 +418,23 @@ export default function OrganizationUnitEditPage(): JSX.Element {
         organizationUnitId={id ?? null}
         onClose={() => setDeleteDialogOpen(false)}
         onSuccess={handleDeleteSuccess}
+        onError={handleDeleteError}
       />
+
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={6000}
+        onClose={() => setSnackbar((prev) => ({...prev, open: false}))}
+        anchorOrigin={{vertical: 'bottom', horizontal: 'right'}}
+      >
+        <Alert
+          onClose={() => setSnackbar((prev) => ({...prev, open: false}))}
+          severity="error"
+          sx={{width: '100%'}}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
 
       {/* Floating Action Bar */}
       {hasChanges && (

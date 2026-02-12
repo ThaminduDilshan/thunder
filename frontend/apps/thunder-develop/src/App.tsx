@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025, WSO2 LLC. (https://www.wso2.com).
+ * Copyright (c) 2025-2026, WSO2 LLC. (https://www.wso2.com).
  *
  * WSO2 LLC. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -37,6 +37,7 @@ import LoginFlowBuilderPage from './features/login-flow/pages/LoginFlowPage';
 import OrganizationUnitsListPage from './features/organization-units/pages/OrganizationUnitsListPage';
 import CreateOrganizationUnitPage from './features/organization-units/pages/CreateOrganizationUnitPage';
 import OrganizationUnitEditPage from './features/organization-units/pages/OrganizationUnitEditPage';
+import OrganizationUnitProvider from './features/organization-units/contexts/OrganizationUnitProvider';
 
 export default function App(): JSX.Element {
   return (
@@ -61,18 +62,23 @@ export default function App(): JSX.Element {
           <Route path="applications" element={<ApplicationsListPage />} />
           <Route path="applications/:applicationId" element={<ApplicationEditPage />} />
           <Route path="flows" element={<FlowsListPage />} />
-          <Route path="organization-units" element={<OrganizationUnitsListPage />} />
-          <Route path="organization-units/:id" element={<OrganizationUnitEditPage />} />
         </Route>
+        {/* Organization Units - wrapped in OrganizationUnitProvider to preserve tree state across navigation */}
         <Route
-          path="/organization-units/create"
+          path="/organization-units"
           element={
             <ProtectedRoute>
-              <FullScreenLayout />
+              <OrganizationUnitProvider />
             </ProtectedRoute>
           }
         >
-          <Route index element={<CreateOrganizationUnitPage />} />
+          <Route element={<DashboardLayout />}>
+            <Route index element={<OrganizationUnitsListPage />} />
+            <Route path=":id" element={<OrganizationUnitEditPage />} />
+          </Route>
+          <Route path="create" element={<FullScreenLayout />}>
+            <Route index element={<CreateOrganizationUnitPage />} />
+          </Route>
         </Route>
         <Route
           path="/applications/create"

@@ -20,13 +20,11 @@ import {describe, it, expect, vi, beforeEach} from 'vitest';
 import {screen, fireEvent, waitFor, renderWithProviders} from '@thunder/test-utils';
 import OrganizationUnitDeleteDialog from '../OrganizationUnitDeleteDialog';
 
-// Mock the delete hook
+// Mock the delete hook — controllable per test
 const mockMutate = vi.fn();
+const mockDeleteHook = {mutate: mockMutate, isPending: false};
 vi.mock('../../api/useDeleteOrganizationUnit', () => ({
-  default: () => ({
-    mutate: mockMutate,
-    isPending: false,
-  }),
+  default: () => mockDeleteHook,
 }));
 
 // Mock translations
@@ -116,33 +114,47 @@ describe('OrganizationUnitDeleteDialog', () => {
     });
   });
 
-  it('should display error message on deletion failure', async () => {
-    mockMutate.mockImplementation((_id, options: {onError: (err: Error) => void}) => {
-      options.onError(new Error('Network error'));
-    });
+  it('should call onClose and onError on deletion failure', async () => {
+    const onClose = vi.fn();
+    const onError = vi.fn();
+    mockMutate.mockImplementation(
+      (_id: string, options: {onError: (err: Error) => void}) => {
+        options.onError(
+          Object.assign(new Error('Network error'), {
+            response: {data: {code: 'ERR', message: 'fail', description: 'Network error'}},
+          }),
+        );
+      },
+    );
 
-    renderWithProviders(<OrganizationUnitDeleteDialog {...defaultProps} />);
+    renderWithProviders(
+      <OrganizationUnitDeleteDialog {...defaultProps} onClose={onClose} onError={onError} />,
+    );
 
     fireEvent.click(screen.getByText('Delete'));
 
     await waitFor(() => {
-      expect(screen.getByText('Network error')).toBeInTheDocument();
+      expect(onClose).toHaveBeenCalled();
+      expect(onError).toHaveBeenCalledWith('Network error');
     });
   });
 
-  it('should display fallback error message when error has no message', async () => {
-    mockMutate.mockImplementation((_id, options: {onError: (err: unknown) => void}) => {
-      options.onError({});
-    });
+  it('should use fallback error message when error has no response data', async () => {
+    const onError = vi.fn();
+    mockMutate.mockImplementation(
+      (_id: string, options: {onError: (err: Error) => void}) => {
+        options.onError(new Error());
+      },
+    );
 
-    renderWithProviders(<OrganizationUnitDeleteDialog {...defaultProps} />);
+    renderWithProviders(
+      <OrganizationUnitDeleteDialog {...defaultProps} onError={onError} />,
+    );
 
     fireEvent.click(screen.getByText('Delete'));
 
     await waitFor(() => {
-      // There are 2 alerts - warning disclaimer and error
-      const alerts = screen.getAllByRole('alert');
-      expect(alerts.length).toBe(2);
+      expect(onError).toHaveBeenCalledWith('Failed to delete');
     });
   });
 
@@ -163,28 +175,23 @@ describe('OrganizationUnitDeleteDialog', () => {
     });
   });
 
-  it('should clear error when cancel is clicked', async () => {
-    mockMutate.mockImplementation((_id, options: {onError: (err: Error) => void}) => {
-      options.onError(new Error('Network error'));
-    });
+  it('should work without onError callback', async () => {
+    const onClose = vi.fn();
+    mockMutate.mockImplementation(
+      (_id: string, options: {onError: (err: Error) => void}) => {
+        options.onError(new Error('Network error'));
+      },
+    );
 
-    const {rerender} = renderWithProviders(<OrganizationUnitDeleteDialog {...defaultProps} />);
+    renderWithProviders(
+      <OrganizationUnitDeleteDialog {...defaultProps} onClose={onClose} onError={undefined} />,
+    );
 
-    // Trigger error
     fireEvent.click(screen.getByText('Delete'));
 
     await waitFor(() => {
-      expect(screen.getByText('Network error')).toBeInTheDocument();
+      expect(onClose).toHaveBeenCalled();
     });
-
-    // Click cancel
-    fireEvent.click(screen.getByText('Cancel'));
-
-    // Reopen dialog
-    rerender(<OrganizationUnitDeleteDialog {...defaultProps} />);
-
-    // Error should be cleared (dialog reopens fresh state)
-    // Note: The error state is local to the component instance
   });
 
   it('should display cancel and delete buttons', () => {
@@ -196,19 +203,30 @@ describe('OrganizationUnitDeleteDialog', () => {
 });
 
 describe('OrganizationUnitDeleteDialog - pending state', () => {
+  const defaultProps = {
+    open: true,
+    organizationUnitId: 'ou-123',
+    onClose: vi.fn(),
+    onSuccess: vi.fn(),
+  };
+
   beforeEach(() => {
     vi.clearAllMocks();
+    mockMutate.mockReset();
+    mockDeleteHook.isPending = false;
   });
 
   it('should show deleting text and disable buttons when pending', () => {
-    vi.doMock('../../api/useDeleteOrganizationUnit', () => ({
-      default: () => ({
-        mutate: vi.fn(),
-        isPending: true,
-      }),
-    }));
+    mockDeleteHook.isPending = true;
 
-    // Since we can't easily change the mock mid-test, this is a placeholder
-    // The component should show "Deleting..." when isPending is true
+    renderWithProviders(<OrganizationUnitDeleteDialog {...defaultProps} />);
+
+    expect(screen.getByText('Deleting...')).toBeInTheDocument();
+
+    // Both buttons should be disabled
+    const cancelButton = screen.getByText('Cancel').closest('button');
+    const deleteButton = screen.getByText('Deleting...').closest('button');
+    expect(cancelButton).toBeDisabled();
+    expect(deleteButton).toBeDisabled();
   });
 });

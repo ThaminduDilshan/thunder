@@ -310,10 +310,4 @@ func (suite *SessionUtilsTestSuite) TestSessionConstants() {
 	// Verify session constants are reasonable
 	suite.Equal(32, sessionKeyLength, "Session key should be 32 bytes")
 	suite.Equal(120, sessionTTLSeconds, "Session TTL should be 120 seconds (2 minutes)")
-	suite.Equal(5, cleanupIntervalMinutes, "Cleanup interval should be 5 minutes")
-
-	// Verify cleanup interval is longer than session TTL
-	cleanupSeconds := cleanupIntervalMinutes * 60
-	suite.Greater(cleanupSeconds, sessionTTLSeconds,
-		"Cleanup interval should be longer than session TTL")
 }

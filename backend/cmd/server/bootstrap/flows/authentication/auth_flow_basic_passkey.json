@@ -66,8 +66,7 @@
       "executor": {
         "name": "IdentifyingExecutor"
       },
-      "onSuccess": "passkey_challenge",
-      "onFailure": "prompt_passkey_identifier"
+      "onSuccess": "passkey_challenge"
     },
     {
       "id": "passkey_challenge",
@@ -90,8 +89,7 @@
         "name": "PasskeyAuthExecutor",
         "mode": "verify"
       },
-      "onSuccess": "auth_assert",
-      "onFailure": "choose_auth_method"
+      "onSuccess": "auth_assert"
     },
     {
       "id": "prompt_password_for_registration",
@@ -119,8 +117,7 @@
       "executor": {
         "name": "BasicAuthExecutor"
       },
-      "onSuccess": "passkey_register_start",
-      "onFailure": "prompt_password_for_registration"
+      "onSuccess": "passkey_register_start"
     },
     {
       "id": "passkey_register_start",
@@ -133,8 +130,7 @@
         "name": "PasskeyAuthExecutor",
         "mode": "register_start"
       },
-      "onSuccess": "passkey_register_finish",
-      "onFailure": "choose_auth_method"
+      "onSuccess": "passkey_register_finish"
     },
     {
       "id": "passkey_register_finish",
@@ -143,8 +139,7 @@
         "name": "PasskeyAuthExecutor",
         "mode": "register_finish"
       },
-      "onSuccess": "auth_assert",
-      "onFailure": "choose_auth_method"
+      "onSuccess": "auth_assert"
     },
     {
       "id": "basic_auth",
@@ -152,8 +147,7 @@
       "executor": {
         "name": "BasicAuthExecutor"
       },
-      "onSuccess": "auth_assert",
-      "onFailure": "choose_auth_method"
+      "onSuccess": "auth_assert"
     },
     {
       "id": "auth_assert",

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025, WSO2 LLC. (https://www.wso2.com).
+ * Copyright (c) 2025-2026, WSO2 LLC. (https://www.wso2.com).
  *
  * WSO2 LLC. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -17,7 +17,7 @@
  */
 
 import {describe, it, expect, vi, beforeEach} from 'vitest';
-import {screen, fireEvent, waitFor, renderWithProviders} from '@thunder/test-utils';
+import {screen, waitFor, renderWithProviders} from '@thunder/test-utils';
 import OrganizationUnitsListPage from '../OrganizationUnitsListPage';
 import type {OrganizationUnitListResponse} from '../../types/organization-units';
 
@@ -31,13 +31,10 @@ vi.mock('react-router', async () => {
   };
 });
 
-// Mock logger
+// Mock logger — stable reference to avoid useCallback churn
+const stableLogger = {error: vi.fn(), info: vi.fn(), debug: vi.fn()};
 vi.mock('@thunder/logger/react', () => ({
-  useLogger: () => ({
-    error: vi.fn(),
-    info: vi.fn(),
-    debug: vi.fn(),
-  }),
+  useLogger: () => stableLogger,
 }));
 
 // Mock the API hook
@@ -67,33 +64,62 @@ vi.mock('../../api/useDeleteOrganizationUnit', () => ({
   }),
 }));
 
-// Mock useDataGridLocaleText
-vi.mock('../../../../hooks/useDataGridLocaleText', () => ({
-  default: () => ({}),
+// Mock Asgardeo — stable reference to avoid useCallback churn when tree view renders
+const stableHttp = {request: vi.fn()};
+vi.mock('@asgardeo/react', () => ({
+  useAsgardeo: () => ({http: stableHttp}),
 }));
 
-// Mock translations
+// Mock useOrganizationUnit hook with React state for reactivity
+vi.mock('../../contexts/useOrganizationUnit', async () => {
+  const {useState, useCallback} = await import('react');
+  type OUTreeItem = import('../../models/organizationUnit').OUTreeItem;
+  function useOrganizationUnit() {
+    const [treeItems, setTreeItems] = useState<OUTreeItem[]>([]);
+    const [expandedItems, setExpandedItems] = useState<string[]>([]);
+    const [loadedItems, setLoadedItems] = useState<Set<string>>(new Set());
+    const resetTreeState = useCallback(() => {
+      setTreeItems([]);
+      setLoadedItems(new Set());
+    }, []);
+    return {treeItems, setTreeItems, expandedItems, setExpandedItems, loadedItems, setLoadedItems, resetTreeState};
+  }
+  return {default: useOrganizationUnit};
+});
+
+// Mock config (for tree view)
+const stableConfig = {getServerUrl: () => 'http://localhost:8080'};
+vi.mock('@thunder/shared-contexts', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@thunder/shared-contexts')>();
+  return {
+    ...actual,
+    useConfig: () => stableConfig,
+  };
+});
+
+// Mock translations — stable reference to avoid useCallback churn
+const listTranslations: Record<string, string> = {
+  'organizationUnits:listing.title': 'Organization Units',
+  'organizationUnits:listing.subtitle': 'Manage your organization units',
+  'organizationUnits:listing.addRootOrganizationUnit': 'Add Root Organization Unit',
+  'organizationUnits:listing.error.title': 'Error loading organization units',
+  'organizationUnits:listing.error.unknown': 'An unknown error occurred',
+  'organizationUnits:listing.treeView.empty': 'No organization units found',
+  'organizationUnits:listing.treeView.noChildren': 'No child organization units',
+  'organizationUnits:listing.treeView.loadError': 'Failed to load child organization units',
+  'organizationUnits:listing.treeView.addChild': 'Add child organization unit',
+  'organizationUnits:listing.treeView.addChildOrganizationUnit': 'Add Child Organization Unit',
+  'organizationUnits:delete.title': 'Delete Organization Unit',
+  'organizationUnits:delete.message': 'Are you sure?',
+  'organizationUnits:delete.disclaimer': 'This cannot be undone.',
+  'common:actions.edit': 'Edit',
+  'common:actions.delete': 'Delete',
+  'common:actions.cancel': 'Cancel',
+};
+const stableListT = (key: string): string => listTranslations[key] ?? key;
+const stableListTranslation = {t: stableListT};
 vi.mock('react-i18next', () => ({
-  useTranslation: () => ({
-    t: (key: string) => {
-      const translations: Record<string, string> = {
-        'organizationUnits:listing.title': 'Organization Units',
-        'organizationUnits:listing.subtitle': 'Manage your organization units',
-        'organizationUnits:listing.addOrganizationUnit': 'Add Organization Unit',
-        'organizationUnits:listing.columns.name': 'Name',
-        'organizationUnits:listing.columns.handle': 'Handle',
-        'organizationUnits:listing.columns.description': 'Description',
-        'organizationUnits:listing.columns.actions': 'Actions',
-        'common:actions.view': 'View',
-        'common:actions.delete': 'Delete',
-        'organizationUnits:delete.title': 'Delete Organization Unit',
-        'organizationUnits:delete.message': 'Are you sure?',
-        'organizationUnits:delete.disclaimer': 'This cannot be undone.',
-        'common:actions.cancel': 'Cancel',
-      };
-      return translations[key] ?? key;
-    },
-  }),
+  useTranslation: () => stableListTranslation,
 }));
 
 describe('OrganizationUnitsListPage', () => {
@@ -114,23 +140,7 @@ describe('OrganizationUnitsListPage', () => {
     expect(screen.getByText('Manage your organization units')).toBeInTheDocument();
   });
 
-  it('should render add organization unit button', () => {
-    renderWithProviders(<OrganizationUnitsListPage />);
-
-    expect(screen.getByText('Add Organization Unit')).toBeInTheDocument();
-  });
-
-  it('should navigate to create page when add button is clicked', async () => {
-    renderWithProviders(<OrganizationUnitsListPage />);
-
-    fireEvent.click(screen.getByText('Add Organization Unit'));
-
-    await waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalledWith('/organization-units/create');
-    });
-  });
-
-  it('should render OrganizationUnitsList component', async () => {
+  it('should render tree view with organization units', async () => {
     renderWithProviders(<OrganizationUnitsListPage />);
 
     await waitFor(() => {
@@ -139,25 +149,13 @@ describe('OrganizationUnitsListPage', () => {
     });
   });
 
-  it('should have add button with Plus icon', () => {
+  it('should render add root organization unit button in tree view', async () => {
     renderWithProviders(<OrganizationUnitsListPage />);
 
-    const addButton = screen.getByText('Add Organization Unit').closest('button');
-    expect(addButton).toBeInTheDocument();
-    // Button should have contained variant (primary action style)
-    expect(addButton).toHaveClass('MuiButton-contained');
-  });
-
-  it('should handle navigation error gracefully', async () => {
-    mockNavigate.mockRejectedValue(new Error('Navigation error'));
-
-    renderWithProviders(<OrganizationUnitsListPage />);
-
-    fireEvent.click(screen.getByText('Add Organization Unit'));
-
-    // Should not throw - error is logged internally
     await waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalledWith('/organization-units/create');
+      expect(screen.getByText('Root Organization')).toBeInTheDocument();
     });
+
+    expect(screen.getByText('Add Root Organization Unit')).toBeInTheDocument();
   });
 });

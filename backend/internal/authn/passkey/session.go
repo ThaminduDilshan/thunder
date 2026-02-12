@@ -24,7 +24,6 @@ import (
 	"time"
 
 	"github.com/asgardeo/thunder/internal/system/error/serviceerror"
-	"github.com/asgardeo/thunder/internal/system/log"
 )
 
 const (
@@ -32,8 +31,6 @@ const (
 	sessionKeyLength = 32
 	// sessionTTLSeconds is the session time-to-live in seconds.
 	sessionTTLSeconds = 120
-	// cleanupIntervalMinutes is the interval for cleaning up expired sessions.
-	cleanupIntervalMinutes = 5
 )
 
 // generateSessionKey generates a random base64-encoded session key.
@@ -43,27 +40,6 @@ func generateSessionKey() (string, error) {
 		return "", err
 	}
 	return base64.StdEncoding.EncodeToString(bytes), nil
-}
-
-// startSessionCleanup starts a background routine to periodically clean up expired sessions.
-func startSessionCleanup(store sessionStoreInterface) {
-	logger := log.GetLogger().With(log.String(log.LoggerKeyComponentName, "WebAuthnSessionCleanup"))
-	logger.Debug("Starting session cleanup routine")
-
-	go func() {
-		ticker := time.NewTicker(cleanupIntervalMinutes * time.Minute)
-		defer ticker.Stop()
-
-		for range ticker.C {
-			logger.Debug("Running expired session cleanup")
-			if err := store.deleteExpiredSessions(); err != nil {
-				logger.Error("Failed to cleanup expired sessions", log.Error(err))
-			}
-		}
-	}()
-
-	logger.Debug("Session cleanup routine started",
-		log.Int("intervalMinutes", cleanupIntervalMinutes))
 }
 
 // storeSessionData stores session data in the database and returns a session key.

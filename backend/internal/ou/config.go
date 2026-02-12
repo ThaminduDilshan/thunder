@@ -22,6 +22,7 @@ import (
 	"strings"
 
 	"github.com/asgardeo/thunder/internal/system/config"
+	serverconst "github.com/asgardeo/thunder/internal/system/constants"
 	declarativeresource "github.com/asgardeo/thunder/internal/system/declarative_resource"
 )
 
@@ -36,37 +37,37 @@ import (
 //     - If disabled: return "mutable"
 //
 // Returns normalized store mode: "mutable", "declarative", or "composite"
-func getOrganizationUnitStoreMode() string {
+func getOrganizationUnitStoreMode() serverconst.StoreMode {
 	cfg := config.GetThunderRuntime().Config
 	// Check if service-level configuration is explicitly set
 	if cfg.OrganizationUnit.Store != "" {
-		mode := strings.ToLower(strings.TrimSpace(cfg.OrganizationUnit.Store))
+		mode := serverconst.StoreMode(strings.ToLower(strings.TrimSpace(cfg.OrganizationUnit.Store)))
 		// Validate and normalize
 		switch mode {
-		case config.StoreModeMutable, config.StoreModeDeclarative, config.StoreModeComposite:
+		case serverconst.StoreModeMutable, serverconst.StoreModeDeclarative, serverconst.StoreModeComposite:
 			return mode
 		}
 	}
 
 	// Fall back to global declarative resources setting
 	if declarativeresource.IsDeclarativeModeEnabled() {
-		return config.StoreModeDeclarative
+		return serverconst.StoreModeDeclarative
 	}
 
-	return config.StoreModeMutable
+	return serverconst.StoreModeMutable
 }
 
 // isCompositeModeEnabled checks if composite store mode is enabled for organization units.
 func isCompositeModeEnabled() bool {
-	return getOrganizationUnitStoreMode() == config.StoreModeComposite
+	return getOrganizationUnitStoreMode() == serverconst.StoreModeComposite
 }
 
 // isMutableModeEnabled checks if mutable-only store mode is enabled for organization units.
 func isMutableModeEnabled() bool {
-	return getOrganizationUnitStoreMode() == config.StoreModeMutable
+	return getOrganizationUnitStoreMode() == serverconst.StoreModeMutable
 }
 
 // isDeclarativeModeEnabled checks if immutable-only store mode is enabled for organization units.
 func isDeclarativeModeEnabled() bool {
-	return getOrganizationUnitStoreMode() == config.StoreModeDeclarative
+	return getOrganizationUnitStoreMode() == serverconst.StoreModeDeclarative
 }

@@ -44,19 +44,21 @@ paths:
               schema:
                 $ref: '#/components/schemas/ThemeListResponse'
               example:
-                totalResults: 3
+                totalResults: 5
                 startIndex: 1
-                count: 3
-                links:
-                  self:
-                    href: "/design/themes?limit=10&offset=0"
+                count: 5
                 themes:
-                  - id: "3fa85f64-5717-4562-b3fc-2c963f66afa6"
-                    displayName: "Dark Theme"
-                  - id: "4fa85f64-5717-4562-b3fc-2c963f66afa7"
-                    displayName: "Light Theme"
-                  - id: "5fa85f64-5717-4562-b3fc-2c963f66afa8"
-                    displayName: "Blue Theme"
+                  - id: "019c4e3a-198e-7e4c-99b5-26e327b9bbfc"
+                    displayName: "Classic"
+                    description: "A timeless theme with warm accents and readable contrast for programming."
+                    createdAt: ""
+                    updatedAt: ""
+                  - id: "019c4e3a-19ad-7159-bb2b-228692f96008"
+                    displayName: "High Contrast"
+                    description: "A high contrast theme optimized for accessibility with bold colors and maximum readability."
+                    createdAt: ""
+                    updatedAt: ""
+                links: []
         "400":
           $ref: '#/components/responses/BadRequest'
         "401":
@@ -120,13 +122,51 @@ paths:
               schema:
                 $ref: '#/components/schemas/ThemeResponse'
               example:
-                id: "3fa85f64-5717-4562-b3fc-2c963f66afa6"
-                displayName: "Corporate Theme"
+                id: "019c4e3a-198e-7e4c-99b5-26e327b9bbfc"
+                displayName: "Classic"
+                description: "A timeless theme with warm accents and readable contrast for programming."
                 theme:
-                  primaryColor: "#1976d2"
-                  secondaryColor: "#dc004e"
-                  fontFamily: "Roboto"
-                  borderRadius: "4px"
+                  direction: "ltr"
+                  defaultColorScheme: "light"
+                  colorSchemes:
+                    light:
+                      colors:
+                        primary:
+                          main: "#ff7300"
+                          dark: "#cc5c00"
+                          contrastText: "#ffffff"
+                        secondary:
+                          main: "#757575"
+                          dark: "#5c5c5c"
+                          contrastText: "#ffffff"
+                        background:
+                          default: "#fafafa"
+                          paper: "#ffffff"
+                        text:
+                          primary: "#000000"
+                          secondary: "#444444"
+                    dark:
+                      colors:
+                        primary:
+                          main: "#ff7300"
+                          dark: "#cc5c00"
+                          contrastText: "#ffffff"
+                        secondary:
+                          main: "#757575"
+                          dark: "#5c5c5c"
+                          contrastText: "#ffffff"
+                        background:
+                          default: "#121212"
+                          paper: "#1e1e1e"
+                        text:
+                          primary: "#ffffff"
+                          secondary: "#cccccc"
+                  shape:
+                    borderRadius: 8
+                  typography:
+                    fontFamily: "'Inter Variable', sans-serif"
+                createdAt: ""
+                updatedAt: ""
         "400":
           $ref: '#/components/responses/BadRequest'
         "401":
@@ -208,17 +248,16 @@ paths:
               schema:
                 $ref: '#/components/schemas/LayoutListResponse'
               example:
-                totalResults: 2
+                totalResults: 1
                 startIndex: 1
-                count: 2
-                links:
-                  self:
-                    href: "/design/layouts?limit=10&offset=0"
+                count: 1
                 layouts:
-                  - id: "3fa85f64-5717-4562-b3fc-2c963f66afa6"
-                    displayName: "Centered Layout"
-                  - id: "4fa85f64-5717-4562-b3fc-2c963f66afa7"
-                    displayName: "Split Screen Layout"
+                  - id: "019c50f8-c0d6-7055-8e03-e19bac6ef649"
+                    displayName: "Modern"
+                    description: "A clean, modern authentication layout with a centered card experience, soft gradients, and balanced spacing."
+                    createdAt: ""
+                    updatedAt: ""
+                links: []
         "400":
           $ref: '#/components/responses/BadRequest'
         "401":
@@ -282,13 +321,96 @@ paths:
               schema:
                 $ref: '#/components/schemas/LayoutResponse'
               example:
-                id: "3fa85f64-5717-4562-b3fc-2c963f66afa6"
-                displayName: "Modern Layout"
+                id: "019c50f8-c0d6-7055-8e03-e19bac6ef649"
+                displayName: "Modern"
+                description: "A clean, modern authentication layout with a centered card experience, soft gradients, and balanced spacing."
                 layout:
-                  contentAlignment: "center"
-                  maxWidth: "1200px"
-                  showLogo: true
-                  logoPosition: "top"
+                  screens:
+                    auth:
+                      template: "centered"
+                      background:
+                        type: "gradient"
+                        value: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)"
+                      spacing:
+                        componentGap: 16
+                        sectionGap: 24
+                      slots:
+                        header:
+                          enabled: true
+                          height: 80
+                          padding: 16
+                          layout:
+                            type: "flex"
+                            direction: "row"
+                            justify: "space-between"
+                            align: "center"
+                          showLogo: true
+                          showLanguageSelector: true
+                        main:
+                          position:
+                            anchor: "center"
+                            verticalAlign: "center"
+                          container:
+                            maxWidth: 420
+                            padding: 24
+                            borderRadius: 12
+                            elevation: 2
+                            background: "surface"
+                          layout:
+                            type: "stack"
+                            direction: "vertical"
+                            gap: "md"
+                            align: "stretch"
+                        footer:
+                          enabled: true
+                          height: 60
+                          padding: 16
+                          layout:
+                            type: "flex"
+                            direction: "row"
+                            justify: "center"
+                            align: "center"
+                          showLinks: true
+                    signin:
+                      extends: "auth"
+                      slots:
+                        main:
+                          container:
+                            maxWidth: 420
+                    signup:
+                      extends: "auth"
+                      slots:
+                        main:
+                          container:
+                            maxWidth: 520
+                    mfa:
+                      extends: "auth"
+                      slots:
+                        header:
+                          showBackButton: true
+                        main:
+                          container:
+                            maxWidth: 380
+                    forgot-password:
+                      extends: "auth"
+                      slots:
+                        main:
+                          container:
+                            maxWidth: 400
+                    recovery:
+                      extends: "auth"
+                      slots:
+                        main:
+                          container:
+                            maxWidth: 400
+                    password-reset:
+                      extends: "auth"
+                      slots:
+                        main:
+                          container:
+                            maxWidth: 440
+                createdAt: ""
+                updatedAt: ""
         "400":
           $ref: '#/components/responses/BadRequest'
         "401":

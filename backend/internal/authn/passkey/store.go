@@ -40,7 +40,6 @@ type sessionStoreInterface interface {
 	) error
 	retrieveSession(sessionKey string) (*sessionData, string, string, error)
 	deleteSession(sessionKey string) error
-	deleteExpiredSessions() error
 }
 
 // sessionStore provides the WebAuthn session store functionality using database.
@@ -163,26 +162,6 @@ func (s *sessionStore) deleteSession(sessionKey string) error {
 
 	s.logger.Debug("WebAuthn session deleted successfully",
 		log.String("sessionKey", log.MaskString(sessionKey)))
-
-	return nil
-}
-
-// deleteExpiredSessions removes all expired WebAuthn sessions from the database.
-func (s *sessionStore) deleteExpiredSessions() error {
-	dbClient, err := s.dbProvider.GetRuntimeDBClient()
-	if err != nil {
-		s.logger.Error("Failed to get database client", log.Error(err))
-		return err
-	}
-
-	now := time.Now()
-	_, err = dbClient.Execute(queryDeleteExpiredSessions, now, s.deploymentID)
-	if err != nil {
-		s.logger.Error("Failed to delete expired WebAuthn sessions", log.Error(err))
-		return err
-	}
-
-	s.logger.Debug("Deleted expired WebAuthn sessions")
 
 	return nil
 }

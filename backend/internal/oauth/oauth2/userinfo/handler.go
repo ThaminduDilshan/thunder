@@ -75,7 +75,11 @@ func (h *userInfoHandler) writeServiceErrorResponse(w http.ResponseWriter, svcEr
 
 	switch svcErr.Type {
 	case serviceerror.ClientErrorType:
-		statusCode = http.StatusUnauthorized
+		if svcErr == &errorInsufficientScope {
+			statusCode = http.StatusForbidden
+		} else {
+			statusCode = http.StatusUnauthorized
+		}
 	case serviceerror.ServerErrorType:
 		statusCode = http.StatusInternalServerError
 	default:

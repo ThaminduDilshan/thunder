@@ -88,7 +88,7 @@ func resolveTokenConfig(oauthApp *appmodel.OAuthAppConfigProcessedDTO, tokenType
 	return tokenConfig
 }
 
-// extractStringClaim safely extracts a string claim from a claims map.
+// extractStringClaim safely extracts a non-empty string claim from a claims map.
 func extractStringClaim(claims map[string]interface{}, key string) (string, error) {
 	value, ok := claims[key]
 	if !ok {
@@ -98,6 +98,10 @@ func extractStringClaim(claims map[string]interface{}, key string) (string, erro
 	strValue, ok := value.(string)
 	if !ok {
 		return "", fmt.Errorf("claim %s is not a string", key)
+	}
+
+	if strValue == "" {
+		return "", fmt.Errorf("claim %s is empty", key)
 	}
 
 	return strValue, nil
@@ -303,7 +307,7 @@ func BuildClaims(
 	result := make(map[string]interface{})
 
 	// Check for openid scope first
-	hasOpenIDScope := slices.Contains(scopes, "openid")
+	hasOpenIDScope := slices.Contains(scopes, constants.ScopeOpenID)
 	if !hasOpenIDScope || userAttributes == nil {
 		return result
 	}

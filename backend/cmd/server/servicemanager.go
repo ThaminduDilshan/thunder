@@ -95,24 +95,31 @@ func registerServices(mux *http.ServeMux) jwt.JWTServiceInterface {
 		logger.Fatal("Failed to initialize system authorization service", log.Error(err))
 	}
 
-	ouService, ouExporter, err := ou.Initialize(mux, ouAuthzService)
+	ouService, ouHierarchyResolver, ouExporter, err := ou.Initialize(mux, ouAuthzService)
 	if err != nil {
 		logger.Fatal("Failed to initialize OrganizationUnitService", log.Error(err))
 	}
 	exporters = append(exporters, ouExporter)
 
+	// Complete the two-phase initialization: inject the OU hierarchy resolver into the
+	// authz service now that the ou package is ready. This breaks the import-cycle that
+	// would arise if sysauthz were to directly import the ou package.
+	ouAuthzService.SetOUHierarchyResolver(ouHierarchyResolver)
+
 	hashService := hash.Initialize()
 
-	userSchemaService, userSchemaExporter, err := userschema.Initialize(mux, ouService)
+	userSchemaService, userSchemaExporter, err := userschema.Initialize(mux, ouService, ouAuthzService)
 	if err != nil {
 		logger.Fatal("Failed to initialize UserSchemaService", log.Error(err))
 	}
 	exporters = append(exporters, userSchemaExporter)
 
-	userService, err := user.Initialize(mux, ouService, userSchemaService, hashService, ouAuthzService)
+	userService, userExporter, err := user.Initialize(mux, ouService, userSchemaService, hashService, ouAuthzService)
 	if err != nil {
 		logger.Fatal("Failed to initialize UserService", log.Error(err))
 	}
+	exporters = append(exporters, userExporter)
+
 	groupService, err := group.Initialize(mux, ouService, userService)
 	if err != nil {
 		logger.Fatal("Failed to initialize GroupService", log.Error(err))

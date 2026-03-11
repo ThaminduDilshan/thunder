@@ -113,7 +113,6 @@ paths:
                 value: "https://myapp.example.com/.well-known/jwks"
               allowed_user_types: ["employee", "customer"]
               login_consent:
-                enabled: true
                 validity_period: 3600
               inbound_auth_config:
                 - type: "oauth2"
@@ -400,7 +399,6 @@ paths:
                 value: "https://myapp.example.com/.well-known/jwks"
               allowed_user_types: ["employee", "customer"]
               login_consent:
-                enabled: true
                 validity_period: 3600
               inbound_auth_config:
                 - type: "oauth2"
@@ -698,10 +696,6 @@ components:
         login_consent:
           type: object
           properties:
-            enabled:
-              type: boolean
-              description: Indicates if login consent is enabled for the application.
-              example: true
             validity_period:
               type: integer
               description: The validity period of the login consent in seconds. Default is 0 (no expiration).
@@ -804,10 +798,6 @@ components:
         login_consent:
           type: object
           properties:
-            enabled:
-              type: boolean
-              description: Indicates if consent is enabled for the application.
-              example: true
             validity_period:
               type: integer
               description: The validity period of the consent in seconds. Default is 0 (no expiration).
@@ -910,10 +900,6 @@ components:
         login_consent:
           type: object
           properties:
-            enabled:
-              type: boolean
-              description: Indicates if consent is enabled for the application.
-              example: true
             validity_period:
               type: integer
               description: The validity period of the consent in seconds. Default is 0 (no expiration).

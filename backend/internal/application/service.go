@@ -146,7 +146,7 @@ func (as *applicationService) CreateApplication(app *model.ApplicationDTO) (*mod
 
 	// Sync consent purpose AFTER the application is durably persisted.
 	// On failure, compensate by deleting the application and the certificate.
-	if app.LoginConsent.Enabled && as.consentService.IsEnabled() {
+	if as.consentService.IsEnabled() {
 		if svcErr := as.syncConsentPurposeOnCreate(processedDTO); svcErr != nil {
 			var oAuthClientID string
 			if inboundAuthConfig != nil && inboundAuthConfig.OAuthAppConfig != nil {
@@ -986,15 +986,10 @@ func (as *applicationService) validateAllowedUserTypes(allowedUserTypes []string
 func (as *applicationService) validateConsentConfig(appDTO *model.ApplicationDTO) *serviceerror.ServiceError {
 	if appDTO.LoginConsent == nil {
 		appDTO.LoginConsent = &model.LoginConsentConfig{
-			Enabled:        false,
 			ValidityPeriod: 0,
 		}
 
 		return nil
-	}
-
-	if appDTO.LoginConsent.Enabled && !as.consentService.IsEnabled() {
-		return &ErrorConsentServiceNotEnabled
 	}
 
 	if appDTO.LoginConsent.ValidityPeriod < 0 {
@@ -1990,14 +1985,8 @@ func (as *applicationService) syncConsentPurposeOnUpdate(appID string,
 	existingApp *model.ApplicationProcessedDTO, updatedApp *model.ApplicationProcessedDTO,
 	existingCert, updatedCert *cert.Certificate) *serviceerror.ServiceError {
 	logger := log.GetLogger().With(log.String(log.LoggerKeyComponentName, "ApplicationService"))
-	var consentSvcErr *serviceerror.ServiceError
 
-	if updatedApp.LoginConsent.Enabled {
-		consentSvcErr = as.updateConsentPurpose(existingApp, updatedApp)
-	} else {
-		consentSvcErr = as.deleteConsentPurposes(appID)
-	}
-
+	consentSvcErr := as.updateConsentPurpose(existingApp, updatedApp)
 	if consentSvcErr != nil {
 		if revertErr := as.appStore.UpdateApplication(updatedApp, existingApp); revertErr != nil {
 			logger.Error("Failed to compensate application update after consent sync failure",

@@ -146,7 +146,6 @@ func (ts *ConsentAPITestSuite) TestConsentPurposeCreatedOnApplicationCreate() {
 		AuthFlowID:         ts.consentAuthFlowID,
 		RegistrationFlowID: ts.consentRegistrationFlowID,
 		LoginConsent: &LoginConsentConfig{
-			Enabled:        true,
 			ValidityPeriod: 3600,
 		},
 		InboundAuthConfig: []InboundAuthConfig{
@@ -168,7 +167,7 @@ func (ts *ConsentAPITestSuite) TestConsentPurposeCreatedOnApplicationCreate() {
 	}
 
 	appID, err := createApplication(app)
-	ts.Require().NoError(err, "failed to create application with login_consent enabled")
+	ts.Require().NoError(err, "failed to create application with login_consent")
 	defer func() {
 		if err := deleteApplication(appID); err != nil {
 			ts.T().Logf("teardown: failed to delete application %s: %v", appID, err)
@@ -190,7 +189,7 @@ func (ts *ConsentAPITestSuite) TestConsentPurposeNotCreatedWhenNoUserAttributes(
 		AuthFlowID:         ts.consentAuthFlowID,
 		RegistrationFlowID: ts.consentRegistrationFlowID,
 		LoginConsent: &LoginConsentConfig{
-			Enabled: true,
+			ValidityPeriod: 0,
 		},
 		InboundAuthConfig: []InboundAuthConfig{
 			{
@@ -209,7 +208,7 @@ func (ts *ConsentAPITestSuite) TestConsentPurposeNotCreatedWhenNoUserAttributes(
 	}
 
 	appID, err := createApplication(app)
-	ts.Require().NoError(err, "failed to create application with login_consent enabled but no user attributes")
+	ts.Require().NoError(err, "failed to create application with login_consent but no user attributes")
 	defer func() {
 		if err := deleteApplication(appID); err != nil {
 			ts.T().Logf("teardown: failed to delete application %s: %v", appID, err)
@@ -231,7 +230,7 @@ func (ts *ConsentAPITestSuite) TestConsentPurposeUpdatedOnApplicationUpdate() {
 		AuthFlowID:         ts.consentAuthFlowID,
 		RegistrationFlowID: ts.consentRegistrationFlowID,
 		LoginConsent: &LoginConsentConfig{
-			Enabled: true,
+			ValidityPeriod: 0,
 		},
 		InboundAuthConfig: []InboundAuthConfig{
 			{
@@ -282,14 +281,14 @@ func (ts *ConsentAPITestSuite) TestConsentPurposeUpdatedOnApplicationUpdate() {
 }
 
 func (ts *ConsentAPITestSuite) TestConsentPurposeDeletedOnLoginConsentDisable() {
-	// Step 1: Create app with login_consent enabled.
+	// Step 1: Create app with login_consent.
 	app := Application{
 		Name:               "Consent Disable Test App",
 		Description:        "App to test consent purpose deletion on disable",
 		AuthFlowID:         ts.consentAuthFlowID,
 		RegistrationFlowID: ts.consentRegistrationFlowID,
 		LoginConsent: &LoginConsentConfig{
-			Enabled: true,
+			ValidityPeriod: 0,
 		},
 		InboundAuthConfig: []InboundAuthConfig{
 			{
@@ -322,18 +321,18 @@ func (ts *ConsentAPITestSuite) TestConsentPurposeDeletedOnLoginConsentDisable() 
 	ts.Require().NoError(err)
 	ts.Require().Len(purposes, 1, "expected 1 purpose after create")
 
-	// Step 2: Disable login_consent.
+	// Step 2: Remove login_consent to disable.
 	updatedApp := app
-	updatedApp.LoginConsent = &LoginConsentConfig{Enabled: false}
+	updatedApp.LoginConsent = nil
 
 	err = updateApplication(appID, updatedApp)
-	ts.Require().NoError(err, "failed to update application to disable login_consent")
+	ts.Require().NoError(err, "failed to update application to remove login_consent")
 
 	// Verify that the purpose was deleted.
 	purposes, err = getMockPurposesForApp(appID)
 	ts.Require().NoError(err)
 	ts.Assert().Empty(purposes,
-		"expected consent purpose to be deleted when login_consent is disabled")
+		"expected consent purpose to be deleted when login_consent is removed")
 }
 
 func (ts *ConsentAPITestSuite) TestConsentPurposeDeletedOnApplicationDelete() {
@@ -343,7 +342,7 @@ func (ts *ConsentAPITestSuite) TestConsentPurposeDeletedOnApplicationDelete() {
 		AuthFlowID:         ts.consentAuthFlowID,
 		RegistrationFlowID: ts.consentRegistrationFlowID,
 		LoginConsent: &LoginConsentConfig{
-			Enabled: true,
+			ValidityPeriod: 0,
 		},
 		InboundAuthConfig: []InboundAuthConfig{
 			{
@@ -389,7 +388,6 @@ func (ts *ConsentAPITestSuite) TestLoginConsentEnabledFieldPersistedCorrectly() 
 		AuthFlowID:         ts.consentAuthFlowID,
 		RegistrationFlowID: ts.consentRegistrationFlowID,
 		LoginConsent: &LoginConsentConfig{
-			Enabled:        true,
 			ValidityPeriod: 7200,
 		},
 		InboundAuthConfig: []InboundAuthConfig{
@@ -422,7 +420,6 @@ func (ts *ConsentAPITestSuite) TestLoginConsentEnabledFieldPersistedCorrectly() 
 	ts.Require().NoError(err, "failed to retrieve application")
 	ts.Require().NotNil(retrieved.LoginConsent, "login_consent should be present in response")
 
-	ts.Assert().True(retrieved.LoginConsent.Enabled, "login_consent.enabled should be true")
 	ts.Assert().Equal(int64(7200), retrieved.LoginConsent.ValidityPeriod,
 		"login_consent.validity_period should be 7200")
 }

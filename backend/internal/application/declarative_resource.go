@@ -202,7 +202,7 @@ func parseToApplicationDTO(data []byte) (*model.ApplicationDTO, error) {
 		Assertion:                 appRequest.Assertion,
 		Certificate:               appRequest.Certificate,
 		AllowedUserTypes:          appRequest.AllowedUserTypes,
-		LoginConsent:              &model.LoginConsentConfig{Enabled: false},
+		LoginConsent:              &model.LoginConsentConfig{ValidityPeriod: 0},
 		Metadata:                  appRequest.Metadata,
 	}
 	if len(appRequest.InboundAuthConfig) > 0 {

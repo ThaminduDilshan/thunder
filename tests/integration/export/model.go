@@ -108,7 +108,6 @@ type IDTokenConfig struct {
 
 // LoginConsentConfig represents the login consent configuration for an application.
 type LoginConsentConfig struct {
-	Enabled        bool  `json:"enabled"`
 	ValidityPeriod int64 `json:"validity_period,omitempty"`
 }
 

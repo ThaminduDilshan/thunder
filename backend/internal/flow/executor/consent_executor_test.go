@@ -391,7 +391,6 @@ func (suite *ConsentExecutorTestSuite) TestExecute_HasInputs_AllApproved_Success
 	ctx := buildConsentNodeContext()
 	ctx.UserInputs[userInputConsentDecisions] = string(decisionsJSON)
 	ctx.Application.LoginConsent = &appmodel.LoginConsentConfig{
-		Enabled:        true,
 		ValidityPeriod: 86400,
 	}
 

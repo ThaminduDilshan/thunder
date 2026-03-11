@@ -60,44 +60,28 @@ func (s *ApplicationServiceConsentTestSuite) TestValidateConsentConfig_NilLoginC
 
 	s.Nil(svcErr)
 	s.NotNil(app.LoginConsent)
-	s.False(app.LoginConsent.Enabled)
 	s.Equal(int64(0), app.LoginConsent.ValidityPeriod)
 }
 
-func (s *ApplicationServiceConsentTestSuite) TestValidateConsentConfig_EnabledWhenConsentServiceDisabled() {
+func (s *ApplicationServiceConsentTestSuite) TestValidateConsentConfig_ValidityPeriodSet() {
 	cMock := consentmock.NewConsentServiceInterfaceMock(s.T())
-	cMock.EXPECT().IsEnabled().Return(false)
 	svc := newTestApplicationServiceWithConsent(cMock)
 
 	app := &model.ApplicationDTO{
-		LoginConsent: &model.LoginConsentConfig{Enabled: true},
-	}
-	svcErr := svc.validateConsentConfig(app)
-
-	s.NotNil(svcErr)
-	s.Equal(ErrorConsentServiceNotEnabled.Code, svcErr.Code)
-}
-
-func (s *ApplicationServiceConsentTestSuite) TestValidateConsentConfig_EnabledWhenConsentServiceEnabled() {
-	cMock := consentmock.NewConsentServiceInterfaceMock(s.T())
-	cMock.EXPECT().IsEnabled().Return(true)
-	svc := newTestApplicationServiceWithConsent(cMock)
-
-	app := &model.ApplicationDTO{
-		LoginConsent: &model.LoginConsentConfig{Enabled: true, ValidityPeriod: 3600},
+		LoginConsent: &model.LoginConsentConfig{ValidityPeriod: 3600},
 	}
 	svcErr := svc.validateConsentConfig(app)
 
 	s.Nil(svcErr)
+	s.Equal(int64(3600), app.LoginConsent.ValidityPeriod)
 }
 
 func (s *ApplicationServiceConsentTestSuite) TestValidateConsentConfig_NegativeValidityPeriodResetToZero() {
 	cMock := consentmock.NewConsentServiceInterfaceMock(s.T())
-	cMock.EXPECT().IsEnabled().Return(true)
 	svc := newTestApplicationServiceWithConsent(cMock)
 
 	app := &model.ApplicationDTO{
-		LoginConsent: &model.LoginConsentConfig{Enabled: true, ValidityPeriod: -100},
+		LoginConsent: &model.LoginConsentConfig{ValidityPeriod: -100},
 	}
 	svcErr := svc.validateConsentConfig(app)
 
@@ -105,12 +89,12 @@ func (s *ApplicationServiceConsentTestSuite) TestValidateConsentConfig_NegativeV
 	s.Equal(int64(0), app.LoginConsent.ValidityPeriod)
 }
 
-func (s *ApplicationServiceConsentTestSuite) TestValidateConsentConfig_DisabledConsentWithoutConsentService() {
+func (s *ApplicationServiceConsentTestSuite) TestValidateConsentConfig_ConsentConfigProvided() {
 	cMock := consentmock.NewConsentServiceInterfaceMock(s.T())
 	svc := newTestApplicationServiceWithConsent(cMock)
 
 	app := &model.ApplicationDTO{
-		LoginConsent: &model.LoginConsentConfig{Enabled: false, ValidityPeriod: 100},
+		LoginConsent: &model.LoginConsentConfig{ValidityPeriod: 100},
 	}
 	svcErr := svc.validateConsentConfig(app)
 
@@ -674,12 +658,12 @@ func (s *ApplicationServiceConsentTestSuite) TestSyncConsentPurposeOnUpdate_Cons
 	existingApp := &model.ApplicationProcessedDTO{
 		ID:           "app-1",
 		Name:         "App",
-		LoginConsent: &model.LoginConsentConfig{Enabled: false},
+		LoginConsent: &model.LoginConsentConfig{ValidityPeriod: 0},
 	}
 	updatedApp := &model.ApplicationProcessedDTO{
 		ID:           "app-1",
 		Name:         "App",
-		LoginConsent: &model.LoginConsentConfig{Enabled: false},
+		LoginConsent: nil,
 	}
 
 	// deleteConsentPurposes fails → triggers compensation
@@ -707,12 +691,12 @@ func (s *ApplicationServiceConsentTestSuite) TestSyncConsentPurposeOnUpdate_Cons
 	existingApp := &model.ApplicationProcessedDTO{
 		ID:           "app-1",
 		Name:         "App",
-		LoginConsent: &model.LoginConsentConfig{Enabled: false},
+		LoginConsent: &model.LoginConsentConfig{ValidityPeriod: 0},
 	}
 	updatedApp := &model.ApplicationProcessedDTO{
 		ID:           "app-1",
 		Name:         "App",
-		LoginConsent: &model.LoginConsentConfig{Enabled: false},
+		LoginConsent: nil,
 	}
 	// updatedCert != nil (existingCert == nil) → rollback calls DeleteCertificateByReference
 	updatedCert := &cert.Certificate{

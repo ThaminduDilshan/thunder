@@ -92,7 +92,6 @@ type AssertionConfig struct {
 
 // LoginConsentConfig represents the login consent configuration for an application.
 type LoginConsentConfig struct {
-	Enabled        bool  `json:"enabled"`
 	ValidityPeriod int64 `json:"validity_period,omitempty"`
 }
 
@@ -194,8 +193,7 @@ func (app *Application) equals(expectedApp Application) bool {
 
 	// LoginConsent config
 	if (app.LoginConsent != nil) && (expectedApp.LoginConsent != nil) {
-		if app.LoginConsent.Enabled != expectedApp.LoginConsent.Enabled ||
-			app.LoginConsent.ValidityPeriod != expectedApp.LoginConsent.ValidityPeriod {
+		if app.LoginConsent.ValidityPeriod != expectedApp.LoginConsent.ValidityPeriod {
 			return false
 		}
 	} else if app.LoginConsent == nil && expectedApp.LoginConsent != nil {

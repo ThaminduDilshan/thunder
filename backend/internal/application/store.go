@@ -507,7 +507,6 @@ func getAppJSONDataBytes(app *model.ApplicationProcessedDTO) ([]byte, error) {
 	// Include login consent config if present
 	if app.LoginConsent != nil {
 		loginConsentData := map[string]interface{}{}
-		loginConsentData["enabled"] = app.LoginConsent.Enabled
 		loginConsentData["validity_period"] = app.LoginConsent.ValidityPeriod
 		jsonData["login_consent"] = loginConsentData
 	}
@@ -778,13 +777,9 @@ func extractLoginConsentConfigFromJSON(data map[string]interface{}) *model.Login
 	}
 
 	config := &model.LoginConsentConfig{
-		Enabled:        false, // default
-		ValidityPeriod: 0,     // default to indicate no expiry
+		ValidityPeriod: 0, // default to indicate no expiry
 	}
 
-	if enabled, ok := consentMap["enabled"].(bool); ok {
-		config.Enabled = enabled
-	}
 	if validityPeriod, ok := consentMap["validity_period"].(float64); ok {
 		config.ValidityPeriod = int64(validityPeriod)
 	}

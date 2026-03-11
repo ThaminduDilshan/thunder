@@ -4966,13 +4966,13 @@ func (suite *ServiceTestSuite) TestCreateApplication_ConsentSyncFails_Compensate
 		Name:               "Consent App",
 		AuthFlowID:         "edc013d0-e893-4dc0-990c-3e1d203e005b",
 		RegistrationFlowID: "80024fb3-29ed-4c33-aa48-8aee5e96d522",
-		LoginConsent:       &model.LoginConsentConfig{Enabled: true},
+		LoginConsent:       &model.LoginConsentConfig{ValidityPeriod: 0},
 		Assertion: &model.AssertionConfig{
 			UserAttributes: []string{"email"},
 		},
 	}
 
-	// IsEnabled is called in validateConsentConfig and again before sync.
+	// IsEnabled is called before sync.
 	mockConsentService.On("IsEnabled").Return(true)
 	mockStore.On("GetApplicationByName", "Consent App").Return(nil, model.ApplicationNotFoundError)
 	mockFlowMgtService.EXPECT().IsValidFlow("edc013d0-e893-4dc0-990c-3e1d203e005b").Return(true)
@@ -5013,7 +5013,7 @@ func (suite *ServiceTestSuite) TestUpdateApplication_ConsentEnabled_LoginConsent
 		Name:               "Test App",
 		AuthFlowID:         "edc013d0-e893-4dc0-990c-3e1d203e005b",
 		RegistrationFlowID: "80024fb3-29ed-4c33-aa48-8aee5e96d522",
-		// LoginConsent is nil → validateConsentConfig sets Enabled=false
+		// LoginConsent is nil → validateConsentConfig sets ValidityPeriod=0
 	}
 
 	mockStore.On("IsApplicationDeclarative", "app123").Return(false)
@@ -5024,7 +5024,7 @@ func (suite *ServiceTestSuite) TestUpdateApplication_ConsentEnabled_LoginConsent
 		GetCertificateByReference(mock.Anything, cert.CertificateReferenceTypeApplication, "app123").
 		Return(nil, nil)
 	mockStore.On("UpdateApplication", mock.Anything, mock.Anything).Return(nil)
-	// Consent enabled → deleteConsentPurposes path (LoginConsent.Enabled=false)
+	// LoginConsent != nil → deleteConsentPurposes path (LoginConsent is provided)
 	mockConsentService.On("IsEnabled").Return(true)
 	mockConsentService.On("ListConsentPurposes", mock.Anything, "default", "app123").
 		Return([]consent.ConsentPurpose{{ID: "purpose-1"}}, (*serviceerror.I18nServiceError)(nil))
@@ -5059,7 +5059,7 @@ func (suite *ServiceTestSuite) TestUpdateApplication_ConsentSyncFails_Compensate
 		Name:               "Test App",
 		AuthFlowID:         "edc013d0-e893-4dc0-990c-3e1d203e005b",
 		RegistrationFlowID: "80024fb3-29ed-4c33-aa48-8aee5e96d522",
-		LoginConsent:       &model.LoginConsentConfig{Enabled: true},
+		LoginConsent:       &model.LoginConsentConfig{ValidityPeriod: 0},
 		Assertion: &model.AssertionConfig{
 			UserAttributes: []string{"email"},
 		},
@@ -5088,9 +5088,9 @@ func (suite *ServiceTestSuite) TestUpdateApplication_ConsentSyncFails_Compensate
 	mockStore.AssertNumberOfCalls(suite.T(), "UpdateApplication", 2)
 }
 
-// TestValidateApplication_ConsentConfigFails verifies that ValidateApplication returns
-// an error when LoginConsent.Enabled=true but the consent service is disabled.
-func (suite *ServiceTestSuite) TestValidateApplication_ConsentConfigFails() {
+// TestValidateApplication_ConsentConfigSuccess verifies that ValidateApplication succeeds
+// when LoginConsent is provided (server-level config controls whether consent is enabled).
+func (suite *ServiceTestSuite) TestValidateApplication_ConsentConfigSuccess() {
 	testConfig := &config.Config{
 		JWT:  config.JWTConfig{ValidityPeriod: 3600},
 		Flow: config.FlowConfig{DefaultAuthFlowHandle: "default_auth_flow"},
@@ -5100,31 +5100,30 @@ func (suite *ServiceTestSuite) TestValidateApplication_ConsentConfigFails() {
 	require.NoError(suite.T(), err)
 	defer config.ResetThunderRuntime()
 
-	service, mockStore, _, mockFlowMgtService, mockConsentService := suite.setupConsentEnabledService()
+	service, mockStore, _, mockFlowMgtService, _ := suite.setupConsentEnabledService()
 	app := &model.ApplicationDTO{
 		Name:               "Consent App",
 		AuthFlowID:         "edc013d0-e893-4dc0-990c-3e1d203e005b",
 		RegistrationFlowID: "80024fb3-29ed-4c33-aa48-8aee5e96d522",
-		LoginConsent:       &model.LoginConsentConfig{Enabled: true},
+		LoginConsent:       &model.LoginConsentConfig{ValidityPeriod: 0},
 	}
 
 	mockStore.On("GetApplicationByName", "Consent App").Return(nil, model.ApplicationNotFoundError)
 	mockFlowMgtService.EXPECT().IsValidFlow("edc013d0-e893-4dc0-990c-3e1d203e005b").Return(true)
 	mockFlowMgtService.EXPECT().IsValidFlow("80024fb3-29ed-4c33-aa48-8aee5e96d522").Return(true)
-	// Consent service disabled → validateConsentConfig fails
-	mockConsentService.On("IsEnabled").Return(false)
 
 	result, inboundAuth, svcErr := service.ValidateApplication(app)
 
-	assert.Nil(suite.T(), result)
+	assert.NotNil(suite.T(), result)
 	assert.Nil(suite.T(), inboundAuth)
-	assert.NotNil(suite.T(), svcErr)
-	assert.Equal(suite.T(), ErrorConsentServiceNotEnabled.Code, svcErr.Code)
+	assert.Nil(suite.T(), svcErr)
+	assert.NotNil(suite.T(), result.LoginConsent)
+	assert.Equal(suite.T(), int64(0), result.LoginConsent.ValidityPeriod)
 }
 
-// TestUpdateApplication_ConsentConfigFails verifies that UpdateApplication returns
-// an error when LoginConsent.Enabled=true but the consent service is disabled.
-func (suite *ServiceTestSuite) TestUpdateApplication_ConsentConfigFails() {
+// TestUpdateApplication_ConsentConfigSuccess verifies that UpdateApplication succeeds
+// when LoginConsent is provided (server-level config controls whether consent is enabled).
+func (suite *ServiceTestSuite) TestUpdateApplication_ConsentConfigSuccess() {
 	testConfig := &config.Config{
 		DeclarativeResources: config.DeclarativeResources{Enabled: false},
 		JWT:                  config.JWTConfig{ValidityPeriod: 3600},
@@ -5134,7 +5133,7 @@ func (suite *ServiceTestSuite) TestUpdateApplication_ConsentConfigFails() {
 	require.NoError(suite.T(), err)
 	defer config.ResetThunderRuntime()
 
-	service, mockStore, _, mockFlowMgtService, mockConsentService := suite.setupConsentEnabledService()
+	service, mockStore, mockCertService, mockFlowMgtService, mockConsentService := suite.setupConsentEnabledService()
 	existingApp := &model.ApplicationProcessedDTO{
 		ID:   "app123",
 		Name: "Test App",
@@ -5144,21 +5143,24 @@ func (suite *ServiceTestSuite) TestUpdateApplication_ConsentConfigFails() {
 		Name:               "Test App",
 		AuthFlowID:         "edc013d0-e893-4dc0-990c-3e1d203e005b",
 		RegistrationFlowID: "80024fb3-29ed-4c33-aa48-8aee5e96d522",
-		LoginConsent:       &model.LoginConsentConfig{Enabled: true},
+		LoginConsent:       &model.LoginConsentConfig{ValidityPeriod: 0},
 	}
 
 	mockStore.On("IsApplicationDeclarative", "app123").Return(false)
 	mockStore.On("GetApplicationByID", "app123").Return(existingApp, nil)
 	mockFlowMgtService.EXPECT().IsValidFlow("edc013d0-e893-4dc0-990c-3e1d203e005b").Return(true)
 	mockFlowMgtService.EXPECT().IsValidFlow("80024fb3-29ed-4c33-aa48-8aee5e96d522").Return(true)
-	// Consent service disabled → validateConsentConfig fails
+	mockCertService.EXPECT().
+		GetCertificateByReference(mock.Anything, cert.CertificateReferenceTypeApplication, "app123").
+		Return(nil, nil)
+	mockStore.On("UpdateApplication", mock.Anything, mock.Anything).Return(nil)
+	// Server handles consent enabled/disabled, so consent sync should be called if service is enabled
 	mockConsentService.On("IsEnabled").Return(false)
 
 	result, svcErr := service.UpdateApplication("app123", app)
 
-	assert.Nil(suite.T(), result)
-	assert.NotNil(suite.T(), svcErr)
-	assert.Equal(suite.T(), ErrorConsentServiceNotEnabled.Code, svcErr.Code)
+	assert.NotNil(suite.T(), result)
+	assert.Nil(suite.T(), svcErr)
 }
 
 // TestUpdateApplication_StoreFails_RollbackCertFails verifies that when the store update fails
@@ -5234,7 +5236,7 @@ func (suite *ServiceTestSuite) TestCreateApplication_ConsentSyncFails_AppDeleteF
 		Name:               "Consent App",
 		AuthFlowID:         "edc013d0-e893-4dc0-990c-3e1d203e005b",
 		RegistrationFlowID: "80024fb3-29ed-4c33-aa48-8aee5e96d522",
-		LoginConsent:       &model.LoginConsentConfig{Enabled: true},
+		LoginConsent:       &model.LoginConsentConfig{ValidityPeriod: 0},
 		Assertion: &model.AssertionConfig{
 			UserAttributes: []string{"email"},
 		},
@@ -5277,7 +5279,7 @@ func (suite *ServiceTestSuite) TestCreateApplication_ConsentSyncFails_WithCert_C
 		Name:               "Consent App With Cert",
 		AuthFlowID:         "edc013d0-e893-4dc0-990c-3e1d203e005b",
 		RegistrationFlowID: "80024fb3-29ed-4c33-aa48-8aee5e96d522",
-		LoginConsent:       &model.LoginConsentConfig{Enabled: true},
+		LoginConsent:       &model.LoginConsentConfig{ValidityPeriod: 0},
 		Assertion: &model.AssertionConfig{
 			UserAttributes: []string{"email"},
 		},

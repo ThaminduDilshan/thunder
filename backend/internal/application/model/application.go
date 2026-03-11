@@ -33,7 +33,6 @@ type AssertionConfig struct {
 
 // LoginConsentConfig represents the login consent configuration for an application.
 type LoginConsentConfig struct {
-	Enabled        bool  `json:"enabled" yaml:"enabled" jsonschema:"Enable login consent. Default is false."`
 	ValidityPeriod int64 `json:"validity_period" yaml:"validity_period" jsonschema:"Consent validity period in seconds. Default value 0 indicates consent is valid until revoked."`
 }
 

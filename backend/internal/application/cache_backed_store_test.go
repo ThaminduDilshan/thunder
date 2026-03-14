@@ -154,7 +154,7 @@ func (suite *CacheBackedStoreTestSuite) createTestApp() *model.ApplicationProces
 		LogoURL:                   "https://example.com/logo.png",
 		Assertion: &model.AssertionConfig{
 			ValidityPeriod: 3600,
-			UserAttributes: []string{"email", "name"},
+			UserAttributes: []model.UserAttribute{{Name: "email"}, {Name: "name"}},
 		},
 	}
 }

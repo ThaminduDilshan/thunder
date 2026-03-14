@@ -102,7 +102,7 @@ func buildConsentNodeContext() *core.NodeContext {
 		NodeProperties: map[string]interface{}{},
 		Application: appmodel.Application{
 			Assertion: &appmodel.AssertionConfig{
-				UserAttributes: []string{"email", "phone"},
+				UserAttributes: []appmodel.UserAttribute{{Name: "email"}, {Name: "phone"}},
 			},
 		},
 	}

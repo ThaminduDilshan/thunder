@@ -67,7 +67,7 @@ func (suite *FileBasedStoreTestSuite) createTestApplication(id, name string) *mo
 		LogoURL:                   "https://example.com/logo.png",
 		Assertion: &model.AssertionConfig{
 			ValidityPeriod: 3600,
-			UserAttributes: []string{"email", "name"},
+			UserAttributes: []model.UserAttribute{{Name: "email"}, {Name: "name"}},
 		},
 		InboundAuthConfig: []model.InboundAuthConfigProcessedDTO{
 			{

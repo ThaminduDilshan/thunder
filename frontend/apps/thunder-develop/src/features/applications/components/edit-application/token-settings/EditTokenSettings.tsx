@@ -325,29 +325,32 @@ export default function EditTokenSettings({
       return [];
     }
 
-    return oauth2Config?.token?.user_attributes ?? application.assertion?.user_attributes ?? [];
+    return (oauth2Config?.token?.user_attributes ?? application.assertion?.user_attributes ?? []).map((a) => a.name);
   }, [isOAuthMode, oauth2Config, application]);
 
   const [isUserInfoCustomAttributes, setIsUserInfoCustomAttributes] = useState<boolean>(false);
   const [currentUserInfoAttributes, setCurrentUserInfoAttributes] = useState<string[]>([]);
 
   const currentAccessTokenAttributes = useMemo(
-    () => oauth2Config?.token?.access_token?.user_attributes ?? [],
+    () => (oauth2Config?.token?.access_token?.user_attributes ?? []).map((a) => a.name),
     [oauth2Config],
   );
 
-  const currentIdTokenAttributes = useMemo(() => oauth2Config?.token?.id_token?.user_attributes ?? [], [oauth2Config]);
+  const currentIdTokenAttributes = useMemo(
+    () => (oauth2Config?.token?.id_token?.user_attributes ?? []).map((a) => a.name),
+    [oauth2Config],
+  );
 
   // Initialize userinfoEnabled based on config presence and difference from ID token
   useEffect(() => {
     if (!isOAuthMode || !oauth2Config) return;
 
-    const idTokenAttrs = oauth2Config.token?.id_token?.user_attributes ?? [];
+    const idTokenAttrs = (oauth2Config.token?.id_token?.user_attributes ?? []).map((a) => a.name);
 
     const userInfoConfig = oauth2Config.user_info;
 
     if (userInfoConfig) {
-      const userInfoAttrs = userInfoConfig.user_attributes || [];
+      const userInfoAttrs = (userInfoConfig.user_attributes || []).map((a) => a.name);
       const idTokenAttrsRef = idTokenAttrs || [];
       setCurrentUserInfoAttributes(userInfoAttrs);
       // Enable toggle only if attributes differ from ID token attributes
@@ -385,7 +388,7 @@ export default function EditTokenSettings({
         const updatedConfig = {
           ...oauth2Config,
           user_info: {
-            user_attributes: [...currentIdTokenAttributes],
+            user_attributes: [...currentIdTokenAttributes].map((name) => ({name})),
           },
         };
 
@@ -444,7 +447,7 @@ export default function EditTokenSettings({
                 ...oauth2Config.token,
                 access_token: {
                   ...oauth2Config.token?.access_token,
-                  user_attributes: newAttributes,
+                  user_attributes: newAttributes.map((name) => ({name})),
                 },
               },
             };
@@ -466,7 +469,7 @@ export default function EditTokenSettings({
                 ...oauth2Config.token,
                 id_token: {
                   ...oauth2Config.token?.id_token,
-                  user_attributes: newAttributes,
+                  user_attributes: newAttributes.map((name) => ({name})),
                 },
               },
             };
@@ -485,7 +488,7 @@ export default function EditTokenSettings({
             const updatedConfig = {
               ...oauth2Config,
               user_info: {
-                user_attributes: newAttributes,
+                user_attributes: newAttributes.map((name) => ({name})),
               },
             };
             const updatedInboundAuth = application.inbound_auth_config?.map((config) => {
@@ -504,7 +507,7 @@ export default function EditTokenSettings({
           ];
           const updatedAssertion = {
             ...application.assertion,
-            user_attributes: newAttributes,
+            user_attributes: newAttributes.map((name) => ({name})),
           };
           onFieldChange('assertion', updatedAssertion);
         }
@@ -524,7 +527,7 @@ export default function EditTokenSettings({
                 ...oauth2Config.token,
                 access_token: {
                   ...oauth2Config.token?.access_token,
-                  user_attributes: newAttributes,
+                  user_attributes: newAttributes.map((name) => ({name})),
                 },
               },
             };
@@ -543,7 +546,7 @@ export default function EditTokenSettings({
                 ...oauth2Config.token,
                 id_token: {
                   ...oauth2Config.token?.id_token,
-                  user_attributes: newAttributes,
+                  user_attributes: newAttributes.map((name) => ({name})),
                 },
               },
             };
@@ -559,7 +562,7 @@ export default function EditTokenSettings({
             const updatedConfig = {
               ...oauth2Config,
               user_info: {
-                user_attributes: newAttributes,
+                user_attributes: newAttributes.map((name) => ({name})),
               },
             };
             const updatedInboundAuth = application.inbound_auth_config?.map((config) => {
@@ -575,7 +578,7 @@ export default function EditTokenSettings({
           const newAttributes = sharedUserAttributes.filter((attr) => !removalsArray.includes(attr));
           const updatedAssertion = {
             ...application.assertion,
-            user_attributes: newAttributes,
+            user_attributes: newAttributes.map((name) => ({name})),
           };
           onFieldChange('assertion', updatedAssertion);
         }

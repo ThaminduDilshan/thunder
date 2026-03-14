@@ -57,20 +57,20 @@ type oAuthTokenConfig struct {
 
 // accessTokenConfig represents the access token configuration structure for JSON marshaling/unmarshaling.
 type accessTokenConfig struct {
-	ValidityPeriod int64    `json:"validity_period,omitempty"`
-	UserAttributes []string `json:"user_attributes,omitempty"`
+	ValidityPeriod int64                 `json:"validity_period,omitempty"`
+	UserAttributes []model.UserAttribute `json:"user_attributes,omitempty"`
 }
 
 // idTokenConfig represents the ID token configuration structure for JSON marshaling/unmarshaling.
 type idTokenConfig struct {
-	ValidityPeriod int64    `json:"validity_period,omitempty"`
-	UserAttributes []string `json:"user_attributes,omitempty"`
+	ValidityPeriod int64                 `json:"validity_period,omitempty"`
+	UserAttributes []model.UserAttribute `json:"user_attributes,omitempty"`
 }
 
 // userInfoConfig represents the user info endpoint configuration structure for JSON marshaling/unmarshaling.
 type userInfoConfig struct {
 	ResponseType   model.UserInfoResponseType `json:"response_type,omitempty"`
-	UserAttributes []string                   `json:"user_attributes,omitempty"`
+	UserAttributes []model.UserAttribute      `json:"user_attributes,omitempty"`
 }
 
 // ApplicationStoreInterface defines the interface for application data persistence operations.
@@ -267,7 +267,7 @@ func (st *applicationStore) GetOAuthApplication(
 		if oAuthConfig.Token.AccessToken != nil {
 			userAttributes := oAuthConfig.Token.AccessToken.UserAttributes
 			if userAttributes == nil {
-				userAttributes = make([]string, 0)
+				userAttributes = make([]model.UserAttribute, 0)
 			}
 			oauthTokenConfig.AccessToken = &model.AccessTokenConfig{
 				ValidityPeriod: oAuthConfig.Token.AccessToken.ValidityPeriod,
@@ -277,7 +277,7 @@ func (st *applicationStore) GetOAuthApplication(
 		if oAuthConfig.Token.IDToken != nil {
 			userAttributes := oAuthConfig.Token.IDToken.UserAttributes
 			if userAttributes == nil {
-				userAttributes = make([]string, 0)
+				userAttributes = make([]model.UserAttribute, 0)
 			}
 			oauthTokenConfig.IDToken = &model.IDTokenConfig{
 				ValidityPeriod: oAuthConfig.Token.IDToken.ValidityPeriod,
@@ -291,7 +291,7 @@ func (st *applicationStore) GetOAuthApplication(
 	if oAuthConfig.UserInfo != nil {
 		userAttributes := oAuthConfig.UserInfo.UserAttributes
 		if userAttributes == nil {
-			userAttributes = make([]string, 0)
+			userAttributes = make([]model.UserAttribute, 0)
 		}
 		userInfoConfig = &model.UserInfoConfig{
 			ResponseType:   oAuthConfig.UserInfo.ResponseType,
@@ -781,7 +781,7 @@ func extractAssertionConfigFromJSON(data map[string]interface{}) *model.Assertio
 	if userAttrs, ok := assertionMap["user_attributes"].([]interface{}); ok {
 		for _, attr := range userAttrs {
 			if attrStr, ok := attr.(string); ok {
-				config.UserAttributes = append(config.UserAttributes, attrStr)
+				config.UserAttributes = append(config.UserAttributes, model.UserAttribute{Name: attrStr})
 			}
 		}
 	}
@@ -961,7 +961,7 @@ func buildOAuthInboundAuthConfig(row map[string]interface{}, basicApp model.Basi
 		if oauthConfig.Token.AccessToken != nil {
 			userAttributes := oauthConfig.Token.AccessToken.UserAttributes
 			if userAttributes == nil {
-				userAttributes = make([]string, 0)
+				userAttributes = make([]model.UserAttribute, 0)
 			}
 			oauthTokenConfig.AccessToken = &model.AccessTokenConfig{
 				ValidityPeriod: oauthConfig.Token.AccessToken.ValidityPeriod,
@@ -971,7 +971,7 @@ func buildOAuthInboundAuthConfig(row map[string]interface{}, basicApp model.Basi
 		if oauthConfig.Token.IDToken != nil {
 			userAttributes := oauthConfig.Token.IDToken.UserAttributes
 			if userAttributes == nil {
-				userAttributes = make([]string, 0)
+				userAttributes = make([]model.UserAttribute, 0)
 			}
 			oauthTokenConfig.IDToken = &model.IDTokenConfig{
 				ValidityPeriod: oauthConfig.Token.IDToken.ValidityPeriod,
@@ -985,7 +985,7 @@ func buildOAuthInboundAuthConfig(row map[string]interface{}, basicApp model.Basi
 	if oauthConfig.UserInfo != nil {
 		userAttributes := oauthConfig.UserInfo.UserAttributes
 		if userAttributes == nil {
-			userAttributes = make([]string, 0)
+			userAttributes = make([]model.UserAttribute, 0)
 		}
 		userInfoConfig = &model.UserInfoConfig{
 			ResponseType:   oauthConfig.UserInfo.ResponseType,

@@ -195,7 +195,6 @@ export default function ApplicationCreatePage(): JSX.Element {
       name: appName,
       logo_url: appLogo ?? undefined,
       auth_flow_id: authFlowId,
-      user_attributes: ['given_name', 'family_name', 'email', 'groups'],
       ...(themeId && {theme_id: themeId}),
       is_registration_flow_enabled: true,
       ...(allowedUserTypes && {allowed_user_types: allowedUserTypes}),
@@ -663,10 +662,10 @@ export default function ApplicationCreatePage(): JSX.Element {
         {currentStep !== ApplicationCreateFlowStep.NAME && currentStep !== ApplicationCreateFlowStep.COMPLETE && (
           <Box sx={{flex: '0 0 50%', display: 'flex', flexDirection: 'column', p: 5}}>
             <GatePreview
-                theme={selectedTheme}
-                mock={buildPreviewMock(integrations, idpData ?? [])}
-                displayName={appName ?? undefined}
-              />
+              theme={selectedTheme}
+              mock={buildPreviewMock(integrations, idpData ?? [])}
+              displayName={appName ?? undefined}
+            />
           </Box>
         )}
       </Box>

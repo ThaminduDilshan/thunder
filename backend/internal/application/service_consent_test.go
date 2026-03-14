@@ -99,7 +99,7 @@ func (s *ApplicationServiceConsentTestSuite) TestExtractRequestedAttributes_NoAt
 func (s *ApplicationServiceConsentTestSuite) TestExtractRequestedAttributes_FromAssertion() {
 	app := &model.ApplicationProcessedDTO{
 		Assertion: &model.AssertionConfig{
-			UserAttributes: []string{"email", "username"},
+			UserAttributes: []model.UserAttribute{{Name: "email", IsEssential: true}, {Name: "username", IsEssential: true}},
 		},
 	}
 
@@ -118,7 +118,7 @@ func (s *ApplicationServiceConsentTestSuite) TestExtractRequestedAttributes_From
 				OAuthAppConfig: &model.OAuthAppConfigProcessedDTO{
 					Token: &model.OAuthTokenConfig{
 						AccessToken: &model.AccessTokenConfig{
-							UserAttributes: []string{"email"},
+							UserAttributes: []model.UserAttribute{{Name: "email", IsEssential: true}},
 						},
 					},
 				},
@@ -140,7 +140,7 @@ func (s *ApplicationServiceConsentTestSuite) TestExtractRequestedAttributes_From
 				OAuthAppConfig: &model.OAuthAppConfigProcessedDTO{
 					Token: &model.OAuthTokenConfig{
 						IDToken: &model.IDTokenConfig{
-							UserAttributes: []string{"phone"},
+							UserAttributes: []model.UserAttribute{{Name: "phone", IsEssential: true}},
 						},
 					},
 				},
@@ -161,7 +161,7 @@ func (s *ApplicationServiceConsentTestSuite) TestExtractRequestedAttributes_From
 				Type: model.OAuthInboundAuthType,
 				OAuthAppConfig: &model.OAuthAppConfigProcessedDTO{
 					UserInfo: &model.UserInfoConfig{
-						UserAttributes: []string{"address"},
+						UserAttributes: []model.UserAttribute{{Name: "address", IsEssential: true}},
 					},
 				},
 			},
@@ -177,7 +177,7 @@ func (s *ApplicationServiceConsentTestSuite) TestExtractRequestedAttributes_From
 func (s *ApplicationServiceConsentTestSuite) TestExtractRequestedAttributes_Deduplicated() {
 	app := &model.ApplicationProcessedDTO{
 		Assertion: &model.AssertionConfig{
-			UserAttributes: []string{"email"},
+			UserAttributes: []model.UserAttribute{{Name: "email"}},
 		},
 		InboundAuthConfig: []model.InboundAuthConfigProcessedDTO{
 			{
@@ -185,7 +185,7 @@ func (s *ApplicationServiceConsentTestSuite) TestExtractRequestedAttributes_Dedu
 				OAuthAppConfig: &model.OAuthAppConfigProcessedDTO{
 					Token: &model.OAuthTokenConfig{
 						AccessToken: &model.AccessTokenConfig{
-							UserAttributes: []string{"email", "phone"},
+							UserAttributes: []model.UserAttribute{{Name: "email", IsEssential: true}, {Name: "phone", IsEssential: true}},
 						},
 					},
 				},
@@ -214,7 +214,7 @@ func (s *ApplicationServiceConsentTestSuite) TestAttributesToPurposeElements() {
 	s.Len(elements, 2)
 	for _, el := range elements {
 		s.True(attrs[el.Name])
-		s.False(el.IsMandatory)
+		s.True(el.IsMandatory)
 		s.Equal(consent.NamespaceAttribute, el.Namespace)
 	}
 }
@@ -355,7 +355,7 @@ func (s *ApplicationServiceConsentTestSuite) TestSyncConsentPurposeOnCreate_With
 		ID:   "app-1",
 		Name: "Test App",
 		Assertion: &model.AssertionConfig{
-			UserAttributes: []string{"email"},
+			UserAttributes: []model.UserAttribute{{Name: "email"}},
 		},
 	}
 
@@ -379,7 +379,7 @@ func (s *ApplicationServiceConsentTestSuite) TestSyncConsentPurposeOnCreate_Crea
 	appDTO := &model.ApplicationProcessedDTO{
 		ID:        "app-1",
 		Name:      "Test App",
-		Assertion: &model.AssertionConfig{UserAttributes: []string{"email"}},
+		Assertion: &model.AssertionConfig{UserAttributes: []model.UserAttribute{{Name: "email"}}},
 	}
 
 	cMock.EXPECT().ValidateConsentElements(mock.Anything, "default", mock.Anything).
@@ -397,7 +397,7 @@ func (s *ApplicationServiceConsentTestSuite) TestSyncConsentPurposeOnCreate_Crea
 	appDTO := &model.ApplicationProcessedDTO{
 		ID:        "app-1",
 		Name:      "Test App",
-		Assertion: &model.AssertionConfig{UserAttributes: []string{"email"}},
+		Assertion: &model.AssertionConfig{UserAttributes: []model.UserAttribute{{Name: "email"}}},
 	}
 
 	cMock.EXPECT().ValidateConsentElements(mock.Anything, "default", mock.Anything).
@@ -435,7 +435,7 @@ func (s *ApplicationServiceConsentTestSuite) TestSyncConsentPurposeOnUpdate_NoPu
 	updatedApp := &model.ApplicationProcessedDTO{
 		ID:        "app-1",
 		Name:      "App",
-		Assertion: &model.AssertionConfig{UserAttributes: []string{"email"}},
+		Assertion: &model.AssertionConfig{UserAttributes: []model.UserAttribute{{Name: "email"}}},
 	}
 
 	cMock.EXPECT().ValidateConsentElements(mock.Anything, "default", mock.Anything).
@@ -457,7 +457,7 @@ func (s *ApplicationServiceConsentTestSuite) TestSyncConsentPurposeOnUpdate_Exis
 	existingApp := &model.ApplicationProcessedDTO{
 		ID:        "app-1",
 		Name:      "App",
-		Assertion: &model.AssertionConfig{UserAttributes: []string{"email"}},
+		Assertion: &model.AssertionConfig{UserAttributes: []model.UserAttribute{{Name: "email"}}},
 	}
 	updatedApp := &model.ApplicationProcessedDTO{ID: "app-1", Name: "App"} // no attributes now
 
@@ -478,12 +478,12 @@ func (s *ApplicationServiceConsentTestSuite) TestSyncConsentPurposeOnUpdate_Exis
 	existingApp := &model.ApplicationProcessedDTO{
 		ID:        "app-1",
 		Name:      "App",
-		Assertion: &model.AssertionConfig{UserAttributes: []string{"email"}},
+		Assertion: &model.AssertionConfig{UserAttributes: []model.UserAttribute{{Name: "email"}}},
 	}
 	updatedApp := &model.ApplicationProcessedDTO{
 		ID:        "app-1",
 		Name:      "App Updated",
-		Assertion: &model.AssertionConfig{UserAttributes: []string{"email", "phone"}},
+		Assertion: &model.AssertionConfig{UserAttributes: []model.UserAttribute{{Name: "email"}, {Name: "phone"}}},
 	}
 
 	cMock.EXPECT().ValidateConsentElements(mock.Anything, "default", mock.Anything).
@@ -521,7 +521,7 @@ func (s *ApplicationServiceConsentTestSuite) TestSyncConsentPurposeOnUpdate_Crea
 	updatedApp := &model.ApplicationProcessedDTO{
 		ID:        "app-1",
 		Name:      "App",
-		Assertion: &model.AssertionConfig{UserAttributes: []string{"email"}},
+		Assertion: &model.AssertionConfig{UserAttributes: []model.UserAttribute{{Name: "email"}}},
 	}
 
 	// createMissingConsentElements fails via ValidateConsentElements returning an error
@@ -541,7 +541,7 @@ func (s *ApplicationServiceConsentTestSuite) TestSyncConsentPurposeOnUpdate_NoPu
 	updatedApp := &model.ApplicationProcessedDTO{
 		ID:        "app-1",
 		Name:      "App",
-		Assertion: &model.AssertionConfig{UserAttributes: []string{"email"}},
+		Assertion: &model.AssertionConfig{UserAttributes: []model.UserAttribute{{Name: "email"}}},
 	}
 
 	cMock.EXPECT().ValidateConsentElements(mock.Anything, "default", mock.Anything).
@@ -588,7 +588,7 @@ func (s *ApplicationServiceConsentTestSuite) TestSyncConsentPurposeOnUpdate_Upda
 	updatedApp := &model.ApplicationProcessedDTO{
 		ID:        "app-1",
 		Name:      "App",
-		Assertion: &model.AssertionConfig{UserAttributes: []string{"email"}},
+		Assertion: &model.AssertionConfig{UserAttributes: []model.UserAttribute{{Name: "email"}}},
 	}
 
 	cMock.EXPECT().ValidateConsentElements(mock.Anything, "default", mock.Anything).

@@ -97,7 +97,7 @@ func (suite *RefreshTokenGrantHandlerTestSuite) SetupTest() {
 		TokenEndpointAuthMethod: constants.TokenEndpointAuthMethodClientSecretPost,
 		Token: &appmodel.OAuthTokenConfig{
 			AccessToken: &appmodel.AccessTokenConfig{
-				UserAttributes: []string{"email", "username"},
+				UserAttributes: []appmodel.UserAttribute{{Name: "email"}, {Name: "username"}},
 			},
 		},
 	}

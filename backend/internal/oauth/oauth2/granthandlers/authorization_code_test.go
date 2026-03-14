@@ -113,7 +113,7 @@ func (suite *AuthorizationCodeGrantHandlerTestSuite) SetupTest() {
 		TokenEndpointAuthMethod: constants.TokenEndpointAuthMethodClientSecretPost,
 		Token: &appmodel.OAuthTokenConfig{
 			AccessToken: &appmodel.AccessTokenConfig{
-				UserAttributes: []string{"email", "username"},
+				UserAttributes: []appmodel.UserAttribute{{Name: "email"}, {Name: "username"}},
 			},
 		},
 	}
@@ -478,9 +478,9 @@ func (suite *AuthorizationCodeGrantHandlerTestSuite) TestHandleGrant_WithGroups(
 				userService:  suite.mockUserService,
 			}
 
-			accessTokenAttrs := []string{"email", "username"}
+			accessTokenAttrs := []appmodel.UserAttribute{{Name: "email"}, {Name: "username"}}
 			if tc.includeInAccessToken {
-				accessTokenAttrs = append(accessTokenAttrs, constants.UserAttributeGroups)
+				accessTokenAttrs = append(accessTokenAttrs, appmodel.UserAttribute{Name: constants.UserAttributeGroups})
 			}
 			var idTokenConfig *appmodel.IDTokenConfig
 			var scopeClaims map[string][]string
@@ -488,14 +488,14 @@ func (suite *AuthorizationCodeGrantHandlerTestSuite) TestHandleGrant_WithGroups(
 				if tc.scopeClaimsForGroups {
 					// Include groups in ID token config with scope claims mapping
 					idTokenConfig = &appmodel.IDTokenConfig{
-						UserAttributes: []string{"email", "username", constants.UserAttributeGroups},
+						UserAttributes: []appmodel.UserAttribute{{Name: "email"}, {Name: "username"}, {Name: constants.UserAttributeGroups}},
 					}
 					scopeClaims = map[string][]string{
 						"openid": {"email", "username", constants.UserAttributeGroups},
 					}
 				} else {
 					idTokenConfig = &appmodel.IDTokenConfig{
-						UserAttributes: []string{"email", "username"},
+						UserAttributes: []appmodel.UserAttribute{{Name: "email"}, {Name: "username"}},
 					}
 				}
 			}
@@ -670,23 +670,23 @@ func (suite *AuthorizationCodeGrantHandlerTestSuite) TestHandleGrant_WithEmptyGr
 				userService:  suite.mockUserService,
 			}
 
-			accessTokenAttrs := []string{"email", "username"}
+			accessTokenAttrs := []appmodel.UserAttribute{{Name: "email"}, {Name: "username"}}
 			if tc.includeInAccessToken {
-				accessTokenAttrs = append(accessTokenAttrs, constants.UserAttributeGroups)
+				accessTokenAttrs = append(accessTokenAttrs, appmodel.UserAttribute{Name: constants.UserAttributeGroups})
 			}
 			var idTokenConfig *appmodel.IDTokenConfig
 			var scopeClaims map[string][]string
 			if tc.includeInIDToken {
 				if tc.scopeClaimsForGroups {
 					idTokenConfig = &appmodel.IDTokenConfig{
-						UserAttributes: []string{"email", "username", constants.UserAttributeGroups},
+						UserAttributes: []appmodel.UserAttribute{{Name: "email"}, {Name: "username"}, {Name: constants.UserAttributeGroups}},
 					}
 					scopeClaims = map[string][]string{
 						"openid": {"email", "username", constants.UserAttributeGroups},
 					}
 				} else {
 					idTokenConfig = &appmodel.IDTokenConfig{
-						UserAttributes: []string{"email", "username"},
+						UserAttributes: []appmodel.UserAttribute{{Name: "email"}, {Name: "username"}},
 					}
 				}
 			}
@@ -963,7 +963,7 @@ func (suite *AuthorizationCodeGrantHandlerTestSuite) TestHandleGrant_FetchUserGr
 		TokenEndpointAuthMethod: constants.TokenEndpointAuthMethodClientSecretPost,
 		Token: &appmodel.OAuthTokenConfig{
 			AccessToken: &appmodel.AccessTokenConfig{
-				UserAttributes: []string{"email", "username", constants.UserAttributeGroups},
+				UserAttributes: []appmodel.UserAttribute{{Name: "email"}, {Name: "username"}, {Name: constants.UserAttributeGroups}},
 			},
 		},
 	}

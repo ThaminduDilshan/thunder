@@ -217,11 +217,11 @@ func (suite *ExportServiceTestSuite) TestExportResources_CompleteOAuthApplicatio
 		Token: &appmodel.OAuthTokenConfig{
 			AccessToken: &appmodel.AccessTokenConfig{
 				ValidityPeriod: 3600,
-				UserAttributes: []string{"email", "username"},
+				UserAttributes: []appmodel.UserAttribute{{Name: "email"}, {Name: "username"}},
 			},
 			IDToken: &appmodel.IDTokenConfig{
 				ValidityPeriod: 1800,
-				UserAttributes: []string{"email"},
+				UserAttributes: []appmodel.UserAttribute{{Name: "email"}},
 			},
 		},
 		ScopeClaims: map[string][]string{
@@ -241,7 +241,7 @@ func (suite *ExportServiceTestSuite) TestExportResources_CompleteOAuthApplicatio
 			},
 		},
 		Assertion: &appmodel.AssertionConfig{
-			UserAttributes: []string{"email", "username"},
+			UserAttributes: []appmodel.UserAttribute{{Name: "email"}, {Name: "username"}},
 		},
 	}
 

@@ -27,6 +27,7 @@ import (
 	"strings"
 	"time"
 
+	appmodel "github.com/asgardeo/thunder/internal/application/model"
 	consentauthn "github.com/asgardeo/thunder/internal/authn/consent"
 	"github.com/asgardeo/thunder/internal/consent"
 	"github.com/asgardeo/thunder/internal/flow/common"
@@ -130,7 +131,7 @@ func (e *consentExecutor) checkConsent(ctx *core.NodeContext, execResp *common.E
 		userAttributes = strings.Fields(requiredAttrs)
 	} else if ctx.Application.Assertion != nil {
 		// Fallback to application token user attributes
-		userAttributes = ctx.Application.Assertion.UserAttributes
+		userAttributes = appmodel.UserAttributeNames(ctx.Application.Assertion.UserAttributes)
 	}
 
 	// Resolve consent to determine if any required consents are missing and need to be prompted

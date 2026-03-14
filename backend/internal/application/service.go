@@ -1481,7 +1481,7 @@ func processTokenConfiguration(app *model.ApplicationDTO) (
 		assertion = getDefaultAssertionConfigFromDeployment()
 	}
 	if assertion.UserAttributes == nil {
-		assertion.UserAttributes = make([]string, 0)
+		assertion.UserAttributes = make([]model.UserAttribute, 0)
 	}
 
 	// Resolve OAuth access token config
@@ -1500,7 +1500,7 @@ func processTokenConfiguration(app *model.ApplicationDTO) (
 			oauthAccessToken.ValidityPeriod = assertion.ValidityPeriod
 		}
 		if oauthAccessToken.UserAttributes == nil {
-			oauthAccessToken.UserAttributes = make([]string, 0)
+			oauthAccessToken.UserAttributes = make([]model.UserAttribute, 0)
 		}
 	} else {
 		oauthAccessToken = &model.AccessTokenConfig{
@@ -1525,7 +1525,7 @@ func processTokenConfiguration(app *model.ApplicationDTO) (
 			oauthIDToken.ValidityPeriod = assertion.ValidityPeriod
 		}
 		if oauthIDToken.UserAttributes == nil {
-			oauthIDToken.UserAttributes = make([]string, 0)
+			oauthIDToken.UserAttributes = make([]model.UserAttribute, 0)
 		}
 	} else {
 		oauthIDToken = &model.IDTokenConfig{
@@ -1789,6 +1789,8 @@ func resolveClientSecret(
 
 // extractRequestedAttributes collects all unique user attributes requested by the application
 // across various configurations including assertions, token config, and user info.
+// The map value indicates whether the attribute is essential (true) or optional (false).
+// If an attribute is marked as essential in any config, it is considered essential overall.
 func extractRequestedAttributes(app *model.ApplicationProcessedDTO) map[string]bool {
 	if app == nil {
 		return nil
@@ -1796,10 +1798,15 @@ func extractRequestedAttributes(app *model.ApplicationProcessedDTO) map[string]b
 
 	attrMap := make(map[string]bool)
 
+	// mergeAttr adds the attribute to the map; if already present, applies OR logic for essential flag.
+	mergeAttr := func(attr model.UserAttribute) {
+		attrMap[attr.Name] = attrMap[attr.Name] || attr.IsEssential
+	}
+
 	// Extract from assertion configuration
 	if app.Assertion != nil && len(app.Assertion.UserAttributes) > 0 {
 		for _, attr := range app.Assertion.UserAttributes {
-			attrMap[attr] = true
+			mergeAttr(attr)
 		}
 	}
 
@@ -1811,21 +1818,21 @@ func extractRequestedAttributes(app *model.ApplicationProcessedDTO) map[string]b
 			// Extract from access token
 			if oauthConfig.Token != nil && oauthConfig.Token.AccessToken != nil {
 				for _, attr := range oauthConfig.Token.AccessToken.UserAttributes {
-					attrMap[attr] = true
+					mergeAttr(attr)
 				}
 			}
 
 			// Extract from ID token
 			if oauthConfig.Token != nil && oauthConfig.Token.IDToken != nil {
 				for _, attr := range oauthConfig.Token.IDToken.UserAttributes {
-					attrMap[attr] = true
+					mergeAttr(attr)
 				}
 			}
 
 			// Extract from user info
 			if oauthConfig.UserInfo != nil {
 				for _, attr := range oauthConfig.UserInfo.UserAttributes {
-					attrMap[attr] = true
+					mergeAttr(attr)
 				}
 			}
 		}
@@ -2076,15 +2083,16 @@ func wrapConsentServiceError(err *serviceerror.I18nServiceError) *serviceerror.S
 	return &ErrorInternalServerError
 }
 
-// attributesToPurposeElements converts a list of user attribute names to consent PurposeElements.
-// TODO: Add support for passing mandatory property, when the support is implemented in the application model.
+// attributesToPurposeElements converts a map of user attribute names to consent PurposeElements.
+// The map value (bool) indicates whether the attribute is essential; essential attributes are
+// mapped to mandatory consent elements (IsMandatory: true).
 func attributesToPurposeElements(attributes map[string]bool) []consent.PurposeElement {
 	elements := make([]consent.PurposeElement, 0, len(attributes))
-	for attr := range attributes {
+	for attr, isEssential := range attributes {
 		elements = append(elements, consent.PurposeElement{
 			Name:        attr,
 			Namespace:   consent.NamespaceAttribute,
-			IsMandatory: false,
+			IsMandatory: isEssential,
 		})
 	}
 

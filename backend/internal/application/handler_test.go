@@ -1383,11 +1383,11 @@ func (suite *HandlerTestSuite) TestProcessInboundAuthConfigFromRequest_WithToken
 				Token: &model.OAuthTokenConfig{
 					AccessToken: &model.AccessTokenConfig{
 						ValidityPeriod: 3600,
-						UserAttributes: []string{"email", "name"},
+						UserAttributes: []model.UserAttribute{{Name: "email"}, {Name: "name"}},
 					},
 					IDToken: &model.IDTokenConfig{
 						ValidityPeriod: 3600,
-						UserAttributes: []string{"email"},
+						UserAttributes: []model.UserAttribute{{Name: "email"}},
 					},
 				},
 			},

@@ -104,7 +104,7 @@ func (s *userInfoService) GetUserInfo(
 	// Extract allowed user attributes
 	var allowedUserAttributes []string
 	if oauthApp != nil && oauthApp.UserInfo != nil {
-		allowedUserAttributes = oauthApp.UserInfo.UserAttributes
+		allowedUserAttributes = appmodel.UserAttributeNames(oauthApp.UserInfo.UserAttributes)
 	}
 
 	// Fetch user attributes with groups and default claims
@@ -263,7 +263,7 @@ func (s *userInfoService) buildUserInfoResponse(
 	if oauthApp != nil {
 		scopeClaimsMapping = oauthApp.ScopeClaims
 		if oauthApp.UserInfo != nil && len(oauthApp.UserInfo.UserAttributes) > 0 {
-			allowedUserAttributes = oauthApp.UserInfo.UserAttributes
+			allowedUserAttributes = appmodel.UserAttributeNames(oauthApp.UserInfo.UserAttributes)
 		}
 	}
 

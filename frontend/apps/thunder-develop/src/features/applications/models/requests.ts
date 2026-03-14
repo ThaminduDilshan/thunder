@@ -50,7 +50,6 @@ import type {Application} from './application';
  *   auth_flow_id: 'edc013d0-e893-4dc0-990c-3e1d203e005b',
  *   registration_flow_id: '80024fb3-29ed-4c33-aa48-8aee5e96d522',
  *   is_registration_flow_enabled: true,
- *   user_attributes: ['email', 'username', 'roles'],
  *   inbound_auth_config: [{
  *     type: 'oauth2',
  *     config: {
@@ -61,11 +60,11 @@ import type {Application} from './application';
  *       token: {
  *         access_token: {
  *           validity_period: 3600,
- *           user_attributes: ['email', 'username']
+ *           user_attributes: [{ name: 'email' }, { name: 'username' }]
  *         },
  *         id_token: {
  *           validity_period: 3600,
- *           user_attributes: ['sub', 'email', 'name'],
+ *           user_attributes: [{ name: 'sub' }, { name: 'email' }, { name: 'name' }],
  *           scope_claims: {
  *             profile: ['name', 'picture'],
  *             email: ['email', 'email_verified']
@@ -94,7 +93,7 @@ import type {Application} from './application';
  *       scopes: ['openid', 'profile'],
  *       token: {
  *         access_token: { validity_period: 3600, user_attributes: [] },
- *         id_token: { validity_period: 3600, user_attributes: ['sub'], scope_claims: {} }
+ *         id_token: { validity_period: 3600, user_attributes: [{name: 'sub'}], scope_claims: {} }
  *       }
  *     }
  *   }]

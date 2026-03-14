@@ -72,7 +72,7 @@ func (suite *TokenBuilderTestSuite) SetupTest() {
 		Token: &appmodel.OAuthTokenConfig{
 			AccessToken: &appmodel.AccessTokenConfig{
 				ValidityPeriod: 3600,
-				UserAttributes: []string{"name"}, // Configure user attributes for tests
+				UserAttributes: []appmodel.UserAttribute{{Name: "name"}}, // Configure user attributes for tests
 			},
 		},
 	}
@@ -431,7 +431,7 @@ func (suite *TokenBuilderTestSuite) TestBuildRefreshToken_Success_Basic() {
 		Token: &appmodel.OAuthTokenConfig{
 			AccessToken: &appmodel.AccessTokenConfig{
 				ValidityPeriod: 3600,
-				UserAttributes: []string{"name"}, // Configure user attributes
+				UserAttributes: []appmodel.UserAttribute{{Name: "name"}}, // Configure user attributes
 			},
 		},
 	}
@@ -867,7 +867,7 @@ func (suite *TokenBuilderTestSuite) TestBuildIDToken_Success_WithScopeClaims() {
 		Token: &appmodel.OAuthTokenConfig{
 			IDToken: &appmodel.IDTokenConfig{
 				ValidityPeriod: 3600,
-				UserAttributes: []string{"name", "email"},
+				UserAttributes: []appmodel.UserAttribute{{Name: "name"}, {Name: "email"}},
 			},
 		},
 		ScopeClaims: map[string][]string{
@@ -910,7 +910,7 @@ func (suite *TokenBuilderTestSuite) TestBuildIDToken_Success_WithStandardOIDCSco
 		Token: &appmodel.OAuthTokenConfig{
 			IDToken: &appmodel.IDTokenConfig{
 				ValidityPeriod: 3600,
-				UserAttributes: []string{"name", "email"},
+				UserAttributes: []appmodel.UserAttribute{{Name: "name"}, {Name: "email"}},
 			},
 		},
 	}
@@ -980,7 +980,7 @@ func (suite *TokenBuilderTestSuite) TestBuildIDToken_Success_EmptyUserAttributes
 		ClientID: "test-client",
 		Token: &appmodel.OAuthTokenConfig{
 			IDToken: &appmodel.IDTokenConfig{
-				UserAttributes: []string{},
+				UserAttributes: []appmodel.UserAttribute{},
 			},
 		},
 	}

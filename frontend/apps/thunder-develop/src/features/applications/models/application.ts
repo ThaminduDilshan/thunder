@@ -105,7 +105,6 @@ export type BasicApplication = Pick<
  *   auth_flow_id: 'edc013d0-e893-4dc0-990c-3e1d203e005b',
  *   registration_flow_id: '80024fb3-29ed-4c33-aa48-8aee5e96d522',
  *   is_registration_flow_enabled: true,
- *   user_attributes: ['email', 'username'],
  *   inbound_auth_config: [{
  *     type: 'oauth2',
  *     config: {
@@ -203,12 +202,6 @@ export interface Application {
    * @example true
    */
   is_registration_flow_enabled?: boolean;
-
-  /**
-   * User attributes to include
-   * @example ['email', 'username', 'given_name', 'family_name', 'roles']
-   */
-  user_attributes?: string[];
 
   /**
    * Allowed user types (user schema IDs) that can access this application

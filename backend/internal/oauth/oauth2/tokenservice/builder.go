@@ -157,7 +157,7 @@ func (tb *tokenBuilder) buildAccessTokenUserAttributes(
 	// Get access token user attributes from config if available
 	var accessTokenUserAttributes []string
 	if oauthApp != nil && oauthApp.Token != nil && oauthApp.Token.AccessToken != nil {
-		accessTokenUserAttributes = oauthApp.Token.AccessToken.UserAttributes
+		accessTokenUserAttributes = appmodel.UserAttributeNames(oauthApp.Token.AccessToken.UserAttributes)
 	}
 
 	// If app config specifies which attributes to include, filter them
@@ -330,7 +330,7 @@ func (tb *tokenBuilder) buildIDTokenClaims(ctx *IDTokenBuildContext) map[string]
 	if ctx.OAuthApp != nil {
 		scopeClaimsMapping = ctx.OAuthApp.ScopeClaims
 		if ctx.OAuthApp.Token != nil && ctx.OAuthApp.Token.IDToken != nil {
-			allowedUserAttributes = ctx.OAuthApp.Token.IDToken.UserAttributes
+			allowedUserAttributes = appmodel.UserAttributeNames(ctx.OAuthApp.Token.IDToken.UserAttributes)
 		}
 	}
 

@@ -17,6 +17,33 @@
  */
 
 /**
+ * User Attribute
+ *
+ * Represents a user attribute to be included in tokens or userinfo responses.
+ *
+ * @public
+ * @example
+ * ```typescript
+ * const attr: UserAttribute = { name: 'email' };
+ * const essentialAttr: UserAttribute = { name: 'username', is_essential: true };
+ * ```
+ */
+export interface UserAttribute {
+  /**
+   * The name of the user attribute (e.g., email, username, roles)
+   * @example 'email'
+   */
+  name: string;
+
+  /**
+   * Whether the attribute is essential.
+   * If true, consent for this attribute is mandatory.
+   * @default false
+   */
+  is_essential?: boolean;
+}
+
+/**
  * Token Configuration
  *
  * Base configuration for OAuth2 tokens including validity period and user attributes.
@@ -27,7 +54,7 @@
  * ```typescript
  * const accessTokenConfig: TokenConfig = {
  *   validity_period: 3600, // 1 hour
- *   user_attributes: ['email', 'username', 'roles']
+ *   user_attributes: [{ name: 'email' }, { name: 'username', is_essential: true }]
  * };
  * ```
  */
@@ -42,9 +69,9 @@ export interface TokenConfig {
   /**
    * User attributes to include in the token
    * List of user profile attributes that should be included in the token claims
-   * @example ['email', 'username', 'given_name', 'family_name']
+   * @example [{ name: 'email' }, { name: 'username' }]
    */
-  user_attributes: string[];
+  user_attributes: UserAttribute[];
 }
 
 /**

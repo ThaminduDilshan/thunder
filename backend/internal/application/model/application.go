@@ -22,13 +22,72 @@
 package model
 
 import (
+	"encoding/json"
+	"fmt"
+
 	"github.com/asgardeo/thunder/internal/cert"
+	"gopkg.in/yaml.v3"
 )
+
+// UserAttribute represents a user attribute configuration with an optional essential flag.
+type UserAttribute struct {
+	Name        string `json:"name" yaml:"name" jsonschema:"The name of the user attribute (e.g., email, username, roles)."`
+	IsEssential bool   `json:"is_essential,omitempty" yaml:"is_essential,omitempty" jsonschema:"Indicates whether the attribute is essential. If true, consent is mandatory for this attribute. Defaults to false (optional)."`
+}
+
+// UnmarshalJSON implements json.Unmarshaler for UserAttribute providing backward compatibility.
+// Accepts both a plain string (e.g. "email") and the full object form
+// (e.g. {"name":"email","is_essential":true}).
+func (ua *UserAttribute) UnmarshalJSON(data []byte) error {
+	var name string
+	if err := json.Unmarshal(data, &name); err == nil {
+		ua.Name = name
+		return nil
+	}
+	type userAttributeAlias UserAttribute
+	var alias userAttributeAlias
+	if err := json.Unmarshal(data, &alias); err != nil {
+		return err
+	}
+	*ua = UserAttribute(alias)
+	return nil
+}
+
+// UnmarshalYAML implements yaml.Unmarshaler for UserAttribute providing backward compatibility.
+// Accepts both a plain string scalar (e.g. "email") and the full mapping form
+// (e.g. {name: email, is_essential: true}).
+func (ua *UserAttribute) UnmarshalYAML(value *yaml.Node) error {
+	switch value.Kind {
+	case yaml.ScalarNode:
+		ua.Name = value.Value
+		return nil
+	case yaml.MappingNode:
+		type userAttributeAlias UserAttribute
+		var alias userAttributeAlias
+		if err := value.Decode(&alias); err != nil {
+			return err
+		}
+		*ua = UserAttribute(alias)
+		return nil
+	default:
+		return fmt.Errorf("unsupported YAML node kind for UserAttribute: %v", value.Kind)
+	}
+}
+
+// UserAttributeNames returns a slice of attribute name strings from the given UserAttribute slice.
+// This is useful when downstream consumers only need the attribute names (e.g., for JWT claims).
+func UserAttributeNames(attrs []UserAttribute) []string {
+	names := make([]string, 0, len(attrs))
+	for _, a := range attrs {
+		names = append(names, a.Name)
+	}
+	return names
+}
 
 // AssertionConfig represents the assertion configuration structure for application-level (root) assertion configs.
 type AssertionConfig struct {
-	ValidityPeriod int64    `json:"validity_period,omitempty" yaml:"validity_period,omitempty" jsonschema:"Assertion validity period in seconds."`
-	UserAttributes []string `json:"user_attributes,omitempty" yaml:"user_attributes,omitempty" jsonschema:"User attributes to include in the assertion. List of user claim names to embed in the assertion (e.g., email, username, roles)."`
+	ValidityPeriod int64           `json:"validity_period,omitempty" yaml:"validity_period,omitempty" jsonschema:"Assertion validity period in seconds."`
+	UserAttributes []UserAttribute `json:"user_attributes,omitempty" yaml:"user_attributes,omitempty" jsonschema:"User attributes to include in the assertion. List of user attribute objects with optional essential flag."`
 }
 
 // LoginConsentConfig represents the login consent configuration for an application.

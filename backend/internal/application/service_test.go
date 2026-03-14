@@ -173,7 +173,7 @@ func (suite *ServiceTestSuite) TestProcessTokenConfiguration() {
 				Name: "Test App",
 				Assertion: &model.AssertionConfig{
 					ValidityPeriod: 7200,
-					UserAttributes: []string{"email", "name"},
+					UserAttributes: []model.UserAttribute{{Name: "email"}, {Name: "name"}},
 				},
 			},
 			expectedRootValidity:    7200,
@@ -227,7 +227,7 @@ func (suite *ServiceTestSuite) TestProcessTokenConfiguration() {
 							Token: &model.OAuthTokenConfig{
 								AccessToken: &model.AccessTokenConfig{
 									ValidityPeriod: 2400,
-									UserAttributes: []string{"sub"},
+									UserAttributes: []model.UserAttribute{{Name: "sub"}},
 								},
 							},
 						},
@@ -2260,7 +2260,7 @@ func (suite *ServiceTestSuite) TestProcessTokenConfiguration_WithOAuthIDToken() 
 					Token: &model.OAuthTokenConfig{
 						IDToken: &model.IDTokenConfig{
 							ValidityPeriod: 1200,
-							UserAttributes: []string{"email"},
+							UserAttributes: []model.UserAttribute{{Name: "email"}},
 						},
 					},
 					ScopeClaims: map[string][]string{"scope1": {"claim1"}},
@@ -2275,7 +2275,7 @@ func (suite *ServiceTestSuite) TestProcessTokenConfiguration_WithOAuthIDToken() 
 	assert.NotNil(suite.T(), accessToken)
 	assert.NotNil(suite.T(), idToken)
 	assert.Equal(suite.T(), int64(1200), idToken.ValidityPeriod)
-	assert.Equal(suite.T(), []string{"email"}, idToken.UserAttributes)
+	assert.Equal(suite.T(), []model.UserAttribute{{Name: "email"}}, idToken.UserAttributes)
 }
 
 func (suite *ServiceTestSuite) TestGetApplicationCertificate_ClientError() {
@@ -2678,7 +2678,7 @@ func (suite *ServiceTestSuite) TestProcessTokenConfiguration_WithRootToken() {
 		Name: "Test App",
 		Assertion: &model.AssertionConfig{
 			ValidityPeriod: 1800,
-			UserAttributes: []string{"email", "name"},
+			UserAttributes: []model.UserAttribute{{Name: "email"}, {Name: "name"}},
 		},
 	}
 
@@ -2688,7 +2688,7 @@ func (suite *ServiceTestSuite) TestProcessTokenConfiguration_WithRootToken() {
 	assert.NotNil(suite.T(), accessToken)
 	assert.NotNil(suite.T(), idToken)
 	assert.Equal(suite.T(), int64(1800), rootAssertion.ValidityPeriod)
-	assert.Equal(suite.T(), []string{"email", "name"}, rootAssertion.UserAttributes)
+	assert.Equal(suite.T(), []model.UserAttribute{{Name: "email"}, {Name: "name"}}, rootAssertion.UserAttributes)
 }
 
 func (suite *ServiceTestSuite) TestProcessTokenConfiguration_WithRootTokenDefaults() {
@@ -2737,7 +2737,7 @@ func (suite *ServiceTestSuite) TestProcessTokenConfiguration_WithOAuthAccessToke
 					Token: &model.OAuthTokenConfig{
 						AccessToken: &model.AccessTokenConfig{
 							ValidityPeriod: 2400,
-							UserAttributes: []string{"sub", "email"},
+							UserAttributes: []model.UserAttribute{{Name: "sub"}, {Name: "email"}},
 						},
 					},
 				},
@@ -2751,7 +2751,7 @@ func (suite *ServiceTestSuite) TestProcessTokenConfiguration_WithOAuthAccessToke
 	assert.NotNil(suite.T(), accessToken)
 	assert.NotNil(suite.T(), idToken)
 	assert.Equal(suite.T(), int64(2400), accessToken.ValidityPeriod)
-	assert.Equal(suite.T(), []string{"sub", "email"}, accessToken.UserAttributes)
+	assert.Equal(suite.T(), []model.UserAttribute{{Name: "sub"}, {Name: "email"}}, accessToken.UserAttributes)
 }
 
 func (suite *ServiceTestSuite) TestProcessTokenConfiguration_WithOAuthAccessTokenDefaults() {
@@ -2846,7 +2846,7 @@ func (suite *ServiceTestSuite) TestProcessTokenConfiguration_WithAccessTokenNilU
 		Name: "Test App",
 		Assertion: &model.AssertionConfig{
 			ValidityPeriod: 1800,
-			UserAttributes: []string{"email", "name"},
+			UserAttributes: []model.UserAttribute{{Name: "email"}, {Name: "name"}},
 		},
 		InboundAuthConfig: []model.InboundAuthConfigDTO{
 			{
@@ -2894,7 +2894,7 @@ func (suite *ServiceTestSuite) TestProcessTokenConfiguration_WithAccessTokenEmpt
 					Token: &model.OAuthTokenConfig{
 						AccessToken: &model.AccessTokenConfig{
 							ValidityPeriod: 2400,
-							UserAttributes: []string{}, // empty slice
+							UserAttributes: []model.UserAttribute{}, // empty slice
 						},
 					},
 				},
@@ -3784,7 +3784,7 @@ func (suite *ServiceTestSuite) TestProcessUserInfoConfiguration() {
 		name               string
 		app                *model.ApplicationDTO
 		idTokenConfig      *model.IDTokenConfig
-		expectedAttributes []string
+		expectedAttributes []model.UserAttribute
 	}{
 		{
 			name: "Explicit UserInfo config",
@@ -3793,14 +3793,14 @@ func (suite *ServiceTestSuite) TestProcessUserInfoConfiguration() {
 					{
 						OAuthAppConfig: &model.OAuthAppConfigDTO{
 							UserInfo: &model.UserInfoConfig{
-								UserAttributes: []string{"email", "profile"},
+								UserAttributes: []model.UserAttribute{{Name: "email"}, {Name: "profile"}},
 							},
 						},
 					},
 				},
 			},
-			idTokenConfig:      &model.IDTokenConfig{UserAttributes: []string{"sub"}},
-			expectedAttributes: []string{"email", "profile"},
+			idTokenConfig:      &model.IDTokenConfig{UserAttributes: []model.UserAttribute{{Name: "sub"}}},
+			expectedAttributes: []model.UserAttribute{{Name: "email"}, {Name: "profile"}},
 		},
 		{
 			name: "Fallback to IDToken attrs when UserInfo nil",
@@ -3813,8 +3813,8 @@ func (suite *ServiceTestSuite) TestProcessUserInfoConfiguration() {
 					},
 				},
 			},
-			idTokenConfig:      &model.IDTokenConfig{UserAttributes: []string{"sub", "email"}},
-			expectedAttributes: []string{"sub", "email"},
+			idTokenConfig:      &model.IDTokenConfig{UserAttributes: []model.UserAttribute{{Name: "sub"}, {Name: "email"}}},
+			expectedAttributes: []model.UserAttribute{{Name: "sub"}, {Name: "email"}},
 		},
 		{
 			name: "Fallback to IDToken attrs when UserInfo attributes nil",
@@ -3829,8 +3829,8 @@ func (suite *ServiceTestSuite) TestProcessUserInfoConfiguration() {
 					},
 				},
 			},
-			idTokenConfig:      &model.IDTokenConfig{UserAttributes: []string{"sub"}},
-			expectedAttributes: []string{"sub"},
+			idTokenConfig:      &model.IDTokenConfig{UserAttributes: []model.UserAttribute{{Name: "sub"}}},
+			expectedAttributes: []model.UserAttribute{{Name: "sub"}},
 		},
 		{
 			name: "Doesn't fallback when UserInfo attributes empty",
@@ -3839,14 +3839,14 @@ func (suite *ServiceTestSuite) TestProcessUserInfoConfiguration() {
 					{
 						OAuthAppConfig: &model.OAuthAppConfigDTO{
 							UserInfo: &model.UserInfoConfig{
-								UserAttributes: []string{},
+								UserAttributes: []model.UserAttribute{},
 							},
 						},
 					},
 				},
 			},
-			idTokenConfig:      &model.IDTokenConfig{UserAttributes: []string{"sub", "email"}},
-			expectedAttributes: []string{},
+			idTokenConfig:      &model.IDTokenConfig{UserAttributes: []model.UserAttribute{{Name: "sub"}, {Name: "email"}}},
+			expectedAttributes: []model.UserAttribute{},
 		},
 	}
 
@@ -4634,7 +4634,7 @@ func (suite *ServiceTestSuite) runCreateApplicationConsentSyncFailsTest() {
 		AuthFlowID:         "edc013d0-e893-4dc0-990c-3e1d203e005b",
 		RegistrationFlowID: "80024fb3-29ed-4c33-aa48-8aee5e96d522",
 		Assertion: &model.AssertionConfig{
-			UserAttributes: []string{"email"},
+			UserAttributes: []model.UserAttribute{{Name: "email"}},
 		},
 	}
 
@@ -4722,7 +4722,7 @@ func (suite *ServiceTestSuite) TestUpdateApplication_ConsentSyncFails_Compensate
 		AuthFlowID:         "edc013d0-e893-4dc0-990c-3e1d203e005b",
 		RegistrationFlowID: "80024fb3-29ed-4c33-aa48-8aee5e96d522",
 		Assertion: &model.AssertionConfig{
-			UserAttributes: []string{"email"},
+			UserAttributes: []model.UserAttribute{{Name: "email"}},
 		},
 	}
 
@@ -4862,7 +4862,7 @@ func (suite *ServiceTestSuite) TestCreateApplication_ConsentSyncFails_WithCert_C
 		AuthFlowID:         "edc013d0-e893-4dc0-990c-3e1d203e005b",
 		RegistrationFlowID: "80024fb3-29ed-4c33-aa48-8aee5e96d522",
 		Assertion: &model.AssertionConfig{
-			UserAttributes: []string{"email"},
+			UserAttributes: []model.UserAttribute{{Name: "email"}},
 		},
 		Certificate: &model.ApplicationCertificate{
 			Type:  cert.CertificateTypeJWKS,
@@ -5991,11 +5991,11 @@ func (suite *ServiceTestSuite) TestUpdateApplication_OAuthTokenConfigUpdate() {
 					Token: &model.OAuthTokenConfig{
 						AccessToken: &model.AccessTokenConfig{
 							ValidityPeriod: 7200,
-							UserAttributes: []string{"email", "name"},
+							UserAttributes: []model.UserAttribute{{Name: "email"}, {Name: "name"}},
 						},
 						IDToken: &model.IDTokenConfig{
 							ValidityPeriod: 3600,
-							UserAttributes: []string{"sub", "email"},
+							UserAttributes: []model.UserAttribute{{Name: "sub"}, {Name: "email"}},
 						},
 					},
 				},

@@ -35,20 +35,20 @@ import (
 
 // AccessTokenConfig represents the access token configuration structure.
 type AccessTokenConfig struct {
-	ValidityPeriod int64    `json:"validity_period,omitempty" yaml:"validity_period,omitempty" jsonschema:"Access token validity period in seconds."`
-	UserAttributes []string `json:"user_attributes,omitempty" yaml:"user_attributes,omitempty" jsonschema:"User attributes to include in access token. Claims embedded in the access token for authorization decisions."`
+	ValidityPeriod int64           `json:"validity_period,omitempty" yaml:"validity_period,omitempty" jsonschema:"Access token validity period in seconds."`
+	UserAttributes []UserAttribute `json:"user_attributes,omitempty" yaml:"user_attributes,omitempty" jsonschema:"User attributes to include in access token. Claims embedded in the access token for authorization decisions."`
 }
 
 // IDTokenConfig represents the ID token configuration structure.
 type IDTokenConfig struct {
-	ValidityPeriod int64    `json:"validity_period,omitempty" yaml:"validity_period,omitempty" jsonschema:"ID token validity period in seconds."`
-	UserAttributes []string `json:"user_attributes,omitempty" yaml:"user_attributes,omitempty" jsonschema:"User attributes to include in ID token. Standard OIDC claims: sub, name, email, picture, etc."`
+	ValidityPeriod int64           `json:"validity_period,omitempty" yaml:"validity_period,omitempty" jsonschema:"ID token validity period in seconds."`
+	UserAttributes []UserAttribute `json:"user_attributes,omitempty" yaml:"user_attributes,omitempty" jsonschema:"User attributes to include in ID token. Standard OIDC claims: sub, name, email, picture, etc."`
 }
 
 // UserInfoConfig represents the user info endpoint configuration structure.
 type UserInfoConfig struct {
 	ResponseType   UserInfoResponseType `json:"response_type,omitempty" yaml:"response_type,omitempty"`
-	UserAttributes []string             `json:"user_attributes,omitempty" yaml:"user_attributes,omitempty" jsonschema:"User attributes to include in userinfo response."`
+	UserAttributes []UserAttribute      `json:"user_attributes,omitempty" yaml:"user_attributes,omitempty" jsonschema:"User attributes to include in userinfo response."`
 }
 
 // OAuthTokenConfig represents the OAuth token configuration structure with access_token and id_token wrappers.

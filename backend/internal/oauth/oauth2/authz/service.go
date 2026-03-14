@@ -655,7 +655,7 @@ func determineClaimsForTokens(
 func populateAccessTokenClaims(app *appmodel.OAuthAppConfigProcessedDTO, accessTokenClaims map[string]bool) {
 	if app.Token.AccessToken != nil && len(app.Token.AccessToken.UserAttributes) > 0 {
 		for _, attr := range app.Token.AccessToken.UserAttributes {
-			accessTokenClaims[attr] = true
+			accessTokenClaims[attr.Name] = true
 		}
 	}
 }
@@ -689,7 +689,7 @@ func buildAllowedSet(idTokenConfig *appmodel.IDTokenConfig) map[string]bool {
 	}
 	allowedSet := make(map[string]bool, len(idTokenConfig.UserAttributes))
 	for _, attr := range idTokenConfig.UserAttributes {
-		allowedSet[attr] = true
+		allowedSet[attr.Name] = true
 	}
 	return allowedSet
 }
@@ -701,7 +701,7 @@ func buildUserInfoAllowedSet(userInfoConfig *appmodel.UserInfoConfig) map[string
 	}
 	allowedSet := make(map[string]bool, len(userInfoConfig.UserAttributes))
 	for _, attr := range userInfoConfig.UserAttributes {
-		allowedSet[attr] = true
+		allowedSet[attr.Name] = true
 	}
 	return allowedSet
 }

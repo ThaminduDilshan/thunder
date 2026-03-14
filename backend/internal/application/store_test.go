@@ -76,7 +76,7 @@ func (suite *ApplicationStoreTestSuite) createTestApplication() model.Applicatio
 		Contacts:                  []string{"contact@example.com", "support@example.com"},
 		Assertion: &model.AssertionConfig{
 			ValidityPeriod: 3600,
-			UserAttributes: []string{"email", "name", "sub"},
+			UserAttributes: []model.UserAttribute{{Name: "email"}, {Name: "name"}, {Name: "sub"}},
 		},
 		InboundAuthConfig: []model.InboundAuthConfigProcessedDTO{
 			{
@@ -98,11 +98,11 @@ func (suite *ApplicationStoreTestSuite) createTestApplication() model.Applicatio
 					Token: &model.OAuthTokenConfig{
 						AccessToken: &model.AccessTokenConfig{
 							ValidityPeriod: 7200,
-							UserAttributes: []string{"sub", "email", "name"},
+							UserAttributes: []model.UserAttribute{{Name: "sub"}, {Name: "email"}, {Name: "name"}},
 						},
 						IDToken: &model.IDTokenConfig{
 							ValidityPeriod: 3600,
-							UserAttributes: []string{"sub", "email", "name", "given_name"},
+							UserAttributes: []model.UserAttribute{{Name: "sub"}, {Name: "email"}, {Name: "name"}, {Name: "given_name"}},
 						},
 					},
 					ScopeClaims: map[string][]string{
@@ -1253,8 +1253,8 @@ func (suite *ApplicationStoreTestSuite) TestBuildApplicationFromResultRow_WithTo
 	suite.NoError(err)
 	suite.NotNil(result.Assertion)
 	suite.Len(result.Assertion.UserAttributes, 2) // Only "email" and "name", 123 is skipped
-	suite.Equal("email", result.Assertion.UserAttributes[0])
-	suite.Equal("name", result.Assertion.UserAttributes[1])
+	suite.Equal(model.UserAttribute{Name: "email"}, result.Assertion.UserAttributes[0])
+	suite.Equal(model.UserAttribute{Name: "name"}, result.Assertion.UserAttributes[1])
 }
 
 func (suite *ApplicationStoreTestSuite) TestBuildApplicationFromResultRow_WithContactsNonStringElement() {
@@ -1505,7 +1505,7 @@ func (suite *ApplicationStoreTestSuite) TestGetOAuthApplication_WithComplexToken
 	// Verify access token
 	suite.Require().NotNil(result.Token.AccessToken)
 	suite.Assert().Equal(int64(7200), result.Token.AccessToken.ValidityPeriod)
-	suite.Assert().Contains(result.Token.AccessToken.UserAttributes, "name")
+	suite.Assert().Contains(result.Token.AccessToken.UserAttributes, model.UserAttribute{Name: "name"})
 
 	// Verify ID token
 	suite.Require().NotNil(result.Token.IDToken)
@@ -2761,7 +2761,7 @@ func (suite *ApplicationStoreTestSuite) TestExtractAssertionConfigFromJSON() {
 		suite.NotNil(result)
 		suite.Equal(int64(3600), result.ValidityPeriod)
 		suite.Len(result.UserAttributes, 2)
-		suite.Equal([]string{"email", "name"}, result.UserAttributes)
+		suite.Equal([]model.UserAttribute{{Name: "email"}, {Name: "name"}}, result.UserAttributes)
 	})
 
 	suite.Run("returns nil when assertion key not exists", func() {
@@ -2818,7 +2818,7 @@ func (suite *ApplicationStoreTestSuite) TestExtractAssertionConfigFromJSON() {
 
 		suite.NotNil(result)
 		suite.Len(result.UserAttributes, 2) // Only "email" and "name", 123 is skipped
-		suite.Equal([]string{"email", "name"}, result.UserAttributes)
+		suite.Equal([]model.UserAttribute{{Name: "email"}, {Name: "name"}}, result.UserAttributes)
 	})
 }
 
@@ -3156,7 +3156,7 @@ func (suite *ApplicationStoreTestSuite) TestGetOAuthConfigJSONBytes_WithUserInfo
 	inboundAuthConfig := app.InboundAuthConfig[0]
 	inboundAuthConfig.OAuthAppConfig.UserInfo = &model.UserInfoConfig{
 		ResponseType:   "jwt",
-		UserAttributes: []string{"email", "name"},
+		UserAttributes: []model.UserAttribute{{Name: "email"}, {Name: "name"}},
 	}
 
 	jsonBytes, err := getOAuthConfigJSONBytes(inboundAuthConfig)

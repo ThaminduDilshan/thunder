@@ -682,7 +682,7 @@ func (suite *AuthorizeServiceTestSuite) TestDetermineClaimsForTokens_AccessToken
 		ClientID: "test-client",
 		Token: &appmodel.OAuthTokenConfig{
 			AccessToken: &appmodel.AccessTokenConfig{
-				UserAttributes: []string{"user_id", "org_id", "role"},
+				UserAttributes: []appmodel.UserAttribute{{Name: "user_id"}, {Name: "org_id"}, {Name: "role"}},
 			},
 		},
 	}
@@ -708,14 +708,14 @@ func (suite *AuthorizeServiceTestSuite) TestDetermineClaimsForTokens_NoOpenIDSco
 		ClientID: "test-client",
 		Token: &appmodel.OAuthTokenConfig{
 			AccessToken: &appmodel.AccessTokenConfig{
-				UserAttributes: []string{"user_id"},
+				UserAttributes: []appmodel.UserAttribute{{Name: "user_id"}},
 			},
 			IDToken: &appmodel.IDTokenConfig{
-				UserAttributes: []string{"email", "name"},
+				UserAttributes: []appmodel.UserAttribute{{Name: "email"}, {Name: "name"}},
 			},
 		},
 		UserInfo: &appmodel.UserInfoConfig{
-			UserAttributes: []string{"email", "name"},
+			UserAttributes: []appmodel.UserAttribute{{Name: "email"}, {Name: "name"}},
 		},
 	}
 
@@ -739,11 +739,11 @@ func (suite *AuthorizeServiceTestSuite) TestDetermineClaimsForTokens_StandardOID
 		ClientID: "test-client",
 		Token: &appmodel.OAuthTokenConfig{
 			IDToken: &appmodel.IDTokenConfig{
-				UserAttributes: []string{"email", "email_verified", "name"},
+				UserAttributes: []appmodel.UserAttribute{{Name: "email"}, {Name: "email_verified"}, {Name: "name"}},
 			},
 		},
 		UserInfo: &appmodel.UserInfoConfig{
-			UserAttributes: []string{"email", "email_verified", "name", "picture"},
+			UserAttributes: []appmodel.UserAttribute{{Name: "email"}, {Name: "email_verified"}, {Name: "name"}, {Name: "picture"}},
 		},
 	}
 
@@ -768,11 +768,11 @@ func (suite *AuthorizeServiceTestSuite) TestDetermineClaimsForTokens_StandardOID
 		ClientID: "test-client",
 		Token: &appmodel.OAuthTokenConfig{
 			IDToken: &appmodel.IDTokenConfig{
-				UserAttributes: []string{"email", "email_verified", "name"},
+				UserAttributes: []appmodel.UserAttribute{{Name: "email"}, {Name: "email_verified"}, {Name: "name"}},
 			},
 		},
 		UserInfo: &appmodel.UserInfoConfig{
-			UserAttributes: []string{"email", "email_verified", "name", "picture"},
+			UserAttributes: []appmodel.UserAttribute{{Name: "email"}, {Name: "email_verified"}, {Name: "name"}, {Name: "picture"}},
 		},
 	}
 
@@ -804,7 +804,7 @@ func (suite *AuthorizeServiceTestSuite) TestDetermineClaimsForTokens_ClaimsParam
 		ClientID: "test-client",
 		Token: &appmodel.OAuthTokenConfig{
 			IDToken: &appmodel.IDTokenConfig{
-				UserAttributes: []string{"email", "name", "picture"},
+				UserAttributes: []appmodel.UserAttribute{{Name: "email"}, {Name: "name"}, {Name: "picture"}},
 			},
 		},
 	}
@@ -836,7 +836,7 @@ func (suite *AuthorizeServiceTestSuite) TestDetermineClaimsForTokens_ClaimsParam
 		ClientID: "test-client",
 		Token:    &appmodel.OAuthTokenConfig{}, // Need Token config for the method to process claims
 		UserInfo: &appmodel.UserInfoConfig{
-			UserAttributes: []string{"email", "name", "picture"},
+			UserAttributes: []appmodel.UserAttribute{{Name: "email"}, {Name: "name"}, {Name: "picture"}},
 		},
 	}
 
@@ -868,7 +868,7 @@ func (suite *AuthorizeServiceTestSuite) TestDetermineClaimsForTokens_ClaimsParam
 		ClientID: "test-client",
 		Token: &appmodel.OAuthTokenConfig{
 			IDToken: &appmodel.IDTokenConfig{
-				UserAttributes: []string{"email", "name"}, // not_found is not allowed
+				UserAttributes: []appmodel.UserAttribute{{Name: "email"}, {Name: "name"}}, // not_found is not allowed
 			},
 		},
 	}
@@ -895,11 +895,11 @@ func (suite *AuthorizeServiceTestSuite) TestDetermineClaimsForTokens_CustomScope
 		ClientID: "test-client",
 		Token: &appmodel.OAuthTokenConfig{
 			IDToken: &appmodel.IDTokenConfig{
-				UserAttributes: []string{"org_id", "org_name", "department"},
+				UserAttributes: []appmodel.UserAttribute{{Name: "org_id"}, {Name: "org_name"}, {Name: "department"}},
 			},
 		},
 		UserInfo: &appmodel.UserInfoConfig{
-			UserAttributes: []string{"org_id", "org_name", "department"},
+			UserAttributes: []appmodel.UserAttribute{{Name: "org_id"}, {Name: "org_name"}, {Name: "department"}},
 		},
 		ScopeClaims: map[string][]string{
 			"organization": {"org_id", "org_name"},
@@ -928,11 +928,11 @@ func (suite *AuthorizeServiceTestSuite) TestDetermineClaimsForTokens_CustomScope
 		ClientID: "test-client",
 		Token: &appmodel.OAuthTokenConfig{
 			IDToken: &appmodel.IDTokenConfig{
-				UserAttributes: []string{"custom_email", "email"},
+				UserAttributes: []appmodel.UserAttribute{{Name: "custom_email"}, {Name: "email"}},
 			},
 		},
 		UserInfo: &appmodel.UserInfoConfig{
-			UserAttributes: []string{"custom_email", "email"},
+			UserAttributes: []appmodel.UserAttribute{{Name: "custom_email"}, {Name: "email"}},
 		},
 		ScopeClaims: map[string][]string{
 			"email": {"custom_email"}, // Override standard email scope
@@ -961,14 +961,14 @@ func (suite *AuthorizeServiceTestSuite) TestDetermineClaimsForTokens_MultipleSco
 		ClientID: "test-client",
 		Token: &appmodel.OAuthTokenConfig{
 			AccessToken: &appmodel.AccessTokenConfig{
-				UserAttributes: []string{"user_id"},
+				UserAttributes: []appmodel.UserAttribute{{Name: "user_id"}},
 			},
 			IDToken: &appmodel.IDTokenConfig{
-				UserAttributes: []string{"email", "email_verified", "name", "picture"},
+				UserAttributes: []appmodel.UserAttribute{{Name: "email"}, {Name: "email_verified"}, {Name: "name"}, {Name: "picture"}},
 			},
 		},
 		UserInfo: &appmodel.UserInfoConfig{
-			UserAttributes: []string{"email", "email_verified", "name", "picture", "phone_number"},
+			UserAttributes: []appmodel.UserAttribute{{Name: "email"}, {Name: "email_verified"}, {Name: "name"}, {Name: "picture"}, {Name: "phone_number"}},
 		},
 	}
 
@@ -1010,14 +1010,14 @@ func (suite *AuthorizeServiceTestSuite) TestDetermineClaimsForTokens_CompleteSce
 		ClientID: "test-client",
 		Token: &appmodel.OAuthTokenConfig{
 			AccessToken: &appmodel.AccessTokenConfig{
-				UserAttributes: []string{"user_id", "role"},
+				UserAttributes: []appmodel.UserAttribute{{Name: "user_id"}, {Name: "role"}},
 			},
 			IDToken: &appmodel.IDTokenConfig{
-				UserAttributes: []string{"email", "email_verified", "name"},
+				UserAttributes: []appmodel.UserAttribute{{Name: "email"}, {Name: "email_verified"}, {Name: "name"}},
 			},
 		},
 		UserInfo: &appmodel.UserInfoConfig{
-			UserAttributes: []string{"email", "email_verified", "name", "picture", "phone_number"},
+			UserAttributes: []appmodel.UserAttribute{{Name: "email"}, {Name: "email_verified"}, {Name: "name"}, {Name: "picture"}, {Name: "phone_number"}},
 		},
 		ScopeClaims: map[string][]string{
 			"custom": {"name"},
@@ -1052,11 +1052,11 @@ func (suite *AuthorizeServiceTestSuite) TestDetermineClaimsForTokens_EmptyAllowe
 		ClientID: "test-client",
 		Token: &appmodel.OAuthTokenConfig{
 			IDToken: &appmodel.IDTokenConfig{
-				UserAttributes: []string{}, // Empty allowed set
+				UserAttributes: []appmodel.UserAttribute{}, // Empty allowed set
 			},
 		},
 		UserInfo: &appmodel.UserInfoConfig{
-			UserAttributes: []string{}, // Empty allowed set
+			UserAttributes: []appmodel.UserAttribute{}, // Empty allowed set
 		},
 	}
 
@@ -1106,7 +1106,7 @@ func (suite *AuthorizeServiceTestSuite) TestGetRequiredAttributes_AccessTokenOnl
 		ClientID: "test-client",
 		Token: &appmodel.OAuthTokenConfig{
 			AccessToken: &appmodel.AccessTokenConfig{
-				UserAttributes: []string{"user_id", "role"},
+				UserAttributes: []appmodel.UserAttribute{{Name: "user_id"}, {Name: "role"}},
 			},
 		},
 	}
@@ -1133,14 +1133,14 @@ func (suite *AuthorizeServiceTestSuite) TestGetRequiredAttributes_CodeFlowWithSc
 		ClientID: "test-client",
 		Token: &appmodel.OAuthTokenConfig{
 			AccessToken: &appmodel.AccessTokenConfig{
-				UserAttributes: []string{"user_id"},
+				UserAttributes: []appmodel.UserAttribute{{Name: "user_id"}},
 			},
 			IDToken: &appmodel.IDTokenConfig{
-				UserAttributes: []string{"email", "email_verified", "name"},
+				UserAttributes: []appmodel.UserAttribute{{Name: "email"}, {Name: "email_verified"}, {Name: "name"}},
 			},
 		},
 		UserInfo: &appmodel.UserInfoConfig{
-			UserAttributes: []string{"email", "email_verified", "name", "picture"},
+			UserAttributes: []appmodel.UserAttribute{{Name: "email"}, {Name: "email_verified"}, {Name: "name"}, {Name: "picture"}},
 		},
 	}
 
@@ -1167,7 +1167,7 @@ func (suite *AuthorizeServiceTestSuite) TestGetRequiredAttributes_ImplicitFlowWi
 		ClientID: "test-client",
 		Token: &appmodel.OAuthTokenConfig{
 			IDToken: &appmodel.IDTokenConfig{
-				UserAttributes: []string{"email", "email_verified", "name"},
+				UserAttributes: []appmodel.UserAttribute{{Name: "email"}, {Name: "email_verified"}, {Name: "name"}},
 			},
 		},
 	}
@@ -1203,14 +1203,14 @@ func (suite *AuthorizeServiceTestSuite) TestGetRequiredAttributes_WithClaimsPara
 		ClientID: "test-client",
 		Token: &appmodel.OAuthTokenConfig{
 			AccessToken: &appmodel.AccessTokenConfig{
-				UserAttributes: []string{"user_id"},
+				UserAttributes: []appmodel.UserAttribute{{Name: "user_id"}},
 			},
 			IDToken: &appmodel.IDTokenConfig{
-				UserAttributes: []string{"email", "name"},
+				UserAttributes: []appmodel.UserAttribute{{Name: "email"}, {Name: "name"}},
 			},
 		},
 		UserInfo: &appmodel.UserInfoConfig{
-			UserAttributes: []string{"email", "phone_number"},
+			UserAttributes: []appmodel.UserAttribute{{Name: "email"}, {Name: "phone_number"}},
 		},
 	}
 
@@ -1246,14 +1246,14 @@ func (suite *AuthorizeServiceTestSuite) TestGetRequiredAttributes_DeduplicatesCl
 		ClientID: "test-client",
 		Token: &appmodel.OAuthTokenConfig{
 			AccessToken: &appmodel.AccessTokenConfig{
-				UserAttributes: []string{"email"}, // Same claim in access token too
+				UserAttributes: []appmodel.UserAttribute{{Name: "email"}}, // Same claim in access token too
 			},
 			IDToken: &appmodel.IDTokenConfig{
-				UserAttributes: []string{"email"},
+				UserAttributes: []appmodel.UserAttribute{{Name: "email"}},
 			},
 		},
 		UserInfo: &appmodel.UserInfoConfig{
-			UserAttributes: []string{"email"},
+			UserAttributes: []appmodel.UserAttribute{{Name: "email"}},
 		},
 	}
 
@@ -1274,11 +1274,11 @@ func (suite *AuthorizeServiceTestSuite) TestGetRequiredAttributes_CustomScopeMap
 		ClientID: "test-client",
 		Token: &appmodel.OAuthTokenConfig{
 			IDToken: &appmodel.IDTokenConfig{
-				UserAttributes: []string{"org_id", "org_name"},
+				UserAttributes: []appmodel.UserAttribute{{Name: "org_id"}, {Name: "org_name"}},
 			},
 		},
 		UserInfo: &appmodel.UserInfoConfig{
-			UserAttributes: []string{"org_id", "org_name"},
+			UserAttributes: []appmodel.UserAttribute{{Name: "org_id"}, {Name: "org_name"}},
 		},
 		ScopeClaims: map[string][]string{
 			"organization": {"org_id", "org_name"},
@@ -1315,14 +1315,14 @@ func (suite *AuthorizeServiceTestSuite) TestGetRequiredAttributes_ComplexScenari
 		ClientID: "test-client",
 		Token: &appmodel.OAuthTokenConfig{
 			AccessToken: &appmodel.AccessTokenConfig{
-				UserAttributes: []string{"user_id", "role"},
+				UserAttributes: []appmodel.UserAttribute{{Name: "user_id"}, {Name: "role"}},
 			},
 			IDToken: &appmodel.IDTokenConfig{
-				UserAttributes: []string{"email", "email_verified", "name"},
+				UserAttributes: []appmodel.UserAttribute{{Name: "email"}, {Name: "email_verified"}, {Name: "name"}},
 			},
 		},
 		UserInfo: &appmodel.UserInfoConfig{
-			UserAttributes: []string{"email", "email_verified", "name", "picture", "phone_number"},
+			UserAttributes: []appmodel.UserAttribute{{Name: "email"}, {Name: "email_verified"}, {Name: "name"}, {Name: "picture"}, {Name: "phone_number"}},
 		},
 		ScopeClaims: map[string][]string{
 			"custom": {"name"},
@@ -1358,10 +1358,10 @@ func (suite *AuthorizeServiceTestSuite) TestGetRequiredAttributes_NoOpenIDScope(
 		ClientID: "test-client",
 		Token: &appmodel.OAuthTokenConfig{
 			AccessToken: &appmodel.AccessTokenConfig{
-				UserAttributes: []string{"user_id"},
+				UserAttributes: []appmodel.UserAttribute{{Name: "user_id"}},
 			},
 			IDToken: &appmodel.IDTokenConfig{
-				UserAttributes: []string{"email", "name"},
+				UserAttributes: []appmodel.UserAttribute{{Name: "email"}, {Name: "name"}},
 			},
 		},
 	}

@@ -16,7 +16,7 @@
  * under the License.
  */
 
-import type {TokenConfig} from './token';
+import type {TokenConfig, UserAttribute} from './token';
 
 /**
  * OAuth2 Grant Type
@@ -414,7 +414,7 @@ export interface UserInfoConfig {
   /**
    * List of user attributes to include in the user info response
    */
-  user_attributes: string[];
+  user_attributes: UserAttribute[];
 }
 
 /**
@@ -438,11 +438,11 @@ export function getDefaultOAuthConfig(): OAuth2Config {
     token: {
       access_token: {
         validity_period: 3600,
-        user_attributes: ['email', 'username'],
+        user_attributes: [{name: 'email'}, {name: 'username'}],
       },
       id_token: {
         validity_period: 3600,
-        user_attributes: ['sub', 'email', 'name'],
+        user_attributes: [{name: 'sub'}, {name: 'email'}, {name: 'name'}],
         scope_claims: {
           profile: ['name', 'given_name', 'family_name', 'picture'],
           email: ['email', 'email_verified'],

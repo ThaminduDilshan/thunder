@@ -107,7 +107,10 @@ paths:
                 team: "platform"
               assertion:
                 validity_period: 3600
-                user_attributes: ["email", "username"]
+                user_attributes:
+                  - name: "email"
+                  - name: "username"
+                    is_essential: true
               certificate:
                 type: "JWKS_URI"
                 value: "https://myapp.example.com/.well-known/jwks"
@@ -137,12 +140,24 @@ paths:
                     token:
                       access_token:
                         validity_period: 3600
-                        user_attributes: ["email", "username"]
+                        user_attributes:
+                          - name: "email"
+                          - name: "username"
+                            is_essential: true
                       id_token:
                         validity_period: 3600
-                        user_attributes: ["email", "name", "given_name", "family_name"]
+                        user_attributes:
+                          - name: "email"
+                          - name: "name"
+                          - name: "given_name"
+                          - name: "family_name"
                     user_info:
-                      user_attributes: ["email", "name", "given_name", "family_name", "picture"]
+                      user_attributes:
+                        - name: "email"
+                        - name: "name"
+                        - name: "given_name"
+                        - name: "family_name"
+                        - name: "picture"
                     scope_claims:
                       profile: ["name", "family_name", "given_name", "picture"]
                       employee: ["emp_id", "department"]
@@ -171,7 +186,11 @@ paths:
                   team: "platform"
                 assertion:
                   validity_period: 3600
-                  user_attributes: ["email", "username"]
+                  user_attributes:
+                    - name: "email"
+                      is_essential: false
+                    - name: "username"
+                      is_essential: true
                 certificate:
                   type: "JWKS_URI"
                   value: "https://myapp.example.com/.well-known/jwks"
@@ -202,12 +221,36 @@ paths:
                       token:
                         access_token:
                           validity_period: 3600
-                          user_attributes: ["email", "username"]
+                          user_attributes:
+                            - name: "email"
+                              is_essential: false
+                            - name: "username"
+                              is_essential: true
                         id_token:
                           validity_period: 1800
-                          user_attributes: ["email", "email_verified", "name", "given_name", "family_name"]
+                          user_attributes:
+                            - name: "email"
+                              is_essential: false
+                            - name: "email_verified"
+                              is_essential: false
+                            - name: "name"
+                              is_essential: false
+                            - name: "given_name"
+                              is_essential: false
+                            - name: "family_name"
+                              is_essential: false
                       user_info:
-                        user_attributes: ["email", "name", "given_name", "family_name", "picture"]
+                        user_attributes:
+                          - name: "email"
+                            is_essential: false
+                          - name: "name"
+                            is_essential: false
+                          - name: "given_name"
+                            is_essential: false
+                          - name: "family_name"
+                            is_essential: false
+                          - name: "picture"
+                            is_essential: false
                       scope_claims:
                         profile: ["name", "family_name", "given_name", "picture"]
                         employee: ["emp_id", "department"]
@@ -287,7 +330,11 @@ paths:
                   team: "platform"
                 assertion:
                   validity_period: 3600
-                  user_attributes: ["email", "username"]
+                  user_attributes:
+                    - name: "email"
+                      is_essential: false
+                    - name: "username"
+                      is_essential: true
                 certificate:
                   type: "JWKS_URI"
                   value: "https://myapp.example.com/.well-known/jwks"
@@ -317,12 +364,36 @@ paths:
                       token:
                         access_token:
                           validity_period: 3600
-                          user_attributes: ["email", "username"]
+                          user_attributes:
+                            - name: "email"
+                              is_essential: false
+                            - name: "username"
+                              is_essential: true
                         id_token:
                           validity_period: 1800
-                          user_attributes: ["email", "email_verified", "name", "given_name", "family_name"]
+                          user_attributes:
+                            - name: "email"
+                              is_essential: true
+                            - name: "email_verified"
+                              is_essential: false
+                            - name: "name"
+                              is_essential: false
+                            - name: "given_name"
+                              is_essential: false
+                            - name: "family_name"
+                              is_essential: false
                       user_info:
-                        user_attributes: ["email", "name", "given_name", "family_name", "picture"]
+                        user_attributes:
+                          - name: "email"
+                            is_essential: false
+                          - name: "name"
+                            is_essential: false
+                          - name: "given_name"
+                            is_essential: false
+                          - name: "family_name"
+                            is_essential: false
+                          - name: "picture"
+                            is_essential: false
                       scope_claims:
                         profile: ["name", "family_name", "given_name", "picture"]
                         employee: ["emp_id", "department"]
@@ -393,7 +464,10 @@ paths:
                 team: "platform"
               assertion:
                 validity_period: 3600
-                user_attributes: ["email", "username"]
+                user_attributes:
+                  - name: "email"
+                  - name: "username"
+                    is_essential: true
               certificate:
                 type: "JWKS_URI"
                 value: "https://myapp.example.com/.well-known/jwks"
@@ -425,12 +499,26 @@ paths:
                     token:
                       access_token:
                         validity_period: 3600
-                        user_attributes: ["email", "username"]
+                        user_attributes:
+                          - name: "email"
+                          - name: "username"
+                            is_essential: true
                       id_token:
                         validity_period: 1800
-                        user_attributes: ["email", "email_verified", "name", "given_name", "family_name"]
+                        user_attributes:
+                          - name: "email"
+                            is_essential: true
+                          - name: "email_verified"
+                          - name: "name"
+                          - name: "given_name"
+                          - name: "family_name"
                     user_info:
-                      user_attributes: ["email", "name", "given_name", "family_name", "picture"]
+                      user_attributes:
+                        - name: "email"
+                        - name: "name"
+                        - name: "given_name"
+                        - name: "family_name"
+                        - name: "picture"
                     scope_claims:
                       profile: ["name", "family_name", "given_name", "picture"]
                       employee: ["emp_id", "department"]
@@ -459,7 +547,11 @@ paths:
                   team: "platform"
                 assertion:
                   validity_period: 3600
-                  user_attributes: ["email", "username"]
+                  user_attributes:
+                    - name: "email"
+                      is_essential: false
+                    - name: "username"
+                      is_essential: true
                 certificate:
                   type: "JWKS_URI"
                   value: "https://myapp.example.com/.well-known/jwks"
@@ -492,12 +584,36 @@ paths:
                       token:
                         access_token:
                           validity_period: 3600
-                          user_attributes: ["email", "username"]
+                          user_attributes:
+                            - name: "email"
+                              is_essential: false
+                            - name: "username"
+                              is_essential: true
                         id_token:
                           validity_period: 1800
-                          user_attributes: ["email", "email_verified", "name", "given_name", "family_name"]
+                          user_attributes:
+                            - name: "email"
+                              is_essential: true
+                            - name: "email_verified"
+                              is_essential: false
+                            - name: "name"
+                              is_essential: false
+                            - name: "given_name"
+                              is_essential: false
+                            - name: "family_name"
+                              is_essential: false
                       user_info:
-                        user_attributes: ["email", "name", "given_name", "family_name", "picture"]
+                        user_attributes:
+                          - name: "email"
+                            is_essential: false
+                          - name: "name"
+                            is_essential: false
+                          - name: "given_name"
+                            is_essential: false
+                          - name: "family_name"
+                            is_essential: false
+                          - name: "picture"
+                            is_essential: false
                       scope_claims:
                         profile: ["name", "family_name", "given_name", "picture"]
                         employee: ["emp_id", "department"]
@@ -979,6 +1095,22 @@ components:
           items:
             $ref: '#/components/schemas/BasicApplicationResponse'
 
+    UserAttribute:
+      type: object
+      description: Represents a user attribute to be included in tokens or userinfo responses.
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          description: The name of the user attribute (e.g., email, username, roles).
+          example: "email"
+        is_essential:
+          type: boolean
+          description: Indicates whether the attribute is essential.
+          default: false
+          example: true
+
     AssertionConfig:
       type: object
       description: |
@@ -991,9 +1123,13 @@ components:
         user_attributes:
           type: array
           items:
-            type: string
+            $ref: '#/components/schemas/UserAttribute'
           description: The user attributes to include in the token.
-          example: ["email", "username"]
+          example:
+            - name: "email"
+              is_essential: false
+            - name: "username"
+              is_essential: true
 
     AccessTokenConfig:
       type: object
@@ -1007,9 +1143,13 @@ components:
         user_attributes:
           type: array
           items:
-            type: string
+            $ref: '#/components/schemas/UserAttribute'
           description: The user attributes to include in the access token.
-          example: ["email", "username"]
+          example:
+            - name: "email"
+              is_essential: false
+            - name: "username"
+              is_essential: true
 
     IDTokenConfig:
       type: object
@@ -1023,9 +1163,17 @@ components:
         user_attributes:
           type: array
           items:
-            type: string
+            $ref: '#/components/schemas/UserAttribute'
           description: The user attributes to include in the ID token. Only claims requested by scopes AND listed here will be included.
-          example: ["email", "name", "given_name", "family_name"]
+          example:
+            - name: "email"
+              is_essential: true
+            - name: "name"
+              is_essential: true
+            - name: "given_name"
+              is_essential: false
+            - name: "family_name"
+              is_essential: false
 
     UserInfoConfig:
       type: object
@@ -1034,11 +1182,21 @@ components:
         user_attributes:
           type: array
           items:
-            type: string
+            $ref: '#/components/schemas/UserAttribute'
           description: |
             The user attributes to include in the userinfo response. 
             If not specified, falls back to ID token user attributes.
-          example: ["email", "name", "given_name", "family_name", "picture"]
+          example:
+            - name: "email"
+              is_essential: true
+            - name: "name"
+              is_essential: true
+            - name: "given_name"
+              is_essential: false
+            - name: "family_name"
+              is_essential: false
+            - name: "picture"
+              is_essential: false
 
     Certificate:
       type: object

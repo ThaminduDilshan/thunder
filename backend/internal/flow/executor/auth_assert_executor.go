@@ -27,6 +27,7 @@ import (
 	"strconv"
 	"strings"
 
+	appmodel "github.com/asgardeo/thunder/internal/application/model"
 	"github.com/asgardeo/thunder/internal/attributecache"
 	"github.com/asgardeo/thunder/internal/authn/assert"
 	authncm "github.com/asgardeo/thunder/internal/authn/common"
@@ -171,7 +172,7 @@ func (a *authAssertExecutor) generateAuthAssertion(ctx *core.NodeContext, logger
 		userAttributes = strings.Fields(requiredAttrs)
 	} else if ctx.Application.Assertion != nil {
 		// Fallback to application token user attributes
-		userAttributes = ctx.Application.Assertion.UserAttributes
+		userAttributes = appmodel.UserAttributeNames(ctx.Application.Assertion.UserAttributes)
 	}
 
 	// If consent has been collected in this flow, restrict user attributes to only those the user approved.

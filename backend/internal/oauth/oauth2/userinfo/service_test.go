@@ -242,7 +242,7 @@ func (s *UserInfoServiceTestSuite) TestGetUserInfo_ErrorFetchingGroups() {
 	// So we need an OAuth app with groups in UserAttributes
 	oauthApp := &appmodel.OAuthAppConfigProcessedDTO{
 		UserInfo: &appmodel.UserInfoConfig{
-			UserAttributes: []string{"name", constants.UserAttributeGroups},
+			UserAttributes: []appmodel.UserAttribute{{Name: "name"}, {Name: constants.UserAttributeGroups}},
 		},
 	}
 	s.mockAppService.On("GetOAuthApplication", mock.Anything, "client123").Return(oauthApp, nil)
@@ -280,11 +280,11 @@ func (s *UserInfoServiceTestSuite) TestGetUserInfo_Success_StandardScopes() {
 	oauthApp := &appmodel.OAuthAppConfigProcessedDTO{
 		Token: &appmodel.OAuthTokenConfig{
 			IDToken: &appmodel.IDTokenConfig{
-				UserAttributes: []string{"name", "email"},
+				UserAttributes: []appmodel.UserAttribute{{Name: "name"}, {Name: "email"}},
 			},
 		},
 		UserInfo: &appmodel.UserInfoConfig{
-			UserAttributes: []string{"name", "email"},
+			UserAttributes: []appmodel.UserAttribute{{Name: "name"}, {Name: "email"}},
 		},
 	}
 
@@ -327,11 +327,11 @@ func (s *UserInfoServiceTestSuite) TestGetUserInfo_Success_WithGroups() {
 	oauthApp := &appmodel.OAuthAppConfigProcessedDTO{
 		Token: &appmodel.OAuthTokenConfig{
 			IDToken: &appmodel.IDTokenConfig{
-				UserAttributes: []string{"name", constants.UserAttributeGroups},
+				UserAttributes: []appmodel.UserAttribute{{Name: "name"}, {Name: constants.UserAttributeGroups}},
 			},
 		},
 		UserInfo: &appmodel.UserInfoConfig{
-			UserAttributes: []string{"name", constants.UserAttributeGroups},
+			UserAttributes: []appmodel.UserAttribute{{Name: "name"}, {Name: constants.UserAttributeGroups}},
 		},
 		ScopeClaims: map[string][]string{
 			"profile": {"name", constants.UserAttributeGroups}, // Add groups to profile scope
@@ -406,11 +406,11 @@ func (s *UserInfoServiceTestSuite) TestGetUserInfo_Success_WithScopeClaimsMappin
 	oauthApp := &appmodel.OAuthAppConfigProcessedDTO{
 		Token: &appmodel.OAuthTokenConfig{
 			IDToken: &appmodel.IDTokenConfig{
-				UserAttributes: []string{"name", "email", "phone"},
+				UserAttributes: []appmodel.UserAttribute{{Name: "name"}, {Name: "email"}, {Name: "phone"}},
 			},
 		},
 		UserInfo: &appmodel.UserInfoConfig{
-			UserAttributes: []string{"name", "email", "phone"},
+			UserAttributes: []appmodel.UserAttribute{{Name: "name"}, {Name: "email"}, {Name: "phone"}},
 		},
 		ScopeClaims: map[string][]string{
 			"custom_scope": {"name", "phone"},
@@ -533,11 +533,11 @@ func (s *UserInfoServiceTestSuite) TestGetUserInfo_Success_GroupsNotInAllowedAtt
 	oauthApp := &appmodel.OAuthAppConfigProcessedDTO{
 		Token: &appmodel.OAuthTokenConfig{
 			IDToken: &appmodel.IDTokenConfig{
-				UserAttributes: []string{"name"}, // groups not in allowed attributes
+				UserAttributes: []appmodel.UserAttribute{{Name: "name"}}, // groups not in allowed attributes
 			},
 		},
 		UserInfo: &appmodel.UserInfoConfig{
-			UserAttributes: []string{"name"},
+			UserAttributes: []appmodel.UserAttribute{{Name: "name"}},
 		},
 	}
 
@@ -575,11 +575,11 @@ func (s *UserInfoServiceTestSuite) TestGetUserInfo_Success_EmptyUserAttributes()
 	oauthApp := &appmodel.OAuthAppConfigProcessedDTO{
 		Token: &appmodel.OAuthTokenConfig{
 			IDToken: &appmodel.IDTokenConfig{
-				UserAttributes: []string{"name", "email"},
+				UserAttributes: []appmodel.UserAttribute{{Name: "name"}, {Name: "email"}},
 			},
 		},
 		UserInfo: &appmodel.UserInfoConfig{
-			UserAttributes: []string{"name", "email"},
+			UserAttributes: []appmodel.UserAttribute{{Name: "name"}, {Name: "email"}},
 		},
 	}
 
@@ -824,11 +824,11 @@ func (s *UserInfoServiceTestSuite) TestGetUserInfo_GroupsWithEmptyGroups() {
 	oauthApp := &appmodel.OAuthAppConfigProcessedDTO{
 		Token: &appmodel.OAuthTokenConfig{
 			IDToken: &appmodel.IDTokenConfig{
-				UserAttributes: []string{"name", constants.UserAttributeGroups},
+				UserAttributes: []appmodel.UserAttribute{{Name: "name"}, {Name: constants.UserAttributeGroups}},
 			},
 		},
 		UserInfo: &appmodel.UserInfoConfig{
-			UserAttributes: []string{"name", constants.UserAttributeGroups},
+			UserAttributes: []appmodel.UserAttribute{{Name: "name"}, {Name: constants.UserAttributeGroups}},
 		},
 		ScopeClaims: map[string][]string{
 			"profile": {"name", constants.UserAttributeGroups},
@@ -908,11 +908,11 @@ func (s *UserInfoServiceTestSuite) testGetUserInfoAllowedGrantType(grantTypeValu
 	oauthApp := &appmodel.OAuthAppConfigProcessedDTO{
 		Token: &appmodel.OAuthTokenConfig{
 			IDToken: &appmodel.IDTokenConfig{
-				UserAttributes: []string{"name"},
+				UserAttributes: []appmodel.UserAttribute{{Name: "name"}},
 			},
 		},
 		UserInfo: &appmodel.UserInfoConfig{
-			UserAttributes: []string{"name"},
+			UserAttributes: []appmodel.UserAttribute{{Name: "name"}},
 		},
 	}
 
@@ -1055,7 +1055,7 @@ func (s *UserInfoServiceTestSuite) TestGetUserInfo_OpenIDScope_InMiddleOfScopeSt
 
 	oauthApp := &appmodel.OAuthAppConfigProcessedDTO{
 		UserInfo: &appmodel.UserInfoConfig{
-			UserAttributes: []string{"name", "email"},
+			UserAttributes: []appmodel.UserAttribute{{Name: "name"}, {Name: "email"}},
 		},
 	}
 
@@ -1097,7 +1097,7 @@ func (s *UserInfoServiceTestSuite) TestGetUserInfo_OpenIDScope_AtEnd() {
 
 	oauthApp := &appmodel.OAuthAppConfigProcessedDTO{
 		UserInfo: &appmodel.UserInfoConfig{
-			UserAttributes: []string{"email"},
+			UserAttributes: []appmodel.UserAttribute{{Name: "email"}},
 		},
 	}
 
@@ -1143,7 +1143,7 @@ func (s *UserInfoServiceTestSuite) TestGetUserInfo_JWS_ResponseType() {
 		Token: &appmodel.OAuthTokenConfig{},
 		UserInfo: &appmodel.UserInfoConfig{
 			ResponseType:   appmodel.UserInfoResponseTypeJWS,
-			UserAttributes: []string{"email"},
+			UserAttributes: []appmodel.UserAttribute{{Name: "email"}},
 		},
 	}
 
@@ -1208,7 +1208,7 @@ func (s *UserInfoServiceTestSuite) TestGetUserInfo_JWS_GenerateJWTFailure() {
 		Token: &appmodel.OAuthTokenConfig{},
 		UserInfo: &appmodel.UserInfoConfig{
 			ResponseType:   appmodel.UserInfoResponseTypeJWS,
-			UserAttributes: []string{"email"},
+			UserAttributes: []appmodel.UserAttribute{{Name: "email"}},
 		},
 	}
 	issuer := "test-issuer"

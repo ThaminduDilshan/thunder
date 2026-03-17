@@ -606,6 +606,14 @@ function Package {
         Copy-Item -Path "setup.sh" -Destination $package_folder -Force
     }
 
+    Write-Host "Packaging consent server..."
+    $packageFolderAbs = (Resolve-Path -Path $package_folder).Path
+    & (Join-Path $SCRIPT_DIR "scripts/package-consent-server.ps1") `
+        -GoOS $GO_OS -GoArch $GO_ARCH -DistOutputPath $packageFolderAbs
+    if ($LASTEXITCODE -ne 0) {
+        throw "Consent server packaging failed with exit code $LASTEXITCODE"
+    }
+
     Write-Host "Creating zip file..."
     $zipFile = Join-Path $DIST_DIR "$PRODUCT_FOLDER.zip"
     if (Test-Path $zipFile) {

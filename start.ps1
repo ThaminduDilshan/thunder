@@ -36,6 +36,7 @@ if ($PSVersionTable.PSVersion.Major -lt 7) {
 $BACKEND_PORT = if ($env:BACKEND_PORT) { [int]$env:BACKEND_PORT } else { 8090 }
 $DEBUG_PORT = if ($env:DEBUG_PORT) { [int]$env:DEBUG_PORT } else { 2345 }
 $DEBUG_MODE = $false
+$WITH_CONSENT = $false
 
 # Parse command line arguments
 $i = 0
@@ -70,6 +71,11 @@ while ($i -lt $args.Count) {
             }
             break
         }
+        '--with-consent' {
+            $WITH_CONSENT = $true
+            $i++
+            break
+        }
         '--help' {
             Write-Host "Thunder Server Startup Script"
             Write-Host ""
@@ -79,6 +85,7 @@ while ($i -lt $args.Count) {
             Write-Host "  --debug              Enable debug mode with remote debugging"
             Write-Host "  --port PORT          Set application port (default: 8090)"
             Write-Host "  --debug-port PORT    Set debug port (default: 2345)"
+            Write-Host "  --with-consent       Also start the bundled consent server"
             Write-Host "  --help               Show this help message"
             Write-Host ""
             Write-Host "First-Time Setup:"
@@ -176,6 +183,25 @@ if (-not $thunderPath) {
 
 $proc = $null
 try {
+    # Start consent server if requested
+    $consentProc = $null
+    if ($WITH_CONSENT) {
+        $consentDir = Join-Path $scriptDir "consent"
+        if (Test-Path $consentDir) {
+            $consentStartScript = Join-Path $consentDir "start.ps1"
+            if (Test-Path $consentStartScript) {
+                Write-Host "[INFO] Starting Consent Server..."
+                $consentProc = Start-Process -FilePath "pwsh" -ArgumentList "-File", $consentStartScript -WorkingDirectory $consentDir -NoNewWindow -PassThru
+            }
+            else {
+                Write-Host "[WARN] Consent start script not found at $consentStartScript, skipping consent server startup"
+            }
+        }
+        else {
+            Write-Host "[WARN] Consent directory not found, skipping consent server startup"
+        }
+    }
+
     if ($DEBUG_MODE) {
         Write-Host "[INFO] Starting Thunder Server in DEBUG mode..."
         Write-Host "[INFO] Application will run on: https://localhost:$BACKEND_PORT"
@@ -222,5 +248,13 @@ finally {
     Write-Host "`n[STOP] Stopping server..."
     if ($proc -and -not $proc.HasExited) {
         try { Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue } catch { }
+    }
+    if ($consentProc -and -not $consentProc.HasExited) {
+        try {
+            # Stop child processes first (the consent-server binary started by start.ps1)
+            Get-CimInstance Win32_Process -Filter "ParentProcessId = $($consentProc.Id)" -ErrorAction SilentlyContinue |
+                ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
+            Stop-Process -Id $consentProc.Id -Force -ErrorAction SilentlyContinue
+        } catch { }
     }
 }

@@ -50,3 +50,7 @@ cors:
 passkey:
   allowed_origins:
     - "https://localhost:8090"
+
+consent:
+  enabled: true
+  base_url: "http://localhost:9090/api/v1"

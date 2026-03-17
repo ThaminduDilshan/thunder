@@ -449,6 +449,24 @@ if (-not $thunderPath) {
     $thunderPath = Join-Path $scriptDir 'thunder'
 }
 
+# Start Consent Server (if available)
+$consentProc = $null
+$consentDir = Join-Path $scriptDir 'consent'
+if (Test-Path $consentDir) {
+    Write-Host "[INFO] Starting Consent Server..." -ForegroundColor Cyan
+    $consentBinary = @(
+        (Join-Path $consentDir 'consent-server.exe'),
+        (Join-Path $consentDir 'consent-server')
+    ) | Where-Object { Test-Path $_ } | Select-Object -First 1
+    if ($consentBinary) {
+        $consentProc = Start-Process -FilePath $consentBinary -WorkingDirectory $consentDir -NoNewWindow -PassThru
+    } else {
+        Write-Host "[WARN] Consent server binary not found, skipping consent server startup" -ForegroundColor Yellow
+    }
+} else {
+    Write-Host "[WARN] Consent directory not found, skipping consent server startup" -ForegroundColor Yellow
+}
+
 $proc = $null
 try {
     if ($DEBUG_MODE) {
@@ -476,6 +494,11 @@ try {
         if ($proc -and -not $proc.HasExited) {
             try {
                 Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue
+            } catch { }
+        }
+        if ($consentProc -and -not $consentProc.HasExited) {
+            try {
+                Stop-Process -Id $consentProc.Id -Force -ErrorAction SilentlyContinue
             } catch { }
         }
     }

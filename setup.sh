@@ -274,6 +274,17 @@ if [ "$DEBUG_MODE" = "true" ] && ! command -v dlv &> /dev/null; then
 fi
 
 # ============================================================================
+# Start Consent Server (if available)
+# ============================================================================
+
+CONSENT_PID=""
+if [ -d "$(dirname "$0")/consent" ]; then
+    echo -e "${CYAN}Starting Consent Server...${NC}"
+    (cd "$(dirname "$0")/consent" && ./start.sh) &
+    CONSENT_PID=$!
+fi
+
+# ============================================================================
 # Start Thunder Server with Security Disabled
 # ============================================================================
 
@@ -298,6 +309,10 @@ cleanup() {
     if [ -n "$THUNDER_PID" ]; then
         kill $THUNDER_PID 2>/dev/null || true
         wait $THUNDER_PID 2>/dev/null || true
+    fi
+    if [ -n "$CONSENT_PID" ]; then
+        pkill -P $CONSENT_PID 2>/dev/null || true
+        kill $CONSENT_PID 2>/dev/null || true
     fi
 }
 

@@ -465,6 +465,10 @@ function package() {
         chmod +x "$DIST_DIR/$PRODUCT_FOLDER/setup.sh"
     fi
 
+    echo "Packaging consent server..."
+    bash "$SCRIPT_DIR/scripts/package-consent-server.sh" \
+            "$GO_OS" "$GO_ARCH" "$(cd "$DIST_DIR/$PRODUCT_FOLDER" && pwd)"
+
     echo "Creating zip file..."
     (cd "$DIST_DIR" && zip -r "$PRODUCT_FOLDER.zip" "$PRODUCT_FOLDER")
     rm -rf "${DIST_DIR:?}/$PRODUCT_FOLDER" "$BUILD_DIR"

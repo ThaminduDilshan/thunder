@@ -21,6 +21,7 @@
 BACKEND_PORT=${BACKEND_PORT:-8090}
 DEBUG_PORT=${DEBUG_PORT:-2345}
 DEBUG_MODE=${DEBUG_MODE:-false}
+WITH_CONSENT=false
 
 # Parse command line arguments
 while [[ $# -gt 0 ]]; do
@@ -37,6 +38,10 @@ while [[ $# -gt 0 ]]; do
             BACKEND_PORT="$2"
             shift 2
             ;;
+        --with-consent)
+            WITH_CONSENT=true
+            shift
+            ;;
         --help)
             echo "Thunder Server Startup Script"
             echo ""
@@ -46,6 +51,7 @@ while [[ $# -gt 0 ]]; do
             echo "  --debug              Enable debug mode with remote debugging"
             echo "  --port PORT          Set application port (default: 8090)"
             echo "  --debug-port PORT    Set debug port (default: 2345)"
+            echo "  --with-consent       Also start the bundled consent server"
             echo "  --help               Show this help message"
             echo ""
             echo "First-Time Setup:"
@@ -112,6 +118,18 @@ if [ "$DEBUG_MODE" = "true" ]; then
     fi
 fi
 
+# Start consent server if requested
+CONSENT_PID=""
+if [ "$WITH_CONSENT" = "true" ]; then
+    if [ -d "$(dirname "$0")/consent" ]; then
+        echo "Starting Consent Server..."
+        (cd "$(dirname "$0")/consent" && ./start.sh) &
+        CONSENT_PID=$!
+    else
+        echo "Warning: consent directory not found, skipping consent server startup"
+    fi
+fi
+
 # Run thunder
 if [ "$DEBUG_MODE" = "true" ]; then
     echo "⚡ Starting Thunder Server in DEBUG mode..."
@@ -137,6 +155,10 @@ cleanup() {
     echo -e "\n🛑 Stopping server..."
     if [ -n "$THUNDER_PID" ]; then
         kill $THUNDER_PID 2>/dev/null || true
+    fi
+    if [ -n "$CONSENT_PID" ]; then
+        pkill -P $CONSENT_PID 2>/dev/null || true
+        kill $CONSENT_PID 2>/dev/null || true
     fi
 }
 

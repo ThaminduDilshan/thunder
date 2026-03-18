@@ -110,7 +110,47 @@ spec:
             {{- range .Values.cors.allowed_origins }}
               - "{{ . }}"
             {{- end }}
+
+          consent:
+            enabled: ${THUNDER_CONSENT_ENABLED}
+            base_url: "${THUNDER_CONSENT_BASE_URL}"
           EOF
+
+          {{- if .Values.consent.enabled }}
+          # Generate consent server configuration
+          cat > /opt/thunder/consent/repository/conf/deployment.yaml << EOF
+          server:
+            hostname: "${CONSENT_SERVER_HOSTNAME}"
+            port: ${CONSENT_SERVER_PORT}
+            readTimeout: 30s
+            writeTimeout: 30s
+            idleTimeout: 120s
+
+          database:
+            consent:
+              type: "${CONSENT_DB_TYPE}"
+              hostname: "${DATABASE_HOST}"
+              port: ${DATABASE_PORT}
+              database: "${CONSENT_DB_DATABASE}"
+              user: "${CONSENT_DB_USERNAME}"
+              password: "${CONSENT_DB_PASSWORD}"
+              sslmode: "${CONSENT_DB_SSL_MODE}"
+
+          logging:
+            level: info
+
+          consent:
+            status_mappings:
+              active_status: ACTIVE
+              expired_status: EXPIRED
+              revoked_status: REVOKED
+              created_status: CREATED
+          EOF
+
+          echo "Starting consent server..."
+          /opt/thunder/consent/consent-server &
+
+          {{- end }}
           echo "Starting Thunder with PostgreSQL configuration..."
           exec /opt/thunder/thunder
       env:
@@ -162,6 +202,26 @@ spec:
           value: "{{ .Values.oauth.refresh_token_validity }}"
         - key: THUNDER_CRYPTO_ENCRYPTION_KEY
           value: "{{ .Values.crypto.encryption.key }}"
+        - key: THUNDER_CONSENT_ENABLED
+          value: "{{ .Values.consent.enabled }}"
+        - key: THUNDER_CONSENT_BASE_URL
+          value: "{{ .Values.consent.baseUrl }}"
+        {{- if .Values.consent.enabled }}
+        - key: CONSENT_SERVER_HOSTNAME
+          value: "{{ .Values.consent.server.hostname }}"
+        - key: CONSENT_SERVER_PORT
+          value: "{{ .Values.consent.server.port }}"
+        - key: CONSENT_DB_TYPE
+          value: "{{ .Values.consent.database.type }}"
+        - key: CONSENT_DB_DATABASE
+          value: "{{ .Values.consent.database.database }}"
+        - key: CONSENT_DB_USERNAME
+          value: "{{ .Values.consent.database.username }}"
+        - key: CONSENT_DB_PASSWORD
+          value: "{{ .Values.consent.database.password }}"
+        - key: CONSENT_DB_SSL_MODE
+          value: "{{ .Values.consent.database.sslmode }}"
+        {{- end }}
 
   endpoints:
     identity-api:

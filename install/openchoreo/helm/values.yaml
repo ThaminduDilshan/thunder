@@ -85,6 +85,20 @@ gateway:
   dnsPrefixStaging: staging # DNS prefix for staging environment
   dnsPrefixProd: prod      # DNS prefix for production environment
 
+# Consent server configuration
+consent:
+  enabled: true
+  baseUrl: "http://localhost:9090/api/v1"
+  server:
+    port: 9090
+    hostname: "localhost"
+  database:
+    database: consentdb       # Consent database name
+    username: <DB_USERNAME>   # Required: Database username for consent DB
+    password: <DB_PASSWORD>   # Required: Database password for consent DB
+    type: postgres            # Database type (currently only postgres is supported)
+    sslmode: disable          # SSL mode: disable, require, verify-ca, verify-full
+
 serviceClass:
   name: default
   # Whether to create the ServiceClass resource

@@ -36,7 +36,7 @@ if ($PSVersionTable.PSVersion.Major -lt 7) {
 $BACKEND_PORT = if ($env:BACKEND_PORT) { [int]$env:BACKEND_PORT } else { 8090 }
 $DEBUG_PORT = if ($env:DEBUG_PORT) { [int]$env:DEBUG_PORT } else { 2345 }
 $DEBUG_MODE = $false
-$WITH_CONSENT = $false
+$WITH_CONSENT = if ($env:WITH_CONSENT -eq 'true') { $true } else { $false }
 
 # Parse command line arguments
 $i = 0

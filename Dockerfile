@@ -21,7 +21,7 @@
 FROM golang:1.26-alpine3.23 AS builder
 
 # Install build dependencies including Node.js and npm
-RUN apk add --no-cache git make bash sqlite openssl zip nodejs npm
+RUN apk add --no-cache git make bash sqlite openssl zip nodejs npm curl
 
 # Set environment variables for CI build
 ENV CI=true
@@ -104,6 +104,7 @@ RUN cd /tmp/dist && \
 # Set ownership and permissions
 RUN chown -R thunder:thunder /opt/thunder && \
     chmod +x thunder start.sh setup.sh scripts/init_script.sh && \
+    (find consent -name "consent-server" -o -name "start.sh" 2>/dev/null | xargs -r chmod +x) && \
     (find bootstrap -name "*.sh" -type f -exec chmod +x {} \; 2>/dev/null || true)
 
 # Expose the default port
@@ -114,6 +115,7 @@ USER thunder
 
 # Set environment variables
 ENV BACKEND_PORT=8090
+ENV WITH_CONSENT=true
 
 # Start the application
 CMD ["./start.sh"]

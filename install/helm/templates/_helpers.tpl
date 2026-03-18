@@ -91,7 +91,9 @@ This is used to trigger pod restarts when auto-generated Secrets change.
 {{- $config := default dict $database.config -}}
 {{- $runtime := default dict $database.runtime -}}
 {{- $user := default dict $database.user -}}
-{{- if or (and $config.password (not (default dict $config.passwordRef).key)) (and $runtime.password (not (default dict $runtime.passwordRef).key)) (and $user.password (not (default dict $user.passwordRef).key)) }}true{{- end }}
+{{- $consent := default dict $configuration.consent -}}
+{{- $consentDb := default dict $consent.database -}}
+{{- if or (and $config.password (not (default dict $config.passwordRef).key)) (and $runtime.password (not (default dict $runtime.passwordRef).key)) (and $user.password (not (default dict $user.passwordRef).key)) (and $consent.enabled $consentDb.password (not (default dict $consentDb.passwordRef).key)) }}true{{- end }}
 {{- end }}
 
 {{/*
@@ -105,9 +107,12 @@ Injects DB_CONFIG_PASSWORD, DB_RUNTIME_PASSWORD, and DB_USER_PASSWORD from eithe
 {{- $config := default dict $database.config -}}
 {{- $runtime := default dict $database.runtime -}}
 {{- $user := default dict $database.user -}}
+{{- $consent := default dict $configuration.consent -}}
+{{- $consentDb := default dict $consent.database -}}
 {{- $configPasswordRef := default dict $config.passwordRef -}}
 {{- $runtimePasswordRef := default dict $runtime.passwordRef -}}
 {{- $userPasswordRef := default dict $user.passwordRef -}}
+{{- $consentPasswordRef := default dict $consentDb.passwordRef -}}
 {{- if or $config.password $configPasswordRef.key }}
 - name: DB_CONFIG_PASSWORD
   valueFrom:
@@ -128,5 +133,12 @@ Injects DB_CONFIG_PASSWORD, DB_RUNTIME_PASSWORD, and DB_USER_PASSWORD from eithe
     secretKeyRef:
       name: {{ if $userPasswordRef.key }}{{ $userPasswordRef.name | default $defaultDbSecretName }}{{ else }}{{ $defaultDbSecretName }}{{ end }}
       key: {{ $userPasswordRef.key | default "user-db-password" }}
+{{- end }}
+{{- if and $consent.enabled (or $consentDb.password $consentPasswordRef.key) }}
+- name: DB_CONSENT_PASSWORD
+  valueFrom:
+    secretKeyRef:
+      name: {{ if $consentPasswordRef.key }}{{ $consentPasswordRef.name | default $defaultDbSecretName }}{{ else }}{{ $defaultDbSecretName }}{{ end }}
+      key: {{ $consentPasswordRef.key | default "consent-db-password" }}
 {{- end }}
 {{- end }}

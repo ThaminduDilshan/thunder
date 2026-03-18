@@ -36,8 +36,8 @@
 set -e
 
 # Consent server release coordinates
-CONSENT_SERVER_VERSION="0.1.0"
-CONSENT_SERVER_DOWNLOAD_URL="https://github.com/wso2/openfgc/releases/download"
+CONSENT_SERVER_VERSION="0.1.1"
+CONSENT_SERVER_DOWNLOAD_URL="https://github.com/ThaminduDilshan/openfgc/releases/download"
 CONSENT_SERVER_PORT=9090
 
 GO_OS="${1}"

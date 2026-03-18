@@ -14,7 +14,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
-{{- $usingSqlite := or (eq .Values.configuration.database.config.type "sqlite") (eq .Values.configuration.database.runtime.type "sqlite") (eq .Values.configuration.database.user.type "sqlite") }}
+{{- $usingSqlite := or (eq .Values.configuration.database.config.type "sqlite") (eq .Values.configuration.database.runtime.type "sqlite") (eq .Values.configuration.database.user.type "sqlite") (and .Values.configuration.consent.enabled (eq .Values.configuration.consent.database.type "sqlite")) }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -89,6 +89,10 @@ spec:
           env:
             - name: THUNDER_SKIP_SECURITY
               value: {{ .Values.deployment.skipSecurity | quote }}
+            {{- if .Values.configuration.consent.enabled }}
+            - name: WITH_CONSENT
+              value: "true"
+            {{- end }}
             {{- include "thunder.databasePasswordEnvVars" . | nindent 12 }}
           startupProbe:
             exec:
@@ -137,6 +141,11 @@ spec:
             - name: database-storage
               mountPath: /opt/thunder/repository/database
             {{- end }}
+            {{- if and .Values.configuration.consent.enabled (eq .Values.configuration.consent.database.type "sqlite") }}
+            - name: database-storage
+              mountPath: /opt/thunder/consent/repository/database
+              subPath: consent
+            {{- end }}
             - name: deployment-yaml-volume
               mountPath: /opt/thunder/repository/conf/deployment.yaml
               subPath: deployment.yaml
@@ -146,6 +155,11 @@ spec:
             - name: console-config-volume
               mountPath: /opt/thunder/apps/console/config.js
               subPath: console-config.js
+            {{- if .Values.configuration.consent.enabled }}
+            - name: consent-deployment-yaml-volume
+              mountPath: /opt/thunder/consent/repository/conf/deployment.yaml
+              subPath: consent-deployment.yaml
+            {{- end }}
       volumes:
         {{- if or .Values.persistence.enabled $usingSqlite }}
         - name: database-storage
@@ -161,3 +175,8 @@ spec:
         - name: console-config-volume
           configMap:
             name: {{ include "thunder.fullname" . }}-config-map
+        {{- if .Values.configuration.consent.enabled }}
+        - name: consent-deployment-yaml-volume
+          configMap:
+            name: {{ include "thunder.fullname" . }}-config-map
+        {{- end }}

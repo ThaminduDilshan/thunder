@@ -18,9 +18,10 @@ services:
   # Initialize database from the image
   thunder-db-init:
     image: ghcr.io/asgardeo/thunder:latest
-    command: sh -c "cp -r /opt/thunder/repository/database/* /data/"
+    command: sh -c "cp -r /opt/thunder/repository/database/* /data/ && cp -r /opt/thunder/consent/repository/database/* /consent-data/ 2>/dev/null || true"
     volumes:
       - thunder-db:/data
+      - consent-db:/consent-data
     restart: "no"
 
   # Run setup once with the shared database
@@ -29,6 +30,7 @@ services:
     command: ./setup.sh
     volumes:
       - thunder-db:/opt/thunder/repository/database
+      - consent-db:/opt/thunder/consent/repository/database
     depends_on:
       thunder-db-init:
         condition: service_completed_successfully
@@ -44,7 +46,10 @@ services:
       - "8090:8090"
     volumes:
       - thunder-db:/opt/thunder/repository/database
+      - consent-db:/opt/thunder/consent/repository/database
 
 volumes:
   thunder-db:
+    driver: local
+  consent-db:
     driver: local

@@ -21,7 +21,7 @@
 BACKEND_PORT=${BACKEND_PORT:-8090}
 DEBUG_PORT=${DEBUG_PORT:-2345}
 DEBUG_MODE=${DEBUG_MODE:-false}
-WITH_CONSENT=false
+WITH_CONSENT=${WITH_CONSENT:-false}
 
 # Parse command line arguments
 while [[ $# -gt 0 ]]; do

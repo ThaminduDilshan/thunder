@@ -18,6 +18,8 @@
 
 package executor
 
+// TODO: Missing unit tests for the patch changes
+
 import (
 	"encoding/json"
 	"errors"
@@ -92,11 +94,7 @@ func (e *consentExecutor) Execute(ctx *core.NodeContext) (*common.ExecutorRespon
 	logger := e.logger.With(log.String(log.LoggerKeyFlowID, ctx.FlowID))
 	logger.Debug("Executing consent executor")
 
-	execResp := &common.ExecutorResponse{
-		AdditionalData: make(map[string]string),
-		RuntimeData:    make(map[string]string),
-		ForwardedData:  make(map[string]interface{}),
-	}
+	execResp := initExecutorResponse()
 
 	if !e.ValidatePrerequisites(ctx, execResp) {
 		logger.Debug("Prerequisites validation failed for consent executor")
@@ -110,21 +108,27 @@ func (e *consentExecutor) Execute(ctx *core.NodeContext) (*common.ExecutorRespon
 	appID := ctx.AppID
 	userID := ctx.AuthenticatedUser.UserID
 
-	if !e.HasRequiredInputs(ctx, execResp) {
-		logger.Debug("Required consent decisions not provided; checking if consent is needed")
-		return e.checkConsent(ctx, execResp, ouID, appID, userID)
+	isReject := false
+	if actionType, ok := ctx.ForwardedData[common.ForwardedDataKeyActionType]; ok &&
+		actionType == string(common.ActionTypeReject) {
+		isReject = true
 	}
 
-	logger.Debug("Consent decisions provided; processing consent decisions")
-	return e.handleConsentDecisions(ctx, execResp, ouID, appID, userID)
+	if !isReject && !e.HasRequiredInputs(ctx, execResp) {
+		logger.Debug("Required consent decisions not provided; checking if consent is needed")
+		return e.checkConsent(ctx, ouID, appID, userID)
+	}
+
+	return e.handleConsentDecisions(ctx, ouID, appID, userID, isReject)
 }
 
 // checkConsent resolves whether consent is needed and either completes or forwards to a prompt.
-func (e *consentExecutor) checkConsent(ctx *core.NodeContext, execResp *common.ExecutorResponse,
+func (e *consentExecutor) checkConsent(ctx *core.NodeContext,
 	ouID, appID, userID string) (*common.ExecutorResponse, error) {
 	logger := e.logger.With(log.String(log.LoggerKeyFlowID, ctx.FlowID))
 	logger.Debug("Checking if user consent is required")
 
+	execResp := initExecutorResponse()
 	essentialAttributes, optionalAttributes := e.getRequiredAttributes(ctx)
 	availableAttributes := buildAugmentedAvailableAttributes(ctx)
 
@@ -157,8 +161,10 @@ func (e *consentExecutor) checkConsent(ctx *core.NodeContext, execResp *common.E
 		return nil, errors.New("failed to prepare consent prompt data")
 	}
 
+	promptJSONStr := string(promptJSON)
+	execResp.RuntimeData[common.RuntimeKeyConsentPromptData] = promptJSONStr
+	execResp.AdditionalData[common.DataConsentPrompt] = promptJSONStr
 	execResp.ForwardedData[common.ForwardedDataKeyConsentPrompt] = promptData.Purposes
-	execResp.AdditionalData[common.DataConsentPrompt] = string(promptJSON)
 
 	// Store the session token in RuntimeData for validation during consent recording
 	if promptData.SessionToken != "" {
@@ -183,41 +189,28 @@ func (e *consentExecutor) checkConsent(ctx *core.NodeContext, execResp *common.E
 }
 
 // handleConsentDecisions processes the user's consent decisions.
-func (e *consentExecutor) handleConsentDecisions(ctx *core.NodeContext, execResp *common.ExecutorResponse,
-	ouID, appID, userID string) (*common.ExecutorResponse, error) {
+func (e *consentExecutor) handleConsentDecisions(ctx *core.NodeContext,
+	ouID, appID, userID string, isRejected bool) (
+	*common.ExecutorResponse, error) {
 	logger := e.logger.With(log.String(log.LoggerKeyFlowID, ctx.FlowID))
-	logger.Debug("Processing consent decisions from user")
+	logger.Debug("Handling user consent decisions", log.Bool("isRejectFlow", isRejected))
 
-	decisionsJSON, ok := ctx.UserInputs[userInputConsentDecisions]
-	if !ok || decisionsJSON == "" {
-		logger.Debug("Consent decisions input is missing or empty")
-		execResp.Status = common.ExecFailure
-		execResp.FailureReason = "Consent decisions input is missing or empty"
-		return execResp, nil
-	}
+	execResp := initExecutorResponse()
+	var decisions *consentauthn.ConsentDecisions
+	var err error
 
-	// SanitizeStringMap HTML-escapes all user inputs as an XSS prevention measure.
-	// For the consent_decisions field the value is a JSON string, so HTML entities
-	// must be unescaped before parsing
-	decisionsJSON = html.UnescapeString(decisionsJSON)
-
-	var decisions consentauthn.ConsentDecisions
-	if err := json.Unmarshal([]byte(decisionsJSON), &decisions); err != nil {
-		logger.Error("Failed to parse consent decisions", log.Error(err))
-		execResp.Status = common.ExecFailure
-		execResp.FailureReason = "Failed to parse consent decisions"
-		return execResp, nil
-	}
-
-	// Check if the consent prompt has timed out
-	if expiresAtStr, ok := ctx.RuntimeData[common.RuntimeKeyStepTimeout]; ok && expiresAtStr != "" {
-		if expiresAt, err := strconv.ParseInt(expiresAtStr, 10, 64); err == nil {
-			if time.Now().UnixMilli() > expiresAt {
-				logger.Debug("Consent prompt has timed out", log.Any("expiresAt", expiresAt))
-				execResp.Status = common.ExecFailure
-				execResp.FailureReason = "Consent prompt has timed out"
-				return execResp, nil
-			}
+	if isRejected {
+		decisions, err = e.buildConsentRejectDecisions(ctx)
+		if err != nil {
+			return execResp, err
+		}
+	} else {
+		decisions, execResp, err = e.buildConsentApproveDecisions(ctx)
+		if err != nil {
+			return execResp, err
+		}
+		if execResp.Status == common.ExecFailure {
+			return execResp, nil
 		}
 	}
 
@@ -233,7 +226,7 @@ func (e *consentExecutor) handleConsentDecisions(ctx *core.NodeContext, execResp
 	// Always record consent decisions (including denials) for audit/compliance purposes.
 	// The session token is used to verify completeness and enforce essential attribute rules
 	consentRecord, svcErr := e.consentEnforcer.RecordConsent(ctx.Context, ouID, appID, userID,
-		&decisions, sessionToken, validityPeriod)
+		decisions, sessionToken, validityPeriod)
 	if svcErr != nil {
 		// Essential consent denied: the consent record was persisted but the user denied
 		// a required attribute, so the flow cannot proceed
@@ -336,6 +329,87 @@ func buildAugmentedAvailableAttributes(ctx *core.NodeContext) *authnprovider.Ava
 		Attributes:    augmented,
 		Verifications: baseVerifications,
 	}
+}
+
+// buildConsentRejectDecisions constructs a ConsentDecisions object with all purposes and elements set to denied.
+// This is used to record the user's implicit denial of all consents when they reject at the prompt.
+func (e *consentExecutor) buildConsentRejectDecisions(ctx *core.NodeContext) (
+	*consentauthn.ConsentDecisions, error) {
+	logger := e.logger.With(log.String(log.LoggerKeyFlowID, ctx.FlowID))
+	logger.Debug("Building all-denied consent decisions for rejection handling")
+
+	promptJSON, ok := ctx.RuntimeData[common.RuntimeKeyConsentPromptData]
+	if !ok || promptJSON == "" {
+		return nil, errors.New("missing consent prompt data for building rejection decisions")
+	}
+
+	var purposes []consentauthn.ConsentPurposePrompt
+	if err := json.Unmarshal([]byte(promptJSON), &purposes); err != nil {
+		return nil, errors.New("failed to parse consent prompt data for building rejection decisions")
+	}
+
+	purposeDecisions := make([]consentauthn.PurposeDecision, len(purposes))
+	for index, purpose := range purposes {
+		elements := make([]consentauthn.ElementDecision, 0, len(purpose.Essential)+len(purpose.Optional))
+		for _, attr := range purpose.Essential {
+			elements = append(elements, consentauthn.ElementDecision{Name: attr, Approved: false})
+		}
+		for _, attr := range purpose.Optional {
+			elements = append(elements, consentauthn.ElementDecision{Name: attr, Approved: false})
+		}
+		purposeDecisions[index] = consentauthn.PurposeDecision{
+			PurposeName: purpose.PurposeName,
+			Approved:    false,
+			Elements:    elements,
+		}
+	}
+
+	return &consentauthn.ConsentDecisions{Purposes: purposeDecisions}, nil
+}
+
+// buildConsentApproveDecisions parses the user's consent decisions from the input and performs
+// basic validation, including checking for timeout expiration.
+func (e *consentExecutor) buildConsentApproveDecisions(ctx *core.NodeContext) (
+	*consentauthn.ConsentDecisions, *common.ExecutorResponse, error) {
+	logger := e.logger.With(log.String(log.LoggerKeyFlowID, ctx.FlowID))
+	logger.Debug("Processing consent decisions from user")
+
+	execResp := initExecutorResponse()
+
+	decisionsJSON, ok := ctx.UserInputs[userInputConsentDecisions]
+	if !ok || decisionsJSON == "" {
+		logger.Debug("Consent decisions input is missing or empty")
+		execResp.Status = common.ExecFailure
+		execResp.FailureReason = "Consent decisions input is missing or empty"
+		return nil, execResp, nil
+	}
+
+	// SanitizeStringMap HTML-escapes all user inputs as an XSS prevention measure.
+	// For the consent_decisions field the value is a JSON string, so HTML entities
+	// must be unescaped before parsing
+	decisionsJSON = html.UnescapeString(decisionsJSON)
+
+	var decisions consentauthn.ConsentDecisions
+	if err := json.Unmarshal([]byte(decisionsJSON), &decisions); err != nil {
+		logger.Debug("Failed to parse consent decisions", log.Error(err))
+		execResp.Status = common.ExecFailure
+		execResp.FailureReason = "Failed to parse consent decisions"
+		return nil, execResp, nil
+	}
+
+	// Check if the consent prompt has timed out
+	if expiresAtStr, ok := ctx.RuntimeData[common.RuntimeKeyStepTimeout]; ok && expiresAtStr != "" {
+		if expiresAt, err := strconv.ParseInt(expiresAtStr, 10, 64); err == nil {
+			if time.Now().UnixMilli() > expiresAt {
+				logger.Debug("Consent prompt has timed out", log.Any("expiresAt", expiresAt))
+				execResp.Status = common.ExecFailure
+				execResp.FailureReason = "Consent prompt has timed out"
+				return nil, execResp, nil
+			}
+		}
+	}
+
+	return &decisions, execResp, nil
 }
 
 // collectConsentedAttributes extracts all approved attribute names from a consent record.

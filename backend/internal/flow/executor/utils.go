@@ -18,8 +18,11 @@
 
 package executor
 
+// TODO: Missing unit tests for the patch changes
+
 import (
 	authncm "github.com/asgardeo/thunder/internal/authn/common"
+	"github.com/asgardeo/thunder/internal/flow/common"
 )
 
 // getAuthnServiceName returns the authn service name for an executor.
@@ -34,4 +37,14 @@ func getAuthnServiceName(executorName string) string {
 		ExecutorNameGoogleAuth: authncm.AuthenticatorGoogle,
 	}
 	return executorToAuthnServiceMap[executorName]
+}
+
+// initExecutorResponse initializes and returns a new ExecutorResponse with empty maps for
+// AdditionalData, RuntimeData, and ForwardedData.
+func initExecutorResponse() *common.ExecutorResponse {
+	return &common.ExecutorResponse{
+		AdditionalData: make(map[string]string),
+		RuntimeData:    make(map[string]string),
+		ForwardedData:  make(map[string]interface{}),
+	}
 }

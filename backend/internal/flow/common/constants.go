@@ -179,6 +179,8 @@ const (
 	RuntimeKeyConsentedAttributes = "consented_attributes"
 	// RuntimeKeyConsentSessionToken holds the signed JWT session token for consent validation.
 	RuntimeKeyConsentSessionToken = "consent_session_token"
+	// RuntimeKeyConsentPromptData holds the JSON-encoded consent prompt purposes for use in rejection handling.
+	RuntimeKeyConsentPromptData = "consent_prompt_data"
 	// RuntimeKeyStoredInviteToken holds the generated invite token stored during the invite send phase.
 	RuntimeKeyStoredInviteToken = "storedInviteToken"
 	// RuntimeKeyUserAttributesCacheTTLSeconds indicates the TTL of the user attributes cache.

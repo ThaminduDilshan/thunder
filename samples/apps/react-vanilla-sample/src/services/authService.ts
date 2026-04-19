@@ -370,9 +370,10 @@ export const initiateNativeAuthFlowWithData = async (flowType: 'LOGIN' | 'REGIST
  * @param {string} executionId - The flow ID received from the initiateNativeAuth response.
  * @param {string} actionId - The ID of the selected authentication action.
  * @param {object} inputs - Optional input data to submit with the decision.
+ * @param {string} challengeToken - Optional challenge token for the current step, if required by the server.
  * @returns {Promise<object>} - A promise that resolves to the response data from the server.
  */
-export const submitAuthDecision = async (executionId: string, actionId: string, inputs?: Record<string, unknown>) => {
+export const submitAuthDecision = async (executionId: string, actionId: string, inputs?: Record<string, unknown>, challengeToken?: string) => {
     const headers = {
         'Content-Type': 'application/json'
     };
@@ -381,6 +382,10 @@ export const submitAuthDecision = async (executionId: string, actionId: string, 
         executionId: executionId,
         action: actionId
     };
+
+    if (challengeToken) {
+        data.challengeToken = challengeToken;
+    }
 
     // Include inputs if provided
     if (inputs && Object.keys(inputs).length > 0) {
@@ -410,12 +415,14 @@ export const submitAuthDecision = async (executionId: string, actionId: string, 
  * @param {string} executionId - The flow ID received from the initiateNativeAuth response.
  * @param {object} payload - The payload containing the form data or other required information.
  * @param {string} action - Optional action ref to include in the request.
+ * @param {string} challengeToken - Optional challenge token for the current step, if required by the server.
  * @returns {Promise<object>} - A promise that resolves to the response data from the server.
  */
 export const submitNativeAuth = async (
     executionId: string,
     payload: Record<string, unknown> | NativeAuthSubmitPayload,
-    action?: string
+    action?: string,
+    challengeToken?: string
 ) => {
     const headers = {
         'Content-Type': 'application/json'
@@ -428,6 +435,10 @@ export const submitNativeAuth = async (
     // Include action if provided
     if (action) {
         data.action = action;
+    }
+
+    if (challengeToken) {
+        data.challengeToken = challengeToken;
     }
 
     if ('type' in payload) {

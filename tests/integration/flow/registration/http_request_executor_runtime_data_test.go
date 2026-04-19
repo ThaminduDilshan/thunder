@@ -528,7 +528,7 @@ func (ts *HTTPRequestRuntimeDataRegistrationFlowTestSuite) TestHTTPRequestRuntim
 
 	flowStep, err = common.CompleteFlow(flowStep.ExecutionID, map[string]string{
 		"code": authCode,
-	}, "")
+	}, "", flowStep.ChallengeToken)
 	ts.Require().NoError(err, "Failed to complete runtime data flow with authorization code")
 	ts.Require().Equal("INCOMPLETE", flowStep.FlowStatus)
 	ts.Require().Equal("VIEW", flowStep.Type)
@@ -536,7 +536,7 @@ func (ts *HTTPRequestRuntimeDataRegistrationFlowTestSuite) TestHTTPRequestRuntim
 
 	flowStep, err = common.CompleteFlow(flowStep.ExecutionID, map[string]string{
 		"mobileNumber": mobileNumber,
-	}, "action_mobile")
+	}, "action_mobile", flowStep.ChallengeToken)
 	ts.Require().NoError(err, "Failed to continue runtime data flow with mobile number")
 	ts.Require().Equal("INCOMPLETE", flowStep.FlowStatus)
 	ts.Require().Equal("VIEW", flowStep.Type)
@@ -549,7 +549,7 @@ func (ts *HTTPRequestRuntimeDataRegistrationFlowTestSuite) TestHTTPRequestRuntim
 
 	flowStep, err = common.CompleteFlow(flowStep.ExecutionID, map[string]string{
 		"otp": otpMessage.OTP,
-	}, "action_otp")
+	}, "action_otp", flowStep.ChallengeToken)
 	ts.Require().NoError(err, "Failed to complete runtime data flow with OTP")
 	ts.Require().Equal("COMPLETE", flowStep.FlowStatus, "Flow should complete after HTTP request executor")
 	ts.Require().NotEmpty(flowStep.Assertion, "Assertion should be present after flow completion")

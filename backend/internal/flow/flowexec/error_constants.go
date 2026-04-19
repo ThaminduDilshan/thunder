@@ -87,3 +87,11 @@ var ErrorInvalidFlowInitContext = serviceerror.ServiceError{
 	Error:            "Invalid request",
 	ErrorDescription: "Invalid flow initialization context provided",
 }
+
+// ErrorInvalidChallengeToken defines the error response for invalid or missing challenge tokens.
+var ErrorInvalidChallengeToken = serviceerror.ServiceError{
+	Code:             "FES-1009",
+	Type:             serviceerror.ClientErrorType,
+	Error:            "Invalid challenge token",
+	ErrorDescription: "The challenge token is missing or invalid",
+}

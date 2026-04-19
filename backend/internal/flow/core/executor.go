@@ -38,6 +38,7 @@ type ExecutorInterface interface {
 	ValidatePrerequisites(ctx *NodeContext, execResp *common.ExecutorResponse) bool
 	GetUserIDFromContext(ctx *NodeContext) string
 	GetRequiredInputs(ctx *NodeContext) []common.Input
+	GetExecutionPolicy(mode string) *ExecutionPolicy
 }
 
 // executor represents the basic implementation of an executor.
@@ -177,6 +178,12 @@ func (e *executor) GetRequiredInputs(ctx *NodeContext) []common.Input {
 	}
 
 	return e.GetDefaultInputs()
+}
+
+// GetExecutionPolicy returns the execution policy for the given mode. By default, it returns nil,
+// indicating no special execution policy. Executors that need per-mode policies should override this method.
+func (e *executor) GetExecutionPolicy(mode string) *ExecutionPolicy {
+	return nil
 }
 
 // appendMissingInputs appends the missing required inputs to the executor response.

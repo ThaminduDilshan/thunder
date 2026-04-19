@@ -533,7 +533,7 @@ func (ts *GithubRegistrationFlowTestSuite) TestGithubRegistrationFlowCompleteSuc
 		"code": authCode,
 	}
 
-	completeFlowStep, err := common.CompleteFlow(flowID, inputs, "")
+	completeFlowStep, err := common.CompleteFlow(flowID, inputs, "", flowStep.ChallengeToken)
 	if err != nil {
 		ts.T().Fatalf("Failed to complete GitHub registration flow: %v", err)
 	}
@@ -589,7 +589,7 @@ func (ts *GithubRegistrationFlowTestSuite) TestGithubRegistrationFlowCompleteWit
 		"code": "invalid-reg-auth-code-12345",
 	}
 
-	_, err = common.CompleteFlow(flowID, inputs, "")
+	_, err = common.CompleteFlow(flowID, inputs, "", flowStep.ChallengeToken)
 	ts.Require().Error(err, "Should fail with invalid authorization code")
 }
 
@@ -607,7 +607,7 @@ func (ts *GithubRegistrationFlowTestSuite) TestGithubRegistrationFlowCompleteWit
 
 	// When required inputs are missing, the flow returns INCOMPLETE status (not an error)
 	// and asks for the missing inputs again
-	flowStep, err = common.CompleteFlow(flowID, inputs, "")
+	flowStep, err = common.CompleteFlow(flowID, inputs, "", flowStep.ChallengeToken)
 	ts.Require().NoError(err, "Should not return error when inputs are missing")
 	ts.Require().Equal("INCOMPLETE", flowStep.FlowStatus,
 		"Flow should remain INCOMPLETE when required inputs are missing")
@@ -642,7 +642,7 @@ func (ts *GithubRegistrationFlowTestSuite) TestGithubRegistrationFlowDuplicateUs
 		"code": authCode,
 	}
 
-	completeFlowStep, err := common.CompleteFlow(flowStep.ExecutionID, inputs, "")
+	completeFlowStep, err := common.CompleteFlow(flowStep.ExecutionID, inputs, "", flowStep.ChallengeToken)
 	if err != nil {
 		ts.T().Fatalf("Failed to complete first GitHub registration flow: %v", err)
 	}
@@ -671,7 +671,7 @@ func (ts *GithubRegistrationFlowTestSuite) TestGithubRegistrationFlowDuplicateUs
 		"code": authCode2,
 	}
 
-	completeFlowStep2, err := common.CompleteFlow(flowStep2.ExecutionID, inputs2, "")
+	completeFlowStep2, err := common.CompleteFlow(flowStep2.ExecutionID, inputs2, "", flowStep2.ChallengeToken)
 	if err != nil {
 		ts.T().Fatalf("Failed to complete second GitHub registration flow: %v", err)
 	}

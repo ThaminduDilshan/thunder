@@ -386,7 +386,7 @@ func (ts *GithubAuthFlowTestSuite) TestGithubAuthFlowCompleteSuccess() {
 		"code": authCode,
 	}
 
-	completeFlowStep, err := common.CompleteFlow(ExecutionID, inputs, "")
+	completeFlowStep, err := common.CompleteFlow(ExecutionID, inputs, "", flowStep.ChallengeToken)
 	if err != nil {
 		ts.T().Fatalf("Failed to complete GitHub authentication flow: %v", err)
 	}
@@ -422,7 +422,7 @@ func (ts *GithubAuthFlowTestSuite) TestGithubAuthFlowCompleteWithInvalidCode() {
 		"code": "invalid-auth-code-12345",
 	}
 
-	_, err = common.CompleteFlow(ExecutionID, inputs, "")
+	_, err = common.CompleteFlow(ExecutionID, inputs, "", flowStep.ChallengeToken)
 	ts.Require().Error(err, "Should fail with invalid authorization code")
 }
 
@@ -440,7 +440,7 @@ func (ts *GithubAuthFlowTestSuite) TestGithubAuthFlowCompleteWithMissingCode() {
 
 	// When required inputs are missing, the flow returns INCOMPLETE status (not an error)
 	// and asks for the missing inputs again
-	flowStep, err = common.CompleteFlow(ExecutionID, inputs, "")
+	flowStep, err = common.CompleteFlow(ExecutionID, inputs, "", flowStep.ChallengeToken)
 	ts.Require().NoError(err, "Should not return error when inputs are missing")
 	ts.Require().Equal("INCOMPLETE", flowStep.FlowStatus,
 		"Flow should remain INCOMPLETE when required inputs are missing")

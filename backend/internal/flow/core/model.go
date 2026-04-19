@@ -57,3 +57,8 @@ type NodeCondition struct {
 	Value  string
 	OnSkip string
 }
+
+// ExecutionPolicy defines behavioral policies for node execution.
+type ExecutionPolicy struct {
+	SkipChallengeValidation bool
+}

@@ -273,7 +273,7 @@ func (ts *SensitiveInputCleanupTestSuite) TestPasswordClearedAfterAuthExecution(
 	// After basic_auth completes, password should be cleared from context.
 	// The second prompt node (prompt_password_again) should detect the missing password
 	// and return INCOMPLETE, asking for it again.
-	step2, err := common.CompleteFlow(flowStep.ExecutionID, inputs, "action_001")
+	step2, err := common.CompleteFlow(flowStep.ExecutionID, inputs, "action_001", flowStep.ChallengeToken)
 	ts.Require().NoError(err, "Failed to complete flow step 2")
 
 	ts.Require().Equal("INCOMPLETE", step2.FlowStatus,
@@ -292,7 +292,7 @@ func (ts *SensitiveInputCleanupTestSuite) TestPasswordClearedAfterAuthExecution(
 		"password": userAttrs["password"].(string),
 	}
 
-	step3, err := common.CompleteFlow(flowStep.ExecutionID, inputs, "action_002")
+	step3, err := common.CompleteFlow(flowStep.ExecutionID, inputs, "action_002", step2.ChallengeToken)
 	ts.Require().NoError(err, "Failed to complete flow step 3")
 
 	ts.Require().Equal("COMPLETE", step3.FlowStatus, "Expected flow to complete after re-submitting password")

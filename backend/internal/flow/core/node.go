@@ -44,6 +44,7 @@ type NodeInterface interface {
 	RemovePreviousNode(previousNodeID string)
 	GetCondition() *NodeCondition
 	SetCondition(condition *NodeCondition)
+	GetExecutionPolicy() *ExecutionPolicy
 }
 
 // node implements the NodeInterface
@@ -215,4 +216,10 @@ func (n *node) GetCondition() *NodeCondition {
 // SetCondition sets the execution condition for the node
 func (n *node) SetCondition(condition *NodeCondition) {
 	n.condition = condition
+}
+
+// GetExecutionPolicy returns the execution policy for the node. By default, it returns nil, indicating
+// no special execution policy. Nodes that need special execution behavior should override this method.
+func (n *node) GetExecutionPolicy() *ExecutionPolicy {
+	return nil
 }

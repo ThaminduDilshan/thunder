@@ -401,7 +401,7 @@ func (ts *GoogleAuthFlowTestSuite) TestGoogleAuthFlowCompleteSuccess() {
 		"code": authCode,
 	}
 
-	completeFlowStep, err := common.CompleteFlow(ExecutionID, inputs, "")
+	completeFlowStep, err := common.CompleteFlow(ExecutionID, inputs, "", flowStep.ChallengeToken)
 	if err != nil {
 		ts.T().Fatalf("Failed to complete Google authentication flow: %v", err)
 	}
@@ -437,7 +437,7 @@ func (ts *GoogleAuthFlowTestSuite) TestGoogleAuthFlowCompleteWithInvalidCode() {
 		"code": "invalid-auth-code-12345",
 	}
 
-	_, err = common.CompleteFlow(ExecutionID, inputs, "")
+	_, err = common.CompleteFlow(ExecutionID, inputs, "", flowStep.ChallengeToken)
 	ts.Require().Error(err, "Should fail with invalid authorization code")
 }
 
@@ -455,7 +455,7 @@ func (ts *GoogleAuthFlowTestSuite) TestGoogleAuthFlowCompleteWithMissingCode() {
 
 	// When required inputs are missing, the flow returns INCOMPLETE status (not an error)
 	// and asks for the missing inputs again
-	flowStep, err = common.CompleteFlow(ExecutionID, inputs, "")
+	flowStep, err = common.CompleteFlow(ExecutionID, inputs, "", flowStep.ChallengeToken)
 	ts.Require().NoError(err, "Should not return error when inputs are missing")
 	ts.Require().Equal("INCOMPLETE", flowStep.FlowStatus,
 		"Flow should remain INCOMPLETE when required inputs are missing")
@@ -497,7 +497,7 @@ func (ts *GoogleAuthFlowTestSuite) TestGoogleAuthFlowMultipleUsersSuccess() {
 		"code": authCode,
 	}
 
-	completeFlowStep, err := common.CompleteFlow(ExecutionID, inputs, "")
+	completeFlowStep, err := common.CompleteFlow(ExecutionID, inputs, "", flowStep.ChallengeToken)
 	if err != nil {
 		ts.T().Fatalf("Failed to complete Google authentication flow: %v", err)
 	}

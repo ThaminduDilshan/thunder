@@ -58,6 +58,17 @@ func newInviteExecutor(flowFactory core.FlowFactoryInterface) *inviteExecutor {
 	}
 }
 
+// GetExecutionPolicy returns the execution policy for the given mode.
+// The verify mode skips challenge token validation because the invite token itself serves as the challenge.
+func (e *inviteExecutor) GetExecutionPolicy(mode string) *core.ExecutionPolicy {
+	if mode == ExecutorModeVerify {
+		return &core.ExecutionPolicy{
+			SkipChallengeValidation: true,
+		}
+	}
+	return nil
+}
+
 // Execute delegates to the appropriate mode handler based on the executor mode.
 func (e *inviteExecutor) Execute(ctx *core.NodeContext) (*common.ExecutorResponse, error) {
 	switch ctx.ExecutorMode {

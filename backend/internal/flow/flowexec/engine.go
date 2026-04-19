@@ -27,6 +27,7 @@ import (
 	"github.com/asgardeo/thunder/internal/flow/common"
 	"github.com/asgardeo/thunder/internal/flow/core"
 	"github.com/asgardeo/thunder/internal/flow/executor"
+	"github.com/asgardeo/thunder/internal/system/crypto/token"
 	"github.com/asgardeo/thunder/internal/system/error/serviceerror"
 	"github.com/asgardeo/thunder/internal/system/log"
 	"github.com/asgardeo/thunder/internal/system/observability"
@@ -43,6 +44,7 @@ type flowEngineInterface interface {
 type flowEngine struct {
 	executorRegistry executor.ExecutorRegistryInterface
 	observabilitySvc observability.ObservabilityServiceInterface
+	logger           *log.Logger
 }
 
 // newFlowEngine creates a new flow engine with the given dependencies.
@@ -53,12 +55,13 @@ func newFlowEngine(
 	return &flowEngine{
 		executorRegistry: executorRegistry,
 		observabilitySvc: observabilitySvc,
+		logger:           log.GetLogger().With(log.String(log.LoggerKeyComponentName, "FlowEngine")),
 	}
 }
 
 // Execute executes a step in the flow
 func (fe *flowEngine) Execute(ctx *EngineContext) (FlowStep, *serviceerror.ServiceError) {
-	logger := log.GetLogger().With(log.String(log.LoggerKeyComponentName, "FlowEngine"))
+	logger := fe.logger.With(log.String(log.LoggerKeyExecutionID, ctx.ExecutionID))
 
 	flowStep := FlowStep{
 		ExecutionID: ctx.ExecutionID,
@@ -80,6 +83,7 @@ func (fe *flowEngine) Execute(ctx *EngineContext) (FlowStep, *serviceerror.Servi
 	}
 
 	// Execute the graph nodes until a terminal condition is met or currentNode is nil
+	challengeTokenValidated := false
 	for currentNode != nil {
 		logger.Debug("Executing node", log.String("nodeID", currentNode.GetID()),
 			log.String("nodeType", string(currentNode.GetType())))
@@ -133,6 +137,17 @@ func (fe *flowEngine) Execute(ctx *EngineContext) (FlowStep, *serviceerror.Servi
 			return flowStep, svcErr
 		}
 
+		// Validate the incoming challenge token once per request against the first execution node.
+		// Node executor has to be set before validation as task execution nodes have to check validation
+		// policy against the executor
+		if !challengeTokenValidated {
+			challengeTokenValidated = true
+			if svcErr := fe.validateChallengeToken(ctx, currentNode); svcErr != nil {
+				publishFlowFailedEvent(ctx, svcErr, flowStartTime, time.Now().UnixMilli(), fe.observabilitySvc)
+				return flowStep, svcErr
+			}
+		}
+
 		executionStartTime := time.Now().UnixMilli()
 
 		// Publish node execution started event
@@ -170,7 +185,15 @@ func (fe *flowEngine) Execute(ctx *EngineContext) (FlowStep, *serviceerror.Servi
 			// Check if flow failed or just incomplete
 			if flowStep.Status == common.FlowStatusError {
 				publishFlowFailedEvent(ctx, nil, flowStartTime, time.Now().UnixMilli(), fe.observabilitySvc)
+				return flowStep, nil
 			}
+
+			// Flow is incomplete — rotate challenge token so the next step is bound to a fresh token
+			if svcErr := fe.rotateChallengeToken(ctx, &flowStep); svcErr != nil {
+				publishFlowFailedEvent(ctx, svcErr, flowStartTime, time.Now().UnixMilli(), fe.observabilitySvc)
+				return flowStep, svcErr
+			}
+
 			// Don't publish completed event here - flow is incomplete (waiting for user input)
 			return flowStep, nil
 		}
@@ -536,7 +559,7 @@ func (fe *flowEngine) handleDisplayOnlyPromptResponse(ctx *EngineContext,
 func (fe *flowEngine) handleCompletedResponse(ctx *EngineContext,
 	nodeResp *common.NodeResponse, logger *log.Logger) (
 	core.NodeInterface, *serviceerror.ServiceError) {
-	nextNode, err := fe.resolveToNextNode(ctx.Graph, nodeResp)
+	nextNode, err := fe.resolveToNextNode(ctx, nodeResp)
 	if err != nil {
 		logger.Error("Error moving to the next node", log.Error(err))
 		return nil, &serviceerror.InternalServerError
@@ -581,7 +604,7 @@ func (fe *flowEngine) handleForwardResponse(ctx *EngineContext,
 		log.String("nextNodeID", nodeResp.NextNodeID),
 		log.String("failureReason", nodeResp.FailureReason))
 
-	nextNode, err := fe.resolveToNextNode(ctx.Graph, nodeResp)
+	nextNode, err := fe.resolveToNextNode(ctx, nodeResp)
 	if err != nil {
 		logger.Error("Error resolving to next node", log.Error(err))
 		return nil, &serviceerror.InternalServerError
@@ -609,7 +632,7 @@ func (fe *flowEngine) skipToNextNode(ctx *EngineContext, currentNode core.NodeIn
 	nodeResp := &common.NodeResponse{NextNodeID: condition.OnSkip}
 
 	// Resolve to the next node
-	nextNode, err := fe.resolveToNextNode(ctx.Graph, nodeResp)
+	nextNode, err := fe.resolveToNextNode(ctx, nodeResp)
 	if err != nil {
 		logger.Error("Error moving to the next node after skipping", log.Error(err))
 		return nil, &serviceerror.InternalServerError
@@ -619,10 +642,10 @@ func (fe *flowEngine) skipToNextNode(ctx *EngineContext, currentNode core.NodeIn
 }
 
 // resolveToNextNode resolves the next node to execute based on nodeResp.NextNodeID.
-func (fe *flowEngine) resolveToNextNode(graph core.GraphInterface, nodeResp *common.NodeResponse) (
+func (fe *flowEngine) resolveToNextNode(engineCtx *EngineContext, nodeResp *common.NodeResponse) (
 	core.NodeInterface, error) {
-	logger := log.GetLogger().With(log.String(log.LoggerKeyComponentName, "FlowEngine"))
-
+	logger := fe.logger.With(log.String(log.LoggerKeyExecutionID, engineCtx.ExecutionID))
+	graph := engineCtx.Graph
 	if nodeResp == nil || nodeResp.NextNodeID == "" {
 		logger.Debug("No next node ID in response. Returning nil.")
 		return nil, nil
@@ -721,6 +744,57 @@ func (fe *flowEngine) resolveStepDetailsForPrompt(ctx *EngineContext, nodeResp *
 
 	flowStep.Status = common.FlowStatusIncomplete
 	flowStep.Type = common.StepTypeView
+	return nil
+}
+
+// validateChallengeToken validates the incoming challenge token against the stored hash.
+// If the hash is not present in the context, i.e. this is the first execution or the previous step
+// did not set a token, validation is skipped. Also if the current node's execution policy allows
+// skipping, validation is skipped.
+func (fe *flowEngine) validateChallengeToken(
+	ctx *EngineContext, currentNode core.NodeInterface) *serviceerror.ServiceError {
+	logger := fe.logger.With(log.String(log.LoggerKeyExecutionID, ctx.ExecutionID))
+
+	if ctx.ChallengeTokenHash == "" {
+		logger.Debug("Challenge token hash is empty in the context; skipping validation")
+		return nil
+	}
+	if currentNode != nil {
+		policy := currentNode.GetExecutionPolicy()
+		if policy != nil && policy.SkipChallengeValidation {
+			logger.Debug("Current node's execution policy set to skip challenge token validation; skipping")
+			return nil
+		}
+	} else {
+		logger.Debug("Current node is nil while validating challenge token; enforcing validation")
+	}
+
+	if ctx.ChallengeTokenIn == "" {
+		logger.Debug("Challenge token is empty in the request")
+		return &ErrorInvalidChallengeToken
+	}
+	if !token.ValidateTokenHash(ctx.ChallengeTokenIn, ctx.ChallengeTokenHash) {
+		logger.Debug("Invalid challenge token provided in the request")
+		return &ErrorInvalidChallengeToken
+	}
+
+	return nil
+}
+
+// rotateChallengeToken generates a fresh challenge token, stores its hash in the engine context and
+// returns the new token in the flow step. This ensures that the next step is bound to a fresh token
+// and prevents replay attacks with old tokens.
+func (fe *flowEngine) rotateChallengeToken(ctx *EngineContext, flowStep *FlowStep) *serviceerror.ServiceError {
+	logger := fe.logger.With(log.String(log.LoggerKeyExecutionID, ctx.ExecutionID))
+
+	newToken, err := token.GenerateSecureToken()
+	if err != nil {
+		logger.Error("Failed to generate new challenge token", log.Error(err))
+		return &serviceerror.InternalServerError
+	}
+
+	ctx.ChallengeTokenHash = token.HashToken(newToken)
+	flowStep.ChallengeToken = newToken
 	return nil
 }
 

@@ -31,12 +31,13 @@ type TestSuiteConfig struct {
 }
 
 type FlowStep struct {
-	ExecutionID   string   `json:"executionId"`
-	FlowStatus    string   `json:"flowStatus"`
-	Type          string   `json:"type,omitempty"`
-	Data          FlowData `json:"data,omitempty"`
-	Assertion     string   `json:"assertion,omitempty"`
-	FailureReason string   `json:"failureReason,omitempty"`
+	ExecutionID    string   `json:"executionId"`
+	FlowStatus     string   `json:"flowStatus"`
+	Type           string   `json:"type,omitempty"`
+	Data           FlowData `json:"data,omitempty"`
+	Assertion      string   `json:"assertion,omitempty"`
+	FailureReason  string   `json:"failureReason,omitempty"`
+	ChallengeToken string   `json:"challengeToken,omitempty"`
 }
 
 type FlowData struct {

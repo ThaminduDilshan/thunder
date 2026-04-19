@@ -55,9 +55,10 @@ func (h *flowExecutionHandler) HandleFlowExecutionRequest(w http.ResponseWriter,
 	verbose := flowR.Verbose
 	action := sysutils.SanitizeString(flowR.Action)
 	inputs := sysutils.SanitizeStringMap(flowR.Inputs)
+	challengeToken := sysutils.SanitizeString(flowR.ChallengeToken)
 
 	flowStep, flowErr := h.flowExecService.Execute(
-		r.Context(), appID, executionID, flowTypeStr, verbose, action, inputs)
+		r.Context(), appID, executionID, flowTypeStr, verbose, action, inputs, challengeToken)
 
 	if flowErr != nil {
 		handleFlowError(w, flowErr)
@@ -65,13 +66,14 @@ func (h *flowExecutionHandler) HandleFlowExecutionRequest(w http.ResponseWriter,
 	}
 
 	flowResp := FlowResponse{
-		ExecutionID:   flowStep.ExecutionID,
-		StepID:        flowStep.StepID,
-		FlowStatus:    string(flowStep.Status),
-		Type:          string(flowStep.Type),
-		Data:          flowStep.Data,
-		Assertion:     flowStep.Assertion,
-		FailureReason: flowStep.FailureReason,
+		ExecutionID:    flowStep.ExecutionID,
+		StepID:         flowStep.StepID,
+		FlowStatus:     string(flowStep.Status),
+		Type:           string(flowStep.Type),
+		Data:           flowStep.Data,
+		Assertion:      flowStep.Assertion,
+		FailureReason:  flowStep.FailureReason,
+		ChallengeToken: flowStep.ChallengeToken,
 	}
 
 	sysutils.WriteSuccessResponse(w, http.StatusOK, flowResp)

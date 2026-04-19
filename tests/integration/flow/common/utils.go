@@ -139,11 +139,12 @@ func InitiateAuthFlowWithError(appID string, inputs map[string]string) (*ErrorRe
 	return &errorResponse, nil
 }
 
-// CompleteFlow completes the flow with given inputs and action
-func CompleteFlow(executionId string, inputs map[string]string, action string) (
+// CompleteFlow completes the flow with given inputs, action and challenge token
+func CompleteFlow(executionId string, inputs map[string]string, action string, challengeToken string) (
 	*FlowStep, error) {
 	flowReqBody := map[string]interface{}{
-		"executionId": executionId,
+		"executionId":    executionId,
+		"challengeToken": challengeToken,
 	}
 	if len(inputs) > 0 {
 		flowReqBody["inputs"] = inputs
@@ -188,10 +189,12 @@ func CompleteFlow(executionId string, inputs map[string]string, action string) (
 }
 
 // CompleteAuthFlowWithError completes the authentication flow and expects an error response
-func CompleteAuthFlowWithError(executionId string, inputs map[string]string) (*ErrorResponse, error) {
+func CompleteAuthFlowWithError(executionId string, inputs map[string]string, challengeToken string) (
+	*ErrorResponse, error) {
 	flowReqBody := map[string]interface{}{
-		"executionId": executionId,
-		"inputs":      inputs,
+		"executionId":    executionId,
+		"challengeToken": challengeToken,
+		"inputs":         inputs,
 	}
 
 	reqBody, err := json.Marshal(flowReqBody)

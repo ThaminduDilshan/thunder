@@ -174,7 +174,8 @@ func (ts *BasicRegistrationFlowTestSuite) TestBasicRegistrationFlowSuccess() {
 		"password": "testpassword123",
 	}
 
-	completeFlowStep, err := common.CompleteFlow(flowStep.ExecutionID, inputs, "action_credentials")
+	completeFlowStep, err := common.CompleteFlow(flowStep.ExecutionID, inputs, "action_credentials",
+		flowStep.ChallengeToken)
 	if err != nil {
 		ts.T().Fatalf("Failed to complete registration flow: %v", err)
 	}
@@ -193,7 +194,8 @@ func (ts *BasicRegistrationFlowTestSuite) TestBasicRegistrationFlowSuccess() {
 		"given_name":  "Test",
 		"family_name": "User",
 	}
-	completeFlowStep, err = common.CompleteFlow(completeFlowStep.ExecutionID, inputs, "action_user_info")
+	completeFlowStep, err = common.CompleteFlow(completeFlowStep.ExecutionID, inputs, "action_user_info",
+		completeFlowStep.ChallengeToken)
 	if err != nil {
 		ts.T().Fatalf("Failed to complete registration flow with additional attributes: %v", err)
 	}
@@ -260,7 +262,8 @@ func (ts *BasicRegistrationFlowTestSuite) TestBasicRegistrationFlowDuplicateUser
 		"password": "newpassword123",
 	}
 
-	completeFlowStep, err := common.CompleteFlow(flowStep.ExecutionID, inputs, "action_credentials")
+	completeFlowStep, err := common.CompleteFlow(flowStep.ExecutionID, inputs, "action_credentials",
+		flowStep.ChallengeToken)
 	if err != nil {
 		ts.T().Fatalf("Failed to complete registration flow: %v", err)
 	}
@@ -285,7 +288,7 @@ func (ts *BasicRegistrationFlowTestSuite) TestBasicRegistrationFlowInitialInvali
 	inputs := map[string]string{
 		"username": username,
 	}
-	completeFlowStep, err := common.CompleteFlow(flowStep.ExecutionID, inputs, "")
+	completeFlowStep, err := common.CompleteFlow(flowStep.ExecutionID, inputs, "", flowStep.ChallengeToken)
 	if err != nil {
 		ts.T().Fatalf("Failed to complete registration flow: %v", err)
 	}
@@ -301,7 +304,8 @@ func (ts *BasicRegistrationFlowTestSuite) TestBasicRegistrationFlowInitialInvali
 	inputs = map[string]string{
 		"password": "testpassword123",
 	}
-	completeFlowStep, err = common.CompleteFlow(completeFlowStep.ExecutionID, inputs, "action_credentials")
+	completeFlowStep, err = common.CompleteFlow(completeFlowStep.ExecutionID, inputs, "action_credentials",
+		completeFlowStep.ChallengeToken)
 	if err != nil {
 		ts.T().Fatalf("Failed to complete registration flow with username input: %v", err)
 	}
@@ -320,7 +324,8 @@ func (ts *BasicRegistrationFlowTestSuite) TestBasicRegistrationFlowInitialInvali
 		"given_name":  "Test",
 		"family_name": "User",
 	}
-	completeFlowStep, err = common.CompleteFlow(completeFlowStep.ExecutionID, inputs, "action_user_info")
+	completeFlowStep, err = common.CompleteFlow(completeFlowStep.ExecutionID, inputs, "action_user_info",
+		completeFlowStep.ChallengeToken)
 	if err != nil {
 		ts.T().Fatalf("Failed to complete registration flow with additional attributes: %v", err)
 	}
@@ -438,7 +443,8 @@ func (ts *BasicRegistrationFlowTestSuite) TestBasicRegistrationFlow_WithoutToken
 		"username": username,
 		"password": "testpassword123",
 	}
-	completeFlowStep, err := common.CompleteFlow(flowStep.ExecutionID, inputs, "action_credentials")
+	completeFlowStep, err := common.CompleteFlow(flowStep.ExecutionID, inputs, "action_credentials",
+		flowStep.ChallengeToken)
 	ts.Require().NoError(err, "Failed to complete registration flow")
 
 	inputs = map[string]string{
@@ -446,7 +452,8 @@ func (ts *BasicRegistrationFlowTestSuite) TestBasicRegistrationFlow_WithoutToken
 		"given_name":  "Test",
 		"family_name": "User",
 	}
-	completeFlowStep, err = common.CompleteFlow(completeFlowStep.ExecutionID, inputs, "action_user_info")
+	completeFlowStep, err = common.CompleteFlow(completeFlowStep.ExecutionID, inputs, "action_user_info",
+		completeFlowStep.ChallengeToken)
 	ts.Require().NoError(err, "Failed to complete registration flow with additional attributes")
 
 	ts.Require().Equal("COMPLETE", completeFlowStep.FlowStatus, "Expected flow status to be COMPLETE")
@@ -505,7 +512,8 @@ func (ts *BasicRegistrationFlowTestSuite) TestBasicRegistrationFlow_WithEmptyUse
 		"username": username,
 		"password": "testpassword123",
 	}
-	completeFlowStep, err := common.CompleteFlow(flowStep.ExecutionID, inputs, "action_credentials")
+	completeFlowStep, err := common.CompleteFlow(flowStep.ExecutionID, inputs, "action_credentials",
+		flowStep.ChallengeToken)
 	ts.Require().NoError(err, "Failed to complete registration flow")
 
 	inputs = map[string]string{
@@ -513,7 +521,8 @@ func (ts *BasicRegistrationFlowTestSuite) TestBasicRegistrationFlow_WithEmptyUse
 		"given_name":  "Test",
 		"family_name": "User",
 	}
-	completeFlowStep, err = common.CompleteFlow(completeFlowStep.ExecutionID, inputs, "action_user_info")
+	completeFlowStep, err = common.CompleteFlow(completeFlowStep.ExecutionID, inputs, "action_user_info",
+		completeFlowStep.ChallengeToken)
 	ts.Require().NoError(err, "Failed to complete registration flow with additional attributes")
 
 	ts.Require().Equal("COMPLETE", completeFlowStep.FlowStatus, "Expected flow status to be COMPLETE")

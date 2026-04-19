@@ -11,6 +11,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "_comment": "TODO: Bump SDK version",
     "@asgardeo/react": "0.21.3",
     "@wso2/oxygen-ui": "0.0.1-alpha.10",
     "jwt-decode": "4.0.0",

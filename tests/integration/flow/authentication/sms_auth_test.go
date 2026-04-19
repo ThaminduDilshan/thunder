@@ -466,7 +466,8 @@ func (ts *SMSAuthFlowTestSuite) TestSMSAuthFlowWithMobileNumber() {
 		"mobileNumber": userAttrs["mobileNumber"].(string),
 	}
 
-	otpFlowStep, err := common.CompleteFlow(flowStep.ExecutionID, inputs, "action_001")
+	otpFlowStep, err := common.CompleteFlow(flowStep.ExecutionID, inputs, "action_001",
+		flowStep.ChallengeToken)
 	if err != nil {
 		ts.T().Fatalf("Failed to complete authentication flow with mobile number: %v", err)
 	}
@@ -493,7 +494,8 @@ func (ts *SMSAuthFlowTestSuite) TestSMSAuthFlowWithMobileNumber() {
 		"otp": lastMessage.OTP,
 	}
 
-	completeFlowStep, err := common.CompleteFlow(flowStep.ExecutionID, otpInputs, "action_002")
+	completeFlowStep, err := common.CompleteFlow(flowStep.ExecutionID, otpInputs, "action_002",
+		otpFlowStep.ChallengeToken)
 	if err != nil {
 		ts.T().Fatalf("Failed to complete authentication flow with OTP: %v", err)
 	}
@@ -562,7 +564,8 @@ func (ts *SMSAuthFlowTestSuite) TestSMSAuthFlowWithUsername() {
 		"username": userAttrs["username"].(string),
 	}
 
-	otpFlowStep, err := common.CompleteFlow(flowStep.ExecutionID, inputs, "action_001")
+	otpFlowStep, err := common.CompleteFlow(flowStep.ExecutionID, inputs, "action_001",
+		flowStep.ChallengeToken)
 	if err != nil {
 		ts.T().Fatalf("Failed to complete authentication flow with username: %v", err)
 	}
@@ -594,7 +597,8 @@ func (ts *SMSAuthFlowTestSuite) TestSMSAuthFlowWithUsername() {
 		"otp": lastMessage.OTP,
 	}
 
-	completeFlowStep, err := common.CompleteFlow(flowStep.ExecutionID, otpInputs, "action_002")
+	completeFlowStep, err := common.CompleteFlow(flowStep.ExecutionID, otpInputs, "action_002",
+		otpFlowStep.ChallengeToken)
 	if err != nil {
 		ts.T().Fatalf("Failed to complete authentication flow with OTP: %v", err)
 	}
@@ -637,7 +641,8 @@ func (ts *SMSAuthFlowTestSuite) TestSMSAuthFlowInvalidOTP() {
 	ts.mockServer.ClearMessages()
 
 	// Continue flow to trigger OTP sending
-	otpFlowStep, err := common.CompleteFlow(flowStep.ExecutionID, inputs, "action_001")
+	otpFlowStep, err := common.CompleteFlow(flowStep.ExecutionID, inputs, "action_001",
+		flowStep.ChallengeToken)
 	if err != nil {
 		ts.T().Fatalf("Failed to complete authentication flow with mobile number: %v", err)
 	}
@@ -652,7 +657,8 @@ func (ts *SMSAuthFlowTestSuite) TestSMSAuthFlowInvalidOTP() {
 		"otp": "000000", // Invalid OTP
 	}
 
-	completeFlowStep, err := common.CompleteFlow(otpFlowStep.ExecutionID, invalidOTPInputs, "action_002")
+	completeFlowStep, err := common.CompleteFlow(otpFlowStep.ExecutionID, invalidOTPInputs, "action_002",
+		otpFlowStep.ChallengeToken)
 	if err != nil {
 		ts.T().Fatalf("Failed to complete authentication flow with invalid OTP: %v", err)
 	}
@@ -700,7 +706,7 @@ func (ts *SMSAuthFlowTestSuite) TestSMSAuthFlowSingleRequestWithMobileNumber() {
 		"otp": lastMessage.OTP,
 	}
 
-	completeFlowStep, err := common.CompleteFlow(flowStep.ExecutionID, otpInputs, "")
+	completeFlowStep, err := common.CompleteFlow(flowStep.ExecutionID, otpInputs, "", flowStep.ChallengeToken)
 	if err != nil {
 		ts.T().Fatalf("Failed to complete authentication flow with OTP: %v", err)
 	}

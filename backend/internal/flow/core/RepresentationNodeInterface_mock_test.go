@@ -227,6 +227,52 @@ func (_c *RepresentationNodeInterfaceMock_GetCondition_Call) RunAndReturn(run fu
 	return _c
 }
 
+// GetExecutionPolicy provides a mock function for the type RepresentationNodeInterfaceMock
+func (_mock *RepresentationNodeInterfaceMock) GetExecutionPolicy() *ExecutionPolicy {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetExecutionPolicy")
+	}
+
+	var r0 *ExecutionPolicy
+	if returnFunc, ok := ret.Get(0).(func() *ExecutionPolicy); ok {
+		r0 = returnFunc()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*ExecutionPolicy)
+		}
+	}
+	return r0
+}
+
+// RepresentationNodeInterfaceMock_GetExecutionPolicy_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetExecutionPolicy'
+type RepresentationNodeInterfaceMock_GetExecutionPolicy_Call struct {
+	*mock.Call
+}
+
+// GetExecutionPolicy is a helper method to define mock.On call
+func (_e *RepresentationNodeInterfaceMock_Expecter) GetExecutionPolicy() *RepresentationNodeInterfaceMock_GetExecutionPolicy_Call {
+	return &RepresentationNodeInterfaceMock_GetExecutionPolicy_Call{Call: _e.mock.On("GetExecutionPolicy")}
+}
+
+func (_c *RepresentationNodeInterfaceMock_GetExecutionPolicy_Call) Run(run func()) *RepresentationNodeInterfaceMock_GetExecutionPolicy_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *RepresentationNodeInterfaceMock_GetExecutionPolicy_Call) Return(executionPolicy *ExecutionPolicy) *RepresentationNodeInterfaceMock_GetExecutionPolicy_Call {
+	_c.Call.Return(executionPolicy)
+	return _c
+}
+
+func (_c *RepresentationNodeInterfaceMock_GetExecutionPolicy_Call) RunAndReturn(run func() *ExecutionPolicy) *RepresentationNodeInterfaceMock_GetExecutionPolicy_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetID provides a mock function for the type RepresentationNodeInterfaceMock
 func (_mock *RepresentationNodeInterfaceMock) GetID() string {
 	ret := _mock.Called()

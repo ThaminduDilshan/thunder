@@ -350,7 +350,7 @@ func (ts *MultiActionInputBindingTestSuite) TestSelectActionWithoutInputs_Should
 	ts.Require().NotEmpty(flowStep.ExecutionID)
 
 	// Select action_google which has no inputs - should redirect to Google
-	flowStep, err = common.CompleteFlow(flowStep.ExecutionID, nil, "action_google")
+	flowStep, err = common.CompleteFlow(flowStep.ExecutionID, nil, "action_google", flowStep.ChallengeToken)
 	ts.Require().NoError(err, "Failed to complete flow with action_google")
 
 	// Should redirect to Google OAuth
@@ -365,7 +365,7 @@ func (ts *MultiActionInputBindingTestSuite) TestSelectActionWithInputs_ShouldPro
 	ts.Require().NotEmpty(flowStep.ExecutionID)
 
 	// Select action_basic which requires username and password
-	flowStep, err = common.CompleteFlow(flowStep.ExecutionID, nil, "action_basic")
+	flowStep, err = common.CompleteFlow(flowStep.ExecutionID, nil, "action_basic", flowStep.ChallengeToken)
 	ts.Require().NoError(err, "Failed to complete flow with action_basic")
 
 	ts.Equal("INCOMPLETE", flowStep.FlowStatus)
@@ -386,7 +386,7 @@ func (ts *MultiActionInputBindingTestSuite) TestSelectActionWithInputsProvided_S
 	ts.Require().NotEmpty(flowStep.ExecutionID)
 
 	// Select action_basic
-	flowStep, err = common.CompleteFlow(flowStep.ExecutionID, nil, "action_basic")
+	flowStep, err = common.CompleteFlow(flowStep.ExecutionID, nil, "action_basic", flowStep.ChallengeToken)
 	ts.Require().NoError(err, "Failed to select action_basic")
 	ts.Require().Equal("INCOMPLETE", flowStep.FlowStatus)
 
@@ -395,7 +395,7 @@ func (ts *MultiActionInputBindingTestSuite) TestSelectActionWithInputsProvided_S
 		"username": "multiactionuser",
 		"password": "testpassword",
 	}
-	flowStep, err = common.CompleteFlow(flowStep.ExecutionID, inputs, "")
+	flowStep, err = common.CompleteFlow(flowStep.ExecutionID, inputs, "", flowStep.ChallengeToken)
 	ts.Require().NoError(err, "Failed to complete flow with inputs")
 
 	ts.Equal("COMPLETE", flowStep.FlowStatus, "Flow should complete after providing required inputs")
@@ -409,7 +409,7 @@ func (ts *MultiActionInputBindingTestSuite) TestGoogleAuthFlowComplete() {
 	ExecutionID := flowStep.ExecutionID
 
 	// Select action_google
-	flowStep, err = common.CompleteFlow(ExecutionID, nil, "action_google")
+	flowStep, err = common.CompleteFlow(ExecutionID, nil, "action_google", flowStep.ChallengeToken)
 	ts.Require().NoError(err, "Failed to select action_google")
 	ts.Require().Equal("INCOMPLETE", flowStep.FlowStatus)
 	ts.Require().Equal("REDIRECTION", flowStep.Type)
@@ -424,7 +424,7 @@ func (ts *MultiActionInputBindingTestSuite) TestGoogleAuthFlowComplete() {
 
 	// Complete flow with authorization code
 	inputs := map[string]string{"code": authCode}
-	flowStep, err = common.CompleteFlow(ExecutionID, inputs, "")
+	flowStep, err = common.CompleteFlow(ExecutionID, inputs, "", flowStep.ChallengeToken)
 	ts.Require().NoError(err, "Failed to complete flow with auth code")
 
 	ts.Equal("COMPLETE", flowStep.FlowStatus)

@@ -241,6 +241,15 @@ func (n *taskExecutionNode) buildNodeResponse(execResp *common.ExecutorResponse)
 	return nodeResp
 }
 
+// GetExecutionPolicy returns the execution policy for the current node by delegating to the
+// configured executor with the node's mode. Returns nil if no executor is set.
+func (n *taskExecutionNode) GetExecutionPolicy() *ExecutionPolicy {
+	if n.executor == nil {
+		return nil
+	}
+	return n.executor.GetExecutionPolicy(n.mode)
+}
+
 // GetExecutorName returns the executor name for the task execution node
 func (n *taskExecutionNode) GetExecutorName() string {
 	return n.executorName

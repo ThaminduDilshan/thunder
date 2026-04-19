@@ -73,6 +73,7 @@ interface ActionPrompt {
 interface AuthResponse {
     flowStatus?: string;
     assertion?: string;
+    challengeToken?: string;
     failureReason?: string;
     type?: string;
     data?: {
@@ -102,6 +103,7 @@ const LoginPage = () => {
 
     const START_INIT_KEY = 'startInit';
     const EXECUTION_ID_KEY = 'executionId';
+    const CHALLENGE_TOKEN_KEY = 'challengeToken';
 
     const isComponentReMount = useRef(false);
     const { setToken, clearToken } = useAuth();
@@ -115,6 +117,7 @@ const LoginPage = () => {
     const [loading, setLoading] = useState<boolean>(true);
     const [retryCount, setRetryCount] = useState<number>(0);
     const [executionId, setExecutionId] = useState<string>(sessionStorage.getItem(EXECUTION_ID_KEY) || '');
+    const [challengeToken, setChallengeToken] = useState<string>(sessionStorage.getItem(CHALLENGE_TOKEN_KEY) || '');
     const [startInit] = useState<boolean>(JSON.parse(sessionStorage.getItem(START_INIT_KEY) || 'true'));
 
     // Unified form data state
@@ -251,12 +254,18 @@ const LoginPage = () => {
         event.preventDefault(); // Prevent focus loss
     };
 
-    const handleSocialLoginClick = useCallback((redirectURL: string) => {
+    const handleSocialLoginClick = useCallback((redirectURL: string, newChallengeToken?: string) => {
         setLoading(true);
         sessionStorage.setItem(EXECUTION_ID_KEY, executionId);
+        const tokenToSave = newChallengeToken !== undefined ? newChallengeToken : challengeToken;
+        if (tokenToSave) {
+            sessionStorage.setItem(CHALLENGE_TOKEN_KEY, tokenToSave);
+        } else {
+            sessionStorage.removeItem(CHALLENGE_TOKEN_KEY);
+        }
         sessionStorage.setItem(START_INIT_KEY, "false");
         window.location.href = redirectURL;
-    }, [executionId]);
+    }, [executionId, challengeToken]);
 
     // Process authentication response
     const processAuthResponse = useCallback((data: AuthResponse, selectedAction?: string) => {
@@ -264,6 +273,7 @@ const LoginPage = () => {
         const isMobileLogin = selectedAction && selectedAction.includes('mobile');
 
         setExecutionId(data.executionId || '');
+        setChallengeToken(data.challengeToken || '');
         if (data.flowStatus && data.flowStatus == 'ERROR') {
             if (isMobileLogin && data?.failureReason && data.failureReason.includes("User not found")) {
                 console.log("User not found, prompting registration");
@@ -343,7 +353,7 @@ const LoginPage = () => {
                 // This handles intermediate steps like "send_sms" that don't need user input
                 const singleAction = data.data.actions[0];
                 setLoading(true);
-                submitAuthDecision(executionId, singleAction.ref)
+                submitAuthDecision(executionId, singleAction.ref, undefined, data.challengeToken)
                     .then((result) => {
                         processAuthResponse(result.data, singleAction.ref);
                     })
@@ -361,8 +371,10 @@ const LoginPage = () => {
             const idpName = data.data?.additionalData?.idpName || 'Social Login';
 
             if (isCameFromDecision) {
-                // If this is a decision screen, handle the social login click
-                handleSocialLoginClick(url || '');
+                // If this is a decision screen, handle the social login click.
+                // Pass the new challenge token directly — the React state update for
+                // challengeToken hasn't flushed yet, so the closed-over value is stale.
+                handleSocialLoginClick(url || '', data.challengeToken || '');
                 return;
             }
             
@@ -380,8 +392,8 @@ const LoginPage = () => {
     const handleAuthOptionSelection = (actionId: string) => {
         setLoading(true);
         setSelectedAction(actionId);
-        
-        submitAuthDecision(executionId, actionId)
+
+        submitAuthDecision(executionId, actionId, undefined, challengeToken)
             .then((result) => {
                 processAuthResponse(result.data);
             })
@@ -450,7 +462,7 @@ const LoginPage = () => {
                     } else if (data.data?.actions && data.data.actions.length === 1) {
                         // Single action without inputs - auto-execute it
                         const singleAction = data.data.actions[0];
-                        submitAuthDecision(data.executionId, singleAction.ref)
+                        submitAuthDecision(data.executionId, singleAction.ref, undefined, data.challengeToken)
                             .then((result) => {
                                 processAuthResponse(result.data, singleAction.ref);
                             })
@@ -466,7 +478,7 @@ const LoginPage = () => {
                     // Handle redirection for social logins
                     const url = data.data?.redirectURL;
                     const idpName = data.data?.additionalData?.idpName || 'Social Login';
-                    
+
                     if (url) {
                         // Store the redirect URL instead of redirecting immediately
                         setRedirectURL(url);
@@ -475,6 +487,7 @@ const LoginPage = () => {
                 }
 
                 setExecutionId(data.executionId);
+                setChallengeToken(data.challengeToken || '');
                 setLoading(false);
             }).catch((error) => {
                 const errorType = isSignupMode ? "registration" : "auth";
@@ -546,7 +559,7 @@ const LoginPage = () => {
                     } else if (data.data?.actions && data.data.actions.length === 1) {
                         // Single action without inputs - auto-execute it
                         const singleAction = data.data.actions[0];
-                        submitAuthDecision(data.executionId, singleAction.ref)
+                        submitAuthDecision(data.executionId, singleAction.ref, undefined, data.challengeToken)
                             .then((result) => {
                                 processAuthResponse(result.data, singleAction.ref);
                             })
@@ -562,7 +575,7 @@ const LoginPage = () => {
                     // Handle redirection for social logins
                     const url = data.data?.redirectURL;
                     const idpName = data.data?.additionalData?.idpName || 'Social Login';
-                    
+
                     if (url) {
                         // Store the redirect URL instead of redirecting immediately
                         setRedirectURL(url);
@@ -571,6 +584,7 @@ const LoginPage = () => {
                 }
 
                 setExecutionId(data.executionId);
+                setChallengeToken(data.challengeToken || '');
                 setLoading(false);
             }).catch((error) => {
                 console.error(`Error during user registration:`, error);
@@ -600,7 +614,7 @@ const LoginPage = () => {
             const formAction = event.currentTarget.getAttribute('data-action-id');
             if (formAction) {
                 setSelectedAction(formAction);
-                submitAuthDecision(executionId, formAction, completeFormData)
+                submitAuthDecision(executionId, formAction, completeFormData, challengeToken)
                     .then((result) => {
                         processAuthResponse(result.data, formAction);
                     })
@@ -612,7 +626,7 @@ const LoginPage = () => {
         } else {
             // This is a direct input submission - include action if available
             const actionRef = availableActions.length > 0 ? availableActions[0].ref : undefined;
-            submitNativeAuth(executionId, completeFormData, actionRef)
+            submitNativeAuth(executionId, completeFormData, actionRef, challengeToken)
                 .then((result) => {
                     if (isMobileInput) {
                         processAuthResponse(result.data, "mobile");
@@ -651,7 +665,7 @@ const LoginPage = () => {
         };
 
         const actionRef = availableActions.length > 0 ? availableActions[0].ref : undefined;
-        submitNativeAuth(executionId, passkeyInputs, actionRef)
+        submitNativeAuth(executionId, passkeyInputs, actionRef, challengeToken)
             .then((result) => {
                 processAuthResponse(result.data);
             })
@@ -687,7 +701,7 @@ const LoginPage = () => {
 
         // Include action ref if available (consistent with other direct submissions)
         const actionRef = availableActions.length > 0 ? availableActions[0].ref : undefined;
-        submitNativeAuth(executionId, passkeyInputs, actionRef)
+        submitNativeAuth(executionId, passkeyInputs, actionRef, challengeToken)
             .then((result) => {
                 processAuthResponse(result.data);
             })
@@ -757,7 +771,7 @@ const LoginPage = () => {
                 // Clear query parameters to avoid re-submission
                 window.history.replaceState({}, document.title, window.location.pathname);
 
-                submitNativeAuth(executionId, { type: NativeAuthSubmitType.SOCIAL, code: code })
+                submitNativeAuth(executionId, { type: NativeAuthSubmitType.SOCIAL, code: code }, undefined, challengeToken)
                     .then((result) => {
                         processAuthResponse(result.data);
                     }).catch((error) => {

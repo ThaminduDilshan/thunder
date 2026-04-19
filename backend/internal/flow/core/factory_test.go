@@ -444,6 +444,10 @@ func (f *fakeExecutorBackedNode) ShouldExecute(ctx *NodeContext) bool {
 	return true
 }
 
+func (f *fakeExecutorBackedNode) GetExecutionPolicy() *ExecutionPolicy {
+	return nil
+}
+
 func (f *fakeExecutorBackedNode) GetExecutorName() string {
 	return "fake-exec"
 }

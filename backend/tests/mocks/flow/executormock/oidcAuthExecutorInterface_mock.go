@@ -279,6 +279,59 @@ func (_c *oidcAuthExecutorInterfaceMock_GetDefaultInputs_Call) RunAndReturn(run 
 	return _c
 }
 
+// GetExecutionPolicy provides a mock function for the type oidcAuthExecutorInterfaceMock
+func (_mock *oidcAuthExecutorInterfaceMock) GetExecutionPolicy(mode string) *core.ExecutionPolicy {
+	ret := _mock.Called(mode)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetExecutionPolicy")
+	}
+
+	var r0 *core.ExecutionPolicy
+	if returnFunc, ok := ret.Get(0).(func(string) *core.ExecutionPolicy); ok {
+		r0 = returnFunc(mode)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*core.ExecutionPolicy)
+		}
+	}
+	return r0
+}
+
+// oidcAuthExecutorInterfaceMock_GetExecutionPolicy_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetExecutionPolicy'
+type oidcAuthExecutorInterfaceMock_GetExecutionPolicy_Call struct {
+	*mock.Call
+}
+
+// GetExecutionPolicy is a helper method to define mock.On call
+//   - mode string
+func (_e *oidcAuthExecutorInterfaceMock_Expecter) GetExecutionPolicy(mode interface{}) *oidcAuthExecutorInterfaceMock_GetExecutionPolicy_Call {
+	return &oidcAuthExecutorInterfaceMock_GetExecutionPolicy_Call{Call: _e.mock.On("GetExecutionPolicy", mode)}
+}
+
+func (_c *oidcAuthExecutorInterfaceMock_GetExecutionPolicy_Call) Run(run func(mode string)) *oidcAuthExecutorInterfaceMock_GetExecutionPolicy_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 string
+		if args[0] != nil {
+			arg0 = args[0].(string)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *oidcAuthExecutorInterfaceMock_GetExecutionPolicy_Call) Return(executionPolicy *core.ExecutionPolicy) *oidcAuthExecutorInterfaceMock_GetExecutionPolicy_Call {
+	_c.Call.Return(executionPolicy)
+	return _c
+}
+
+func (_c *oidcAuthExecutorInterfaceMock_GetExecutionPolicy_Call) RunAndReturn(run func(mode string) *core.ExecutionPolicy) *oidcAuthExecutorInterfaceMock_GetExecutionPolicy_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetIDTokenClaims provides a mock function for the type oidcAuthExecutorInterfaceMock
 func (_mock *oidcAuthExecutorInterfaceMock) GetIDTokenClaims(execResp *common.ExecutorResponse, idToken string) (map[string]interface{}, error) {
 	ret := _mock.Called(execResp, idToken)

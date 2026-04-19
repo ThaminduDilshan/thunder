@@ -749,7 +749,8 @@ func (ts *OURegistrationFlowTestSuite) TestSMSRegistrationFlowWithOUCreation() {
 				"mobileNumber": mobileNumber,
 			}
 
-			flowStep, err = common.CompleteFlow(flowStep.ExecutionID, inputs, "action_001")
+			flowStep, err = common.CompleteFlow(flowStep.ExecutionID, inputs, "action_001",
+				flowStep.ChallengeToken)
 			ts.Require().NoError(err)
 			ts.Require().Equal("INCOMPLETE", flowStep.FlowStatus)
 
@@ -765,7 +766,8 @@ func (ts *OURegistrationFlowTestSuite) TestSMSRegistrationFlowWithOUCreation() {
 				"otp": lastMessage.OTP,
 			}
 
-			flowStep, err = common.CompleteFlow(flowStep.ExecutionID, inputs, "action_002")
+			flowStep, err = common.CompleteFlow(flowStep.ExecutionID, inputs, "action_002",
+				flowStep.ChallengeToken)
 			ts.Require().NoError(err)
 			ts.Require().Equal("INCOMPLETE", flowStep.FlowStatus)
 
@@ -776,7 +778,7 @@ func (ts *OURegistrationFlowTestSuite) TestSMSRegistrationFlowWithOUCreation() {
 				"ouDescription": tc.ouDescription,
 			}
 
-			flowStep, err = common.CompleteFlow(flowStep.ExecutionID, inputs, "")
+			flowStep, err = common.CompleteFlow(flowStep.ExecutionID, inputs, "", flowStep.ChallengeToken)
 			ts.Require().NoError(err)
 			ts.Require().Equal("INCOMPLETE", flowStep.FlowStatus)
 
@@ -788,7 +790,7 @@ func (ts *OURegistrationFlowTestSuite) TestSMSRegistrationFlowWithOUCreation() {
 				"email":        mobileNumber + "@example.com",
 			}
 
-			flowStep, err = common.CompleteFlow(flowStep.ExecutionID, inputs, "")
+			flowStep, err = common.CompleteFlow(flowStep.ExecutionID, inputs, "", flowStep.ChallengeToken)
 			ts.Require().NoError(err)
 			ts.Require().Equal("COMPLETE", flowStep.FlowStatus)
 			ts.Require().NotEmpty(flowStep.Assertion)
@@ -879,7 +881,8 @@ func (ts *OURegistrationFlowTestSuite) TestSMSRegistrationFlowWithOUCreationDupl
 			// Wait for OTP to be sent
 			time.Sleep(1 * time.Second)
 
-			flowStep, err = common.CompleteFlow(flowStep.ExecutionID, inputs, "action_001")
+			flowStep, err = common.CompleteFlow(flowStep.ExecutionID, inputs, "action_001",
+				flowStep.ChallengeToken)
 			ts.Require().NoError(err)
 			ts.Require().Equal("INCOMPLETE", flowStep.FlowStatus)
 
@@ -891,7 +894,8 @@ func (ts *OURegistrationFlowTestSuite) TestSMSRegistrationFlowWithOUCreationDupl
 				"otp": lastMessage.OTP,
 			}
 
-			flowStep, err = common.CompleteFlow(flowStep.ExecutionID, inputs, "action_002")
+			flowStep, err = common.CompleteFlow(flowStep.ExecutionID, inputs, "action_002",
+				flowStep.ChallengeToken)
 			ts.Require().NoError(err)
 			ts.Require().Equal("INCOMPLETE", flowStep.FlowStatus)
 
@@ -907,7 +911,7 @@ func (ts *OURegistrationFlowTestSuite) TestSMSRegistrationFlowWithOUCreationDupl
 				"ouDescription": "Should fail due to duplicate",
 			}
 
-			flowStep, err = common.CompleteFlow(flowStep.ExecutionID, inputs, "")
+			flowStep, err = common.CompleteFlow(flowStep.ExecutionID, inputs, "", flowStep.ChallengeToken)
 			ts.Require().NoError(err)
 			ts.Require().Equal("ERROR", flowStep.FlowStatus)
 			ts.Require().Empty(flowStep.Assertion)

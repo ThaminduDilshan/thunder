@@ -449,7 +449,7 @@ func (ts *GoogleRegistrationGroupRoleTestSuite) TestGoogleRegistrationWithGroupA
 
 	// Step 3: Complete the flow
 	inputs := map[string]string{"code": authCode}
-	completeFlowStep, err := common.CompleteFlow(flowStep.ExecutionID, inputs, "")
+	completeFlowStep, err := common.CompleteFlow(flowStep.ExecutionID, inputs, "", flowStep.ChallengeToken)
 	ts.Require().NoError(err, "Failed to complete flow")
 
 	// Verify flow completion

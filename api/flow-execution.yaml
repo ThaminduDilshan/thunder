@@ -41,6 +41,7 @@ paths:
                 summary: Subsequent request
                 value:
                   executionId: "2c6d4c45-3de9-4a70-ae6b-ba1d034af6bc"
+                  challengeToken: "a3f2e1b0c9d8e7f6a5b4c3d2e1f0a9b8c7d6e5f4a3b2c1d0e9f8a7b6c5d4e3f2"
                   actionId: "basic_auth"
                   inputs: {
                     "username": "thor",
@@ -63,6 +64,7 @@ paths:
                     executionId: "2c6d4c45-3de9-4a70-ae6b-ba1d034af6bc"
                     flowStatus: "PROMPT_ONLY"
                     stepId: "3071b6c6-0119-465c-b00b-3a0e6f88a730"
+                    challengeToken: "a3f2e1b0c9d8e7f6a5b4c3d2e1f0a9b8c7d6e5f4a3b2c1d0e9f8a7b6c5d4e3f2"
                     type: "VIEW"
                     data:
                       inputs: [
@@ -161,6 +163,10 @@ components:
           type: string
           description: Identifier of an existing flow execution
           example: "2c6d4c45-3de9-4a70-ae6b-ba1d034af6bc"
+        challengeToken:
+          type: string
+          description: Per-step challenge token received from the previous flow response
+          example: "a3f2e1b0c9d8e7f6a5b4c3d2e1f0a9b8c7d6e5f4a3b2c1d0e9f8a7b6c5d4e3f2"
         actionId:
           type: string
           description: Identifier of the action to execute in the flow
@@ -193,6 +199,10 @@ components:
           type: string
           description: Identifier of the current flow step
           example: "3071b6c6-0119-465c-b00b-3a0e6f88a730"
+        challengeToken:
+          type: string
+          description: Per-step challenge token to be included in the next request
+          example: "a3f2e1b0c9d8e7f6a5b4c3d2e1f0a9b8c7d6e5f4a3b2c1d0e9f8a7b6c5d4e3f2"
         type:
           type: string
           description: Type of flow step response

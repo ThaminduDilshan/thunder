@@ -22,7 +22,7 @@ import VisualFlowConstants from '../constants/VisualFlowConstants';
 import {ActionTypes} from '../models/actions';
 import type {Element} from '../models/elements';
 import {ElementCategories, ElementTypes, ActionEventTypes, ButtonTypes} from '../models/elements';
-import type {StepData} from '../models/steps';
+import type {StepAction, StepData} from '../models/steps';
 import {StepTypes, StaticStepTypes} from '../models/steps';
 
 /**
@@ -73,6 +73,9 @@ interface FlowNode {
   onFailure?: string;
   onIncomplete?: string;
   next?: string;
+  flow?: {
+    ref: string;
+  };
 }
 
 /**
@@ -144,6 +147,7 @@ const STEP_TO_NODE_TYPE_MAP: Record<string, string> = {
   [StepTypes.Execution]: 'TASK_EXECUTION',
   [StepTypes.Rule]: 'DECISION',
   [StepTypes.End]: 'END',
+  [StepTypes.Call]: 'CALL',
   [StaticStepTypes.Start]: 'START',
   [StaticStepTypes.UserOnboard]: 'END',
 };
@@ -556,6 +560,26 @@ function transformNode(canvasNode: Node<StepData>, edges: Edge[]): FlowNode {
     const nextNode = findNextNode(canvasNode, edges);
     if (nextNode) {
       flowNode.onSuccess = nextNode;
+    }
+  }
+
+  // Handle CALL nodes (cross-flow invocation)
+  if (canvasNode.type === StepTypes.Call) {
+    const callData = stepData as (StepData & {flow?: {ref?: string}}) | undefined;
+    const actionFlow = (callData?.action as (StepAction & {flow?: {ref?: string}}) | undefined)?.flow;
+    const flowRef: string | undefined = callData?.flow?.ref ?? actionFlow?.ref;
+    if (flowRef) {
+      flowNode.flow = {ref: flowRef};
+    }
+
+    const successNode = findNextNode(canvasNode, edges);
+    if (successNode) {
+      flowNode.onSuccess = successNode;
+    }
+
+    const failureEdge = edges.find((edge) => edge.source === canvasNode.id && edge.sourceHandle === 'failure');
+    if (failureEdge) {
+      flowNode.onFailure = failureEdge.target;
     }
   }
 

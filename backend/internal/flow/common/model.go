@@ -109,6 +109,7 @@ type NodeResponse struct {
 	Assertion         string                     `json:"assertion,omitempty"`
 	FieldErrors       []FieldError               `json:"fieldErrors,omitempty"`
 	AuthUser          authnprovidermgr.AuthUser  `json:"-"`
+	CallTargetFlowID  string                     `json:"callTargetFlowId,omitempty"`
 }
 
 // ExecutorResponse represents the response from an executor

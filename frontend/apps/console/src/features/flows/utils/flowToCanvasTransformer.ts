@@ -69,6 +69,7 @@ const NODE_TO_STEP_TYPE_MAP: Record<string, string> = {
   TASK_EXECUTION: StepTypes.Execution,
   DECISION: StepTypes.Rule,
   END: StepTypes.End,
+  CALL: StepTypes.Call,
   START: StaticStepTypes.Start,
 };
 
@@ -257,6 +258,21 @@ function transformNodeToCanvas(apiNode: FlowNode): CanvasNode {
     canvasNode.category = 'WORKFLOW';
   }
 
+  // Handle CALL nodes (cross-flow invocation)
+  if (stepType === StepTypes.Call) {
+    canvasNode.data = {
+      flow: apiNode.flow ?? {ref: ''},
+      action: {
+        type: 'CALL',
+        flow: apiNode.flow ?? {ref: ''},
+        onSuccess: apiNode.onSuccess,
+        onFailure: apiNode.onFailure,
+      },
+    };
+    canvasNode.resourceType = 'STEP';
+    canvasNode.category = 'WORKFLOW';
+  }
+
   // Handle END nodes
   if (stepType === StepTypes.End) {
     if (apiNode.meta?.components) {
@@ -407,6 +423,36 @@ function generateEdgesFromNodes(apiNodes: FlowNode[]): Edge[] {
       });
 
       // Handle onFailure for decision nodes
+      if (node.onFailure && nodeIds.has(node.onFailure)) {
+        edges.push({
+          id: `${node.id}-failure-to-${node.onFailure}`,
+          source: node.id,
+          sourceHandle: 'failure',
+          target: node.onFailure,
+          type: 'smoothstep',
+          animated: false,
+          markerEnd: {
+            type: MarkerType.Arrow,
+          },
+        });
+      }
+    }
+
+    // Handle CALL node connections
+    if (stepType === StepTypes.Call) {
+      if (node.onSuccess && nodeIds.has(node.onSuccess)) {
+        edges.push({
+          id: `${node.id}-to-${node.onSuccess}`,
+          source: node.id,
+          sourceHandle: `${node.id}${VisualFlowConstants.FLOW_BUILDER_NEXT_HANDLE_SUFFIX}`,
+          target: node.onSuccess,
+          type: 'smoothstep',
+          animated: false,
+          markerEnd: {
+            type: MarkerType.Arrow,
+          },
+        });
+      }
       if (node.onFailure && nodeIds.has(node.onFailure)) {
         edges.push({
           id: `${node.id}-failure-to-${node.onFailure}`,

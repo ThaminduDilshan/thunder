@@ -84,6 +84,7 @@ export const StepTypes = {
   Rule: 'RULE',
   Execution: 'TASK_EXECUTION',
   End: 'END',
+  Call: 'CALL',
 } as const;
 
 export const StaticStepTypes = {

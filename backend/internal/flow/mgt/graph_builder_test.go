@@ -1554,3 +1554,193 @@ func (s *GraphBuilderTestSuite) TestConfigureNodePrompts_InvalidRegexFailsBuild(
 	s.Contains(err.Error(), "password")
 	s.Contains(err.Error(), "invalid validation regex")
 }
+
+// Test CALL node validation
+
+func (s *GraphBuilderTestSuite) TestValidateCallNodeDefinition_Valid() {
+	nodeDef := &NodeDefinition{
+		ID:        "call-1",
+		Type:      "CALL",
+		Flow:      &FlowReferenceDefinition{Ref: "target-flow-id"},
+		OnSuccess: "next-node",
+	}
+	err := s.builder.validateCallNodeDefinition(nodeDef)
+	s.Nil(err)
+}
+
+func (s *GraphBuilderTestSuite) TestValidateCallNodeDefinition_MissingFlowRef() {
+	nodeDef := &NodeDefinition{
+		ID:        "call-1",
+		Type:      "CALL",
+		Flow:      nil,
+		OnSuccess: "next-node",
+	}
+	err := s.builder.validateCallNodeDefinition(nodeDef)
+	s.NotNil(err)
+	s.Contains(err.Error(), "flow.ref")
+}
+
+func (s *GraphBuilderTestSuite) TestValidateCallNodeDefinition_EmptyFlowRef() {
+	nodeDef := &NodeDefinition{
+		ID:        "call-1",
+		Type:      "CALL",
+		Flow:      &FlowReferenceDefinition{Ref: ""},
+		OnSuccess: "next-node",
+	}
+	err := s.builder.validateCallNodeDefinition(nodeDef)
+	s.NotNil(err)
+	s.Contains(err.Error(), "flow.ref")
+}
+
+func (s *GraphBuilderTestSuite) TestValidateCallNodeDefinition_MissingOnSuccess() {
+	nodeDef := &NodeDefinition{
+		ID:   "call-1",
+		Type: "CALL",
+		Flow: &FlowReferenceDefinition{Ref: "target-flow-id"},
+	}
+	err := s.builder.validateCallNodeDefinition(nodeDef)
+	s.NotNil(err)
+	s.Contains(err.Error(), "onSuccess")
+}
+
+func (s *GraphBuilderTestSuite) TestValidateCallNodeDefinition_OnIncompleteRejected() {
+	nodeDef := &NodeDefinition{
+		ID:           "call-1",
+		Type:         "CALL",
+		Flow:         &FlowReferenceDefinition{Ref: "target-flow-id"},
+		OnSuccess:    "next-node",
+		OnIncomplete: "incomplete-node",
+	}
+	err := s.builder.validateCallNodeDefinition(nodeDef)
+	s.NotNil(err)
+	s.Contains(err.Error(), "onIncomplete")
+}
+
+func (s *GraphBuilderTestSuite) TestValidateCallNodeDefinition_PromptsRejected() {
+	nodeDef := &NodeDefinition{
+		ID:        "call-1",
+		Type:      "CALL",
+		Flow:      &FlowReferenceDefinition{Ref: "target-flow-id"},
+		OnSuccess: "next-node",
+		Prompts:   []PromptDefinition{{Action: &ActionDefinition{Ref: "a", NextNode: "n"}}},
+	}
+	err := s.builder.validateCallNodeDefinition(nodeDef)
+	s.NotNil(err)
+	s.Contains(err.Error(), "prompts")
+}
+
+func (s *GraphBuilderTestSuite) TestValidateCallNodeDefinition_ExecutorRejected() {
+	nodeDef := &NodeDefinition{
+		ID:        "call-1",
+		Type:      "CALL",
+		Flow:      &FlowReferenceDefinition{Ref: "target-flow-id"},
+		OnSuccess: "next-node",
+		Executor:  &ExecutorDefinition{Name: "some-executor"},
+	}
+	err := s.builder.validateCallNodeDefinition(nodeDef)
+	s.NotNil(err)
+	s.Contains(err.Error(), "executor")
+}
+
+func (s *GraphBuilderTestSuite) TestValidateRichTextComponentActions_Valid() {
+	nodeDef := &NodeDefinition{
+		ID: "prompt-1",
+		Meta: map[string]interface{}{
+			"components": []interface{}{
+				map[string]interface{}{
+					"type":   "RICH_TEXT",
+					"action": map[string]interface{}{"ref": "action_signup", "eventType": "TRIGGER"},
+				},
+			},
+		},
+		Prompts: []PromptDefinition{{Action: &ActionDefinition{Ref: "action_signup", NextNode: "next"}}},
+	}
+	s.Nil(s.builder.validateRichTextComponentActions(nodeDef))
+}
+
+func (s *GraphBuilderTestSuite) TestValidateRichTextComponentActions_UnknownRef() {
+	nodeDef := &NodeDefinition{
+		ID: "prompt-1",
+		Meta: map[string]interface{}{
+			"components": []interface{}{
+				map[string]interface{}{
+					"type":   "RICH_TEXT",
+					"action": map[string]interface{}{"ref": "missing"},
+				},
+			},
+		},
+		Prompts: []PromptDefinition{{Action: &ActionDefinition{Ref: "action_signup", NextNode: "next"}}},
+	}
+	err := s.builder.validateRichTextComponentActions(nodeDef)
+	s.NotNil(err)
+	s.Contains(err.Error(), "does not match any prompt action")
+}
+
+func (s *GraphBuilderTestSuite) TestValidateRichTextComponentActions_EmptyRef() {
+	nodeDef := &NodeDefinition{
+		ID: "prompt-1",
+		Meta: map[string]interface{}{
+			"components": []interface{}{
+				map[string]interface{}{
+					"type":   "RICH_TEXT",
+					"action": map[string]interface{}{"ref": ""},
+				},
+			},
+		},
+		Prompts: []PromptDefinition{{Action: &ActionDefinition{Ref: "action_signup", NextNode: "next"}}},
+	}
+	err := s.builder.validateRichTextComponentActions(nodeDef)
+	s.NotNil(err)
+	s.Contains(err.Error(), "must be non-empty")
+}
+
+func (s *GraphBuilderTestSuite) TestValidateRichTextComponentActions_NestedInBlock() {
+	nodeDef := &NodeDefinition{
+		ID: "prompt-1",
+		Meta: map[string]interface{}{
+			"components": []interface{}{
+				map[string]interface{}{
+					"type": "BLOCK",
+					"components": []interface{}{
+						map[string]interface{}{
+							"type":   "RICH_TEXT",
+							"action": map[string]interface{}{"ref": "ghost"},
+						},
+					},
+				},
+			},
+		},
+		Prompts: []PromptDefinition{{Action: &ActionDefinition{Ref: "action_signup", NextNode: "next"}}},
+	}
+	err := s.builder.validateRichTextComponentActions(nodeDef)
+	s.NotNil(err)
+	s.Contains(err.Error(), "ghost")
+}
+
+func (s *GraphBuilderTestSuite) TestValidateRichTextComponentActions_PureDisplay() {
+	nodeDef := &NodeDefinition{
+		ID: "prompt-1",
+		Meta: map[string]interface{}{
+			"components": []interface{}{
+				map[string]interface{}{"type": "RICH_TEXT"},
+			},
+		},
+		Prompts: []PromptDefinition{{Action: &ActionDefinition{Ref: "action_signup", NextNode: "next"}}},
+	}
+	s.Nil(s.builder.validateRichTextComponentActions(nodeDef))
+}
+
+func (s *GraphBuilderTestSuite) TestProcessNode_CallNode_ValidationFails() {
+	// processNode should fail before calling CreateNode when the CALL node is invalid.
+	allNodes := []NodeDefinition{
+		{ID: "start", Type: "START", OnSuccess: "call-1"},
+		{ID: "call-1", Type: "CALL", Flow: nil, OnSuccess: "end"},
+		{ID: "end", Type: "END"},
+	}
+	nodeDef := &allNodes[1]
+	mockGraph := coremock.NewGraphInterfaceMock(s.T())
+
+	err := s.builder.processNode(context.Background(), nodeDef, allNodes, mockGraph, map[string][]string{}, nil)
+	s.NotNil(err)
+	s.Contains(err.Error(), "flow.ref")
+}

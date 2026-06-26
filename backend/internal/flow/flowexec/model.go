@@ -35,6 +35,23 @@ import (
 	"github.com/thunder-id/thunderid/internal/system/error/serviceerror"
 )
 
+// frame captures the per-call execution state that must be saved when a CALL node pushes
+// execution into a callee flow and restored when the callee returns.
+type frame struct {
+	graph               core.GraphInterface
+	flowType            common.FlowType
+	currentNode         core.NodeInterface
+	currentNodeResponse *common.NodeResponse
+	currentAction       string
+	currentSegmentID    string
+	runtimeData         map[string]string
+	forwardedData       map[string]interface{}
+	additionalData      map[string]string
+	// resumeCallNodeID is the ID of the CALL node in the caller graph that triggered this frame.
+	// On pop the engine uses it to look up onSuccess / onFailure.
+	resumeCallNodeID string
+}
+
 // EngineContext holds the overall context used by the flow engine during execution.
 type EngineContext struct {
 	Context context.Context
@@ -64,6 +81,80 @@ type EngineContext struct {
 
 	ChallengeTokenIn   string
 	ChallengeTokenHash string
+
+	// frameStack holds the saved call frames. The top of the stack is the most recent caller.
+	frameStack []*frame
+	// SharedRuntimeData is a cross-frame key-value store written by
+	// SetSharedRuntimeData and read by GetRuntimeData when a key is absent from the active frame.
+	SharedRuntimeData map[string]string
+}
+
+// PushFrame saves the current execution state as a new frame and returns it.
+// The caller is responsible for updating EngineContext fields to the callee state after pushing.
+func (e *EngineContext) PushFrame(resumeCallNodeID string) {
+	f := &frame{
+		graph:               e.Graph,
+		flowType:            e.FlowType,
+		currentNode:         e.CurrentNode,
+		currentNodeResponse: e.CurrentNodeResponse,
+		currentAction:       e.CurrentAction,
+		currentSegmentID:    e.CurrentSegmentID,
+		runtimeData:         e.RuntimeData,
+		forwardedData:       e.ForwardedData,
+		additionalData:      e.AdditionalData,
+		resumeCallNodeID:    resumeCallNodeID,
+	}
+	e.frameStack = append(e.frameStack, f)
+}
+
+// PopFrame restores the most-recently-pushed frame and removes it from the stack.
+// Returns nil when the stack is empty (caller must check).
+func (e *EngineContext) PopFrame() *frame {
+	if len(e.frameStack) == 0 {
+		return nil
+	}
+	top := e.frameStack[len(e.frameStack)-1]
+	e.frameStack = e.frameStack[:len(e.frameStack)-1]
+	e.Graph = top.graph
+	e.FlowType = top.flowType
+	e.CurrentNode = top.currentNode
+	e.CurrentNodeResponse = top.currentNodeResponse
+	e.CurrentAction = top.currentAction
+	e.CurrentSegmentID = top.currentSegmentID
+	e.RuntimeData = top.runtimeData
+	e.ForwardedData = top.forwardedData
+	e.AdditionalData = top.additionalData
+	return top
+}
+
+// FrameDepth returns the number of saved frames (0 means we are in the root flow).
+func (e *EngineContext) FrameDepth() int {
+	return len(e.frameStack)
+}
+
+// TopFrame returns the topmost frame without removing it, or nil if the stack is empty.
+func (e *EngineContext) TopFrame() *frame {
+	if len(e.frameStack) == 0 {
+		return nil
+	}
+	return e.frameStack[len(e.frameStack)-1]
+}
+
+// SetSharedRuntimeData writes a value into the cross-frame shared runtime data bucket.
+func (e *EngineContext) SetSharedRuntimeData(key, value string) {
+	if e.SharedRuntimeData == nil {
+		e.SharedRuntimeData = make(map[string]string)
+	}
+	e.SharedRuntimeData[key] = value
+}
+
+// GetSharedRuntimeData returns a value from the cross-frame shared runtime data bucket.
+func (e *EngineContext) GetSharedRuntimeData(key string) (string, bool) {
+	if e.SharedRuntimeData == nil {
+		return "", false
+	}
+	v, ok := e.SharedRuntimeData[key]
+	return v, ok
 }
 
 // FlowStep represents the outcome of a individual flow step
@@ -129,6 +220,18 @@ type FlowContextDB struct {
 	UpdatedAt   time.Time
 }
 
+// serializedFrame is the on-disk representation of a single call frame.
+type serializedFrame struct {
+	GraphID          string  `json:"graphId"`
+	CurrentNodeID    *string `json:"currentNodeId,omitempty"`
+	CurrentAction    *string `json:"currentAction,omitempty"`
+	CurrentSegmentID *string `json:"currentSegmentId,omitempty"`
+	RuntimeData      *string `json:"runtimeData,omitempty"`
+	ForwardedData    *string `json:"forwardedData,omitempty"`
+	AdditionalData   *string `json:"additionalData,omitempty"`
+	ResumeCallNodeID string  `json:"resumeCallNodeId,omitempty"`
+}
+
 // flowContextContent holds all flow state serialized into the CONTEXT JSON column.
 type flowContextContent struct {
 	AppID               string  `json:"appId"`
@@ -149,7 +252,13 @@ type flowContextContent struct {
 	AvailableAttributes *string `json:"availableAttributes,omitempty"`
 	AuthUser            *string `json:"authUser,omitempty"`
 	ChallengeTokenHash  *string `json:"challengeTokenHash,omitempty"`
+	FrameStack          *string `json:"frameStack,omitempty"`
+	SharedRuntimeData   *string `json:"sharedRuntimeData,omitempty"`
 }
+
+// GraphResolverFunc resolves a flow graph by its ID.
+// Used during context deserialization to hydrate saved call frames.
+type GraphResolverFunc func(ctx context.Context, graphID string) (core.GraphInterface, error)
 
 // GetGraphID extracts the graph ID from the context JSON.
 func (f *FlowContextDB) GetGraphID(_ context.Context) (string, error) {
@@ -160,8 +269,133 @@ func (f *FlowContextDB) GetGraphID(_ context.Context) (string, error) {
 	return content.GraphID, nil
 }
 
+// deserializeFrameStack reconstructs the saved call frames from the persisted content.
+// Returns nil without error when FrameStack is absent or resolveGraph is nil.
+func deserializeFrameStack(ctx context.Context, content flowContextContent,
+	resolveGraph GraphResolverFunc) ([]*frame, error) {
+	if content.FrameStack == nil || resolveGraph == nil {
+		return nil, nil
+	}
+	var serializedFrames []serializedFrame
+	if err := json.Unmarshal([]byte(*content.FrameStack), &serializedFrames); err != nil {
+		return nil, err
+	}
+	frames := make([]*frame, 0, len(serializedFrames))
+	for _, sf := range serializedFrames {
+		frameGraph, err := resolveGraph(ctx, sf.GraphID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to resolve frame graph %s: %w", sf.GraphID, err)
+		}
+		var currentNode core.NodeInterface
+		if sf.CurrentNodeID != nil {
+			if n, exists := frameGraph.GetNode(*sf.CurrentNodeID); exists {
+				currentNode = n
+			}
+		}
+		var currentAction, currentSegmentID string
+		if sf.CurrentAction != nil {
+			currentAction = *sf.CurrentAction
+		}
+		if sf.CurrentSegmentID != nil {
+			currentSegmentID = *sf.CurrentSegmentID
+		}
+		var runtimeData map[string]string
+		if sf.RuntimeData != nil {
+			if err := json.Unmarshal([]byte(*sf.RuntimeData), &runtimeData); err != nil {
+				return nil, err
+			}
+		}
+		var forwardedData map[string]interface{}
+		if sf.ForwardedData != nil {
+			if err := json.Unmarshal([]byte(*sf.ForwardedData), &forwardedData); err != nil {
+				return nil, err
+			}
+		}
+		var additionalData map[string]string
+		if sf.AdditionalData != nil {
+			if err := json.Unmarshal([]byte(*sf.AdditionalData), &additionalData); err != nil {
+				return nil, err
+			}
+		}
+		frames = append(frames, &frame{
+			graph:            frameGraph,
+			flowType:         frameGraph.GetType(),
+			currentNode:      currentNode,
+			currentAction:    currentAction,
+			currentSegmentID: currentSegmentID,
+			runtimeData:      runtimeData,
+			forwardedData:    forwardedData,
+			additionalData:   additionalData,
+			resumeCallNodeID: sf.ResumeCallNodeID,
+		})
+	}
+	return frames, nil
+}
+
+// serializeFrameStack converts the in-memory call-frame stack into a JSON string pointer
+// suitable for storage. Returns nil when the stack is empty.
+func serializeFrameStack(frameStack []*frame) (*string, error) {
+	if len(frameStack) == 0 {
+		return nil, nil
+	}
+	serializedFrames := make([]serializedFrame, 0, len(frameStack))
+	for _, f := range frameStack {
+		if f.graph == nil || f.graph.GetID() == "" {
+			return nil, fmt.Errorf("frame graph with a valid ID is required to persist frame stack")
+		}
+		sf := serializedFrame{
+			GraphID:          f.graph.GetID(),
+			ResumeCallNodeID: f.resumeCallNodeID,
+		}
+		if f.currentNode != nil {
+			nodeID := f.currentNode.GetID()
+			sf.CurrentNodeID = &nodeID
+		}
+		if f.currentAction != "" {
+			sf.CurrentAction = &f.currentAction
+		}
+		if f.currentSegmentID != "" {
+			sf.CurrentSegmentID = &f.currentSegmentID
+		}
+		if len(f.runtimeData) > 0 {
+			b, err := json.Marshal(f.runtimeData)
+			if err != nil {
+				return nil, err
+			}
+			s := string(b)
+			sf.RuntimeData = &s
+		}
+		if len(f.forwardedData) > 0 {
+			b, err := json.Marshal(f.forwardedData)
+			if err != nil {
+				return nil, err
+			}
+			s := string(b)
+			sf.ForwardedData = &s
+		}
+		if len(f.additionalData) > 0 {
+			b, err := json.Marshal(f.additionalData)
+			if err != nil {
+				return nil, err
+			}
+			s := string(b)
+			sf.AdditionalData = &s
+		}
+		serializedFrames = append(serializedFrames, sf)
+	}
+	b, err := json.Marshal(serializedFrames)
+	if err != nil {
+		return nil, err
+	}
+	s := string(b)
+	return &s, nil
+}
+
 // ToEngineContext converts the database model to the flow engine context.
-func (f *FlowContextDB) ToEngineContext(ctx context.Context, graph core.GraphInterface) (EngineContext, error) {
+// resolveGraph is called to load graphs for any saved call frames; pass nil when
+// you know the context was created without a frame stack (e.g. unit tests).
+func (f *FlowContextDB) ToEngineContext(ctx context.Context, graph core.GraphInterface,
+	resolveGraph GraphResolverFunc) (EngineContext, error) {
 	var content flowContextContent
 	if err := json.Unmarshal([]byte(f.Context), &content); err != nil {
 		return EngineContext{}, err
@@ -273,6 +507,20 @@ func (f *FlowContextDB) ToEngineContext(ctx context.Context, graph core.GraphInt
 		challengeTokenHash = *content.ChallengeTokenHash
 	}
 
+	// Parse shared runtime data
+	var sharedRuntimeData map[string]string
+	if content.SharedRuntimeData != nil {
+		if err := json.Unmarshal([]byte(*content.SharedRuntimeData), &sharedRuntimeData); err != nil {
+			return EngineContext{}, err
+		}
+	}
+
+	// Parse frame stack
+	frameStack, err := deserializeFrameStack(ctx, content, resolveGraph)
+	if err != nil {
+		return EngineContext{}, err
+	}
+
 	return EngineContext{
 		Context:            ctx,
 		ExecutionID:        f.ExecutionID,
@@ -290,6 +538,8 @@ func (f *FlowContextDB) ToEngineContext(ctx context.Context, graph core.GraphInt
 		AuthUser:           authUser,
 		ExecutionHistory:   executionHistory,
 		ChallengeTokenHash: challengeTokenHash,
+		frameStack:         frameStack,
+		SharedRuntimeData:  sharedRuntimeData,
 	}, nil
 }
 
@@ -399,6 +649,23 @@ func FromEngineContext(ctx EngineContext) (*FlowContextDB, error) {
 		challengeTokenHash = &ctx.ChallengeTokenHash
 	}
 
+	// Serialize frame stack
+	frameStackStr, err := serializeFrameStack(ctx.frameStack)
+	if err != nil {
+		return nil, err
+	}
+
+	// Serialize shared runtime data
+	var sharedRuntimeDataStr *string
+	if len(ctx.SharedRuntimeData) > 0 {
+		srdJSON, err := json.Marshal(ctx.SharedRuntimeData)
+		if err != nil {
+			return nil, err
+		}
+		s := string(srdJSON)
+		sharedRuntimeDataStr = &s
+	}
+
 	content := flowContextContent{
 		AppID:               ctx.AppID,
 		Verbose:             ctx.Verbose,
@@ -418,6 +685,8 @@ func FromEngineContext(ctx EngineContext) (*FlowContextDB, error) {
 		AvailableAttributes: availableAttributes,
 		AuthUser:            authUserStr,
 		ChallengeTokenHash:  challengeTokenHash,
+		FrameStack:          frameStackStr,
+		SharedRuntimeData:   sharedRuntimeDataStr,
 	}
 
 	contextJSON, err := json.Marshal(content)

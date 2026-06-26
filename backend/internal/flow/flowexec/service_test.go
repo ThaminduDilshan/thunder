@@ -766,7 +766,7 @@ func TestEncryptDecryptRoundTrip_AllFieldsPreserved(t *testing.T) {
 	}
 
 	// Step 3: Convert back to EngineContext
-	resultCtx, err := restoredDB.ToEngineContext(context.Background(), testGraph)
+	resultCtx, err := restoredDB.ToEngineContext(context.Background(), testGraph, nil)
 	assert.NoError(t, err)
 
 	// Verify all fields survived the round trip

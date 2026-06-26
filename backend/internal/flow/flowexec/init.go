@@ -59,7 +59,8 @@ func Initialize(
 		}
 		flowStore = newFlowStore(dbProvider)
 	}
-	flowEngine := newFlowEngine(executorRegistry, observabilitySvc)
+	graphResolver := &flowGraphResolverImpl{flowMgtService: flowMgtService}
+	flowEngine := newFlowEngine(executorRegistry, graphResolver, observabilitySvc)
 	flowExecService := newFlowExecService(flowMgtService, flowStore, flowEngine,
 		inboundClientService, entityProvider, observabilitySvc, transactioner, cryptoSvc)
 

@@ -64,6 +64,8 @@ func (f *flowFactory) CreateNode(id, _type string, properties map[string]interfa
 		return newPromptNode(id, properties, isStartNode, isFinalNode), nil
 	case common.NodeTypeStart, common.NodeTypeEnd:
 		return newRepresentationNode(id, nodeType, properties, isStartNode, isFinalNode), nil
+	case common.NodeTypeCall:
+		return newCallNode(id, properties, isStartNode, isFinalNode), nil
 	default:
 		return nil, errors.New("unsupported node type: " + _type)
 	}
@@ -159,6 +161,17 @@ func (f *flowFactory) CloneNode(source NodeInterface) (NodeInterface, error) {
 			promptCopy.SetMessage(promptSource.GetMessage())
 		} else {
 			return nil, errors.New("mismatch in node types during cloning. copy is not a prompt node")
+		}
+	}
+
+	// Copy referencedFlow, onSuccess, and onFailure if the node is a CALL node
+	if callSource, ok := source.(CallNodeInterface); ok {
+		if callCopy, ok := nodeCopy.(CallNodeInterface); ok {
+			callCopy.SetReferencedFlow(callSource.GetReferencedFlow())
+			callCopy.SetOnSuccess(callSource.GetOnSuccess())
+			callCopy.SetOnFailure(callSource.GetOnFailure())
+		} else {
+			return nil, errors.New("mismatch in node types during cloning. copy is not a call node")
 		}
 	}
 

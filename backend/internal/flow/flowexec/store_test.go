@@ -259,7 +259,7 @@ func (s *StoreTestSuite) TestGetFlowContext_WithToken() {
 	s.True(content.IsAuthenticated)
 	s.NotNil(content.Token)
 
-	restoredCtx, err := result.ToEngineContext(context.Background(), mockGraph)
+	restoredCtx, err := result.ToEngineContext(context.Background(), mockGraph, nil)
 	s.NoError(err)
 	s.Equal(testToken, restoredCtx.AuthenticatedUser.Token)
 
@@ -364,7 +364,7 @@ func (s *StoreTestSuite) TestStoreAndRetrieve_TokenRoundTrip() {
 	s.Equal(originalToken, *content.Token)
 
 	// Step 3: Convert to EngineContext
-	retrievedCtx, err := dbModel.ToEngineContext(context.Background(), mockGraph)
+	retrievedCtx, err := dbModel.ToEngineContext(context.Background(), mockGraph, nil)
 	s.NoError(err)
 
 	// Step 4: Verify all data is preserved correctly
@@ -437,7 +437,7 @@ func (s *StoreTestSuite) TestStoreAndRetrieve_ContextEncryptionRoundTrip() {
 	s.Equal(sensitiveRuntimeData, runtimeData["runtime_key"])
 
 	// Step 4: Convert to EngineContext and verify all data is preserved
-	retrievedCtx, err := dbModel.ToEngineContext(context.Background(), mockGraph)
+	retrievedCtx, err := dbModel.ToEngineContext(context.Background(), mockGraph, nil)
 	s.NoError(err)
 	s.Equal(originalCtx.ExecutionID, retrievedCtx.ExecutionID)
 
@@ -738,7 +738,7 @@ func (s *StoreTestSuite) TestGetFlowContext_WithAvailableAttributes() {
 	s.NotNil(content.AvailableAttributes)
 
 	// Verify we can deserialize it back to original
-	restoredCtx, err := result.ToEngineContext(context.Background(), mockGraph)
+	restoredCtx, err := result.ToEngineContext(context.Background(), mockGraph, nil)
 	s.NoError(err)
 	s.NotNil(restoredCtx.AuthenticatedUser.AvailableAttributes)
 	s.Len(restoredCtx.AuthenticatedUser.AvailableAttributes.Attributes, 2)
@@ -784,7 +784,7 @@ func (s *StoreTestSuite) TestEngineContextRoundTrip_WithAuthUser() {
 	content := s.getContextContent(dbModel)
 	s.NotNil(content.AuthUser)
 
-	restoredCtx, err := dbModel.ToEngineContext(context.Background(), mockGraph)
+	restoredCtx, err := dbModel.ToEngineContext(context.Background(), mockGraph, nil)
 	s.NoError(err)
 	s.True(restoredCtx.AuthUser.IsAuthenticated())
 }

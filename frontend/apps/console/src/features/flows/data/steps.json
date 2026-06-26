@@ -265,5 +265,21 @@
       "image": "assets/images/icons/check-mark-inside-a-black-box.svg",
       "showOnResourcePanel": false
     }
+  },
+  {
+    "resourceType": "STEP",
+    "category": "WORKFLOW",
+    "type": "CALL",
+    "display": {
+      "label": "Call Flow",
+      "image": "assets/images/icons/play.svg",
+      "showOnResourcePanel": true,
+      "description": "Invoke another flow and resume when it completes."
+    },
+    "data": {
+      "flow": {
+        "ref": ""
+      }
+    }
   }
 ]

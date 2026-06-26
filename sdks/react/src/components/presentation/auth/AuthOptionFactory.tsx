@@ -35,7 +35,7 @@ import {
   ConsentAttributeElementV2 as ConsentAttributeElement,
 } from '@thunderid/browser';
 import DOMPurify from 'dompurify';
-import {cloneElement, CSSProperties, ReactElement} from 'react';
+import {cloneElement, CSSProperties, MouseEvent as ReactMouseEvent, ReactElement} from 'react';
 import {OrganizationUnitPicker} from './OrganizationUnitPicker';
 import {
   ComponentRenderer,
@@ -521,10 +521,50 @@ const createAuthComponentFromFlow = (
     }
 
     case EmbeddedFlowComponentType.RichText: {
+      const action: {eventType?: string; ref: string} | undefined = component.action as
+        | {eventType?: string; ref: string}
+        | undefined;
+      // When the component carries action wiring, intercept clicks on sentinel-marked anchors
+      // (`data-action-ref="<ref>"`) and dispatch the flow action instead of navigating.
+      const onClickRichText: ((event: ReactMouseEvent<HTMLDivElement>) => void) | undefined = action
+        ? (event: ReactMouseEvent<HTMLDivElement>): void => {
+            const target: HTMLElement | null = event.target as HTMLElement | null;
+            const anchor: HTMLAnchorElement | null = target ? target.closest('a') : null;
+            if (!anchor) {
+              return;
+            }
+            const ref: string = anchor.getAttribute('data-action-ref') ?? '';
+            if (!ref || ref !== action.ref) {
+              return;
+            }
+            event.preventDefault();
+            if (!options.onSubmit) {
+              return;
+            }
+            const formData: Record<string, string> = {};
+            Object.keys(formValues).forEach((field: string) => {
+              formData[field] = formValues[field];
+            });
+            const eventTypeValue: string = action.eventType ?? EmbeddedFlowEventType.Submit;
+            const syntheticAction: EmbeddedFlowComponent = {
+              eventType: eventTypeValue,
+              id: action.ref,
+              ref: action.ref,
+              type: EmbeddedFlowComponentType.Action,
+            };
+            const skipValidation: boolean =
+              eventTypeValue.toUpperCase() === (EmbeddedFlowEventType.Trigger as string);
+            options.onSubmit(syntheticAction, formData, skipValidation);
+          }
+        : undefined;
+      // The click handler is a delegated listener that only fires for sentinel-marked
+      // anchors inside the rich-text HTML; the surrounding div itself is not interactive.
       return (
+        // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
         <div
           key={key}
           className={richTextClass}
+          onClick={onClickRichText}
           // Manually sanitizes with `DOMPurify`.
           // IMPORTANT: DO NOT REMOVE OR MODIFY THIS SANITIZATION STEP.
           dangerouslySetInnerHTML={{__html: DOMPurify.sanitize(resolveEmojiUrisInHtml(resolve(component.label)))}}

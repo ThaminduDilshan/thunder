@@ -66,8 +66,12 @@ describe('steps models', () => {
       expect(StepTypes.End).toBe('END');
     });
 
-    it('should have exactly 4 step types', () => {
-      expect(Object.keys(StepTypes)).toHaveLength(4);
+    it('should have Call type', () => {
+      expect(StepTypes.Call).toBe('CALL');
+    });
+
+    it('should have exactly 5 step types', () => {
+      expect(Object.keys(StepTypes)).toHaveLength(5);
     });
   });
 

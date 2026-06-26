@@ -20,6 +20,7 @@ import {FormControl, FormLabel, MenuItem, Select} from '@wso2/oxygen-ui';
 import {memo, useCallback, useMemo, type ReactElement} from 'react';
 import {useTranslation} from 'react-i18next';
 import ButtonExtendedProperties from './extended-properties/ButtonExtendedProperties';
+import CallProperties from './extended-properties/CallProperties';
 import ExecutionExtendedProperties from './extended-properties/ExecutionExtendedProperties';
 import FieldExtendedProperties from './extended-properties/FieldExtendedProperties';
 import RulesProperties from './nodes/RulesProperties';
@@ -146,6 +147,14 @@ function ResourceProperties({
 
       return null;
     case StepCategories.Workflow:
+      if (resource.type === StepTypes.Call) {
+        return (
+          <>
+            {renderElementId()}
+            <CallProperties resource={resource} onChange={handleChange} />
+          </>
+        );
+      }
       return (
         <>
           {renderElementId()}

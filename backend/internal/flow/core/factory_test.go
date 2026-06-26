@@ -82,6 +82,53 @@ func (s *FlowFactoryTestSuite) TestCreateNodeSuccess() {
 	}
 }
 
+func (s *FlowFactoryTestSuite) TestCreateCallNode() {
+	node, err := s.factory.CreateNode("call-1", string(common.NodeTypeCall),
+		map[string]interface{}{}, false, false)
+
+	s.NoError(err)
+	s.NotNil(node)
+	s.Equal("call-1", node.GetID())
+	s.Equal(common.NodeTypeCall, node.GetType())
+
+	cn, ok := node.(CallNodeInterface)
+	s.True(ok, "CALL node should implement CallNodeInterface")
+	cn.SetReferencedFlow("flow-xyz")
+	cn.SetOnSuccess("success-node")
+	cn.SetOnFailure("failure-node")
+	s.Equal("flow-xyz", cn.GetReferencedFlow())
+	s.Equal("success-node", cn.GetOnSuccess())
+	s.Equal("failure-node", cn.GetOnFailure())
+}
+
+func (s *FlowFactoryTestSuite) TestCloneCallNode() {
+	node, _ := s.factory.CreateNode("call-1", string(common.NodeTypeCall),
+		map[string]interface{}{"k": "v"}, false, false)
+	cn := node.(CallNodeInterface)
+	cn.SetReferencedFlow("flow-xyz")
+	cn.SetOnSuccess("success-node")
+	cn.SetOnFailure("failure-node")
+	node.AddNextNode("success-node")
+	node.AddNextNode("failure-node")
+
+	cloned, err := s.factory.CloneNode(node)
+
+	s.NoError(err)
+	s.NotNil(cloned)
+	s.Equal(node.GetID(), cloned.GetID())
+	s.Equal(common.NodeTypeCall, cloned.GetType())
+
+	cc, ok := cloned.(CallNodeInterface)
+	s.True(ok)
+	s.Equal("flow-xyz", cc.GetReferencedFlow())
+	s.Equal("success-node", cc.GetOnSuccess())
+	s.Equal("failure-node", cc.GetOnFailure())
+
+	// Deep copy — mutating clone must not affect source
+	cc.SetReferencedFlow("different-flow")
+	s.Equal("flow-xyz", cn.GetReferencedFlow())
+}
+
 func (s *FlowFactoryTestSuite) TestCreateNodeFailure() {
 	tests := []struct {
 		name     string

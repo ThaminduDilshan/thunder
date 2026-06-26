@@ -164,3 +164,31 @@ var ErrorInvalidChallengeToken = serviceerror.ServiceError{
 		DefaultValue: "The challenge token is missing or invalid",
 	},
 }
+
+// ErrorCallTargetFlowNotFound defines the error when a CALL node's referenced flow cannot be resolved.
+var ErrorCallTargetFlowNotFound = serviceerror.ServiceError{
+	Code: "FES-1011",
+	Type: serviceerror.ServerErrorType,
+	Error: core.I18nMessage{
+		Key:          "error.flowexecservice.call_target_flow_not_found",
+		DefaultValue: "Call target flow not found",
+	},
+	ErrorDescription: core.I18nMessage{
+		Key:          "error.flowexecservice.call_target_flow_not_found_description",
+		DefaultValue: "The flow referenced by the CALL node could not be resolved",
+	},
+}
+
+// ErrorCallDepthExceeded defines the error when the maximum cross-flow call depth is exceeded.
+var ErrorCallDepthExceeded = serviceerror.ServiceError{
+	Code: "FES-1012",
+	Type: serviceerror.ServerErrorType,
+	Error: core.I18nMessage{
+		Key:          "error.flowexecservice.call_depth_exceeded",
+		DefaultValue: "Call depth exceeded",
+	},
+	ErrorDescription: core.I18nMessage{
+		Key:          "error.flowexecservice.call_depth_exceeded_description",
+		DefaultValue: "The maximum cross-flow call depth has been exceeded",
+	},
+}

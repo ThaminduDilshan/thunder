@@ -243,7 +243,29 @@ export enum EmbeddedFlowEventType {
  *
  * @experimental This interface may change in future versions
  */
+/**
+ * Action wiring for a non-ACTION component (e.g. a sentinel-marked anchor inside a RICH_TEXT
+ * component). Carries the action ref used by the backend to identify the chosen action and an
+ * optional event type that mirrors the ACTION component's `eventType`.
+ *
+ * @experimental This interface may change in future versions
+ */
+export interface EmbeddedFlowComponentAction {
+  /** Event type that mirrors the ACTION component's `eventType` (e.g. 'SUBMIT', 'TRIGGER'). */
+  eventType?: EmbeddedFlowEventType | string;
+
+  /** Action reference identifier matching a configured action on the prompt node. */
+  ref: string;
+}
+
 export interface EmbeddedFlowComponent {
+  /**
+   * Optional action wiring for non-ACTION components. When present on a RICH_TEXT component
+   * the renderer binds click on sentinel-marked anchors (`data-action-ref="<ref>"`) inside the
+   * sanitized HTML to dispatch the named action instead of navigating.
+   */
+  action?: EmbeddedFlowComponentAction;
+
   /**
    * Alignment of children along the cross axis (for Stack components).
    */

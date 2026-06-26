@@ -69,6 +69,8 @@ const (
 	NodeTypeTaskExecution NodeType = "TASK_EXECUTION"
 	// NodeTypePrompt represents a prompt node
 	NodeTypePrompt NodeType = "PROMPT"
+	// NodeTypeCall represents a cross-flow invocation node
+	NodeTypeCall NodeType = "CALL"
 )
 
 // NodeStatus defines the status of a node in the flow execution.
@@ -84,6 +86,8 @@ const (
 	// NodeStatusForward indicates that the engine should forward execution to NextNodeID.
 	// Used for scenarios like onFailure handlers where context should be preserved.
 	NodeStatusForward NodeStatus = "FORWARD"
+	// NodeStatusCall indicates that execution should transfer to a referenced flow.
+	NodeStatusCall NodeStatus = "CALL_FLOW"
 )
 
 // NodeResponseType defines the type of response from a node in the flow execution.
@@ -295,6 +299,10 @@ const (
 	// MetaComponentTypeDynamicInputPlaceholder marks the insertion point for dynamically
 	// derived input components. The renderer replaces this component with the resolved inputs.
 	MetaComponentTypeDynamicInputPlaceholder = "DYNAMIC_INPUT_PLACEHOLDER"
+	// MetaComponentTypeRichText represents an inline rich-text display component.
+	// When the component carries an optional "action" field, sentinel-marked anchors
+	// inside the HTML content dispatch a flow action instead of navigating.
+	MetaComponentTypeRichText = "RICH_TEXT"
 )
 
 // Attribute name constants for well-known user attributes used across flow executors.

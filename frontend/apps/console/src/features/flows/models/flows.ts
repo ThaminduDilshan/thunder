@@ -102,6 +102,12 @@ export const FlowNodeType = {
    * Terminal node indicating the end of the flow
    */
   END: 'END',
+
+  /**
+   * Cross-flow invocation node that transfers execution to another flow and resumes
+   * at the configured target when the callee completes.
+   */
+  CALL: 'CALL',
 } as const;
 
 /**

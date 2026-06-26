@@ -36,6 +36,15 @@ import (
 	sysutils "github.com/thunder-id/thunderid/internal/system/utils"
 )
 
+// maxCallDepth is the maximum number of nested CALL frames allowed.
+const maxCallDepth = 5
+
+// TODO: This is not going to work. We need the flow provider for this.
+// flowGraphResolver resolves a callee graph for CALL node execution.
+type flowGraphResolver interface {
+	ResolveFlowGraph(ctx context.Context, flowID string) (core.GraphInterface, error)
+}
+
 // flowEngineInterface defines the interface for the flow engine.
 type flowEngineInterface interface {
 	Execute(ctx *EngineContext) (FlowStep, *serviceerror.ServiceError)
@@ -44,6 +53,7 @@ type flowEngineInterface interface {
 // FlowEngine is the main engine implementation for orchestrating flow executions.
 type flowEngine struct {
 	executorRegistry executor.ExecutorRegistryInterface
+	graphResolver    flowGraphResolver
 	observabilitySvc observability.ObservabilityServiceInterface
 	logger           *log.Logger
 }
@@ -51,10 +61,12 @@ type flowEngine struct {
 // newFlowEngine creates a new flow engine with the given dependencies.
 func newFlowEngine(
 	executorRegistry executor.ExecutorRegistryInterface,
+	graphResolver flowGraphResolver,
 	observabilitySvc observability.ObservabilityServiceInterface,
 ) flowEngineInterface {
 	return &flowEngine{
 		executorRegistry: executorRegistry,
+		graphResolver:    graphResolver,
 		observabilitySvc: observabilitySvc,
 		logger:           log.GetLogger().With(log.String(log.LoggerKeyComponentName, "FlowEngine")),
 	}
@@ -548,7 +560,19 @@ func (fe *flowEngine) processNodeResponse(ctx *EngineContext, nodeResp *common.N
 			return nil, false, svcErr
 		}
 		return nextNode, true, nil
+	case common.NodeStatusCall:
+		nextNode, svcErr := fe.handleCallResponse(ctx, nodeResp, logger)
+		if svcErr != nil {
+			return nil, false, svcErr
+		}
+		return nextNode, true, nil
 	case common.NodeStatusFailure:
+		// When a callee flow ends with failure and there is a caller frame on the stack,
+		// pop the frame and route to the caller CALL node's onFailure target (if configured).
+		// If onFailure is absent, terminate the whole flow with the error.
+		if ctx.FrameDepth() > 0 {
+			return fe.handleCalleeFailure(ctx, nodeResp, flowStep, logger)
+		}
 		flowStep.Status = common.FlowStatusError
 		flowStep.Error = nodeResp.Error
 		return nil, false, nil
@@ -621,9 +645,16 @@ func (fe *flowEngine) handleDisplayOnlyPromptResponse(ctx *EngineContext,
 }
 
 // handleCompletedResponse handles the completed node and returns the next node to execute.
+// When the completed node is an END node and there is a caller frame on the stack, the frame
+// is popped and execution resumes at the caller CALL node's onSuccess target.
 func (fe *flowEngine) handleCompletedResponse(ctx *EngineContext,
 	nodeResp *common.NodeResponse, logger *log.Logger) (
 	core.NodeInterface, *serviceerror.ServiceError) {
+	// If we just completed an END node inside a callee flow, return control to the caller.
+	if ctx.CurrentNode != nil && ctx.CurrentNode.GetType() == common.NodeTypeEnd && ctx.FrameDepth() > 0 {
+		return fe.handleCalleeReturn(ctx, logger)
+	}
+
 	nextNode, err := fe.resolveToNextNode(ctx, nodeResp)
 	if err != nil {
 		logger.Error(ctx.Context, "Error moving to the next node", log.Error(err))
@@ -631,6 +662,152 @@ func (fe *flowEngine) handleCompletedResponse(ctx *EngineContext,
 	}
 	ctx.CurrentNode = nextNode
 	return nextNode, nil
+}
+
+// handleCallResponse handles a NodeStatusCall response by pushing a frame and switching context
+// to the callee flow's start node.
+func (fe *flowEngine) handleCallResponse(ctx *EngineContext,
+	nodeResp *common.NodeResponse, logger *log.Logger) (
+	core.NodeInterface, *serviceerror.ServiceError) {
+	if ctx.FrameDepth() >= maxCallDepth {
+		logger.Error(ctx.Context, "Maximum CALL depth exceeded",
+			log.String("callNodeID", ctx.CurrentNode.GetID()),
+			log.String("targetFlowID", nodeResp.CallTargetFlowID))
+		return nil, &ErrorCallDepthExceeded
+	}
+
+	calleeGraph, err := fe.graphResolver.ResolveFlowGraph(ctx.Context, nodeResp.CallTargetFlowID)
+	if err != nil {
+		logger.Error(ctx.Context, "Failed to resolve CALL target flow",
+			log.String("targetFlowID", nodeResp.CallTargetFlowID), log.Error(err))
+		return nil, &ErrorCallTargetFlowNotFound
+	}
+
+	// Push the current frame before switching to the callee.
+	resumeCallNodeID := ctx.CurrentNode.GetID()
+	ctx.PushFrame(resumeCallNodeID)
+
+	// Switch context to the callee graph.
+	ctx.Graph = calleeGraph
+	ctx.FlowType = calleeGraph.GetType()
+	ctx.RuntimeData = make(map[string]string)
+	ctx.ForwardedData = nil
+	ctx.AdditionalData = make(map[string]string)
+	ctx.CurrentSegmentID = ""
+	ctx.CurrentAction = ""
+
+	startNode, startErr := calleeGraph.GetStartNode()
+	if startErr != nil {
+		logger.Error(ctx.Context, "Callee flow has no start node",
+			log.String("targetFlowID", nodeResp.CallTargetFlowID), log.Error(startErr))
+		return nil, &serviceerror.InternalServerError
+	}
+	ctx.CurrentNode = startNode
+	return startNode, nil
+}
+
+// handleCalleeReturn is called when the callee flow's END node completes while there is a
+// caller frame on the stack. It pops the frame and routes to the caller CALL node's onSuccess.
+func (fe *flowEngine) handleCalleeReturn(ctx *EngineContext, logger *log.Logger) (
+	core.NodeInterface, *serviceerror.ServiceError) {
+	savedFrame := ctx.PopFrame()
+	if savedFrame == nil {
+		logger.Error(ctx.Context, "Frame stack underflow on callee return")
+		return nil, &serviceerror.InternalServerError
+	}
+
+	// Restore shared additional data accumulated in the callee into the caller context.
+	if len(ctx.AdditionalData) > 0 {
+		if savedFrame.additionalData == nil {
+			savedFrame.additionalData = make(map[string]string)
+		}
+		for k, v := range ctx.AdditionalData {
+			savedFrame.additionalData[k] = v
+		}
+	}
+	ctx.AdditionalData = savedFrame.additionalData
+
+	// Find the CALL node in the restored caller graph.
+	callNode, exists := ctx.Graph.GetNode(savedFrame.resumeCallNodeID)
+	if !exists {
+		logger.Error(ctx.Context, "Caller CALL node not found after frame pop",
+			log.String("callNodeID", savedFrame.resumeCallNodeID))
+		return nil, &serviceerror.InternalServerError
+	}
+
+	cn, ok := callNode.(core.CallNodeInterface)
+	if !ok {
+		logger.Error(ctx.Context, "Caller resume node is not a CallNodeInterface",
+			log.String("callNodeID", savedFrame.resumeCallNodeID))
+		return nil, &serviceerror.InternalServerError
+	}
+
+	onSuccessID := cn.GetOnSuccess()
+	if onSuccessID == "" {
+		logger.Error(ctx.Context, "CALL node has no onSuccess target",
+			log.String("callNodeID", savedFrame.resumeCallNodeID))
+		return nil, &serviceerror.InternalServerError
+	}
+
+	nextNode, ok := ctx.Graph.GetNode(onSuccessID)
+	if !ok {
+		logger.Error(ctx.Context, "CALL onSuccess node not found",
+			log.String("onSuccessID", onSuccessID))
+		return nil, &serviceerror.InternalServerError
+	}
+	ctx.CurrentNode = nextNode
+	return nextNode, nil
+}
+
+// handleCalleeFailure is called when the callee flow ends with NodeStatusFailure while there is a
+// caller frame on the stack. It pops the frame and either routes to the caller CALL node's
+// onFailure target (forwarding the error response) or terminates the whole flow with the error.
+func (fe *flowEngine) handleCalleeFailure(ctx *EngineContext, nodeResp *common.NodeResponse,
+	flowStep *FlowStep, logger *log.Logger) (
+	core.NodeInterface, bool, *serviceerror.ServiceError) {
+	savedFrame := ctx.PopFrame()
+	if savedFrame == nil {
+		logger.Error(ctx.Context, "Frame stack underflow on callee failure")
+		return nil, false, &serviceerror.InternalServerError
+	}
+
+	callNode, exists := ctx.Graph.GetNode(savedFrame.resumeCallNodeID)
+	if !exists {
+		logger.Error(ctx.Context, "Caller CALL node not found after failure frame pop",
+			log.String("callNodeID", savedFrame.resumeCallNodeID))
+		return nil, false, &serviceerror.InternalServerError
+	}
+
+	cn, ok := callNode.(core.CallNodeInterface)
+	if !ok {
+		logger.Error(ctx.Context, "Caller resume node is not a CallNodeInterface on failure",
+			log.String("callNodeID", savedFrame.resumeCallNodeID))
+		return nil, false, &serviceerror.InternalServerError
+	}
+
+	onFailureID := cn.GetOnFailure()
+	if onFailureID == "" {
+		// No onFailure handler — terminate the whole flow.
+		flowStep.Status = common.FlowStatusError
+		flowStep.Error = nodeResp.Error
+		return nil, false, nil
+	}
+
+	nextNode, exists := ctx.Graph.GetNode(onFailureID)
+	if !exists {
+		logger.Error(ctx.Context, "CALL onFailure node not found",
+			log.String("onFailureID", onFailureID))
+		return nil, false, &serviceerror.InternalServerError
+	}
+
+	// Forward the error to the next prompt so the user sees the failure message.
+	ctx.CurrentNode = nextNode
+	ctx.CurrentNodeResponse = &common.NodeResponse{
+		Status:     common.NodeStatusForward,
+		NextNodeID: onFailureID,
+		Error:      nodeResp.Error,
+	}
+	return nextNode, true, nil
 }
 
 // handleIncompleteResponse handles the node response when the status is incomplete.

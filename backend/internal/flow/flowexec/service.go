@@ -28,6 +28,7 @@ import (
 	appmodel "github.com/thunder-id/thunderid/internal/application/model"
 	"github.com/thunder-id/thunderid/internal/entityprovider"
 	"github.com/thunder-id/thunderid/internal/flow/common"
+	"github.com/thunder-id/thunderid/internal/flow/core"
 	flowmgt "github.com/thunder-id/thunderid/internal/flow/mgt"
 	"github.com/thunder-id/thunderid/internal/inboundclient"
 	inboundmodel "github.com/thunder-id/thunderid/internal/inboundclient/model"
@@ -69,6 +70,19 @@ type flowExecService struct {
 	observabilitySvc     observability.ObservabilityServiceInterface
 	transactioner        transaction.Transactioner
 	cryptoSvc            kmprovider.RuntimeCryptoProvider
+}
+
+// flowGraphResolverImpl implements flowGraphResolver by delegating to flowMgtService.
+type flowGraphResolverImpl struct {
+	flowMgtService flowmgt.FlowMgtServiceInterface
+}
+
+func (r *flowGraphResolverImpl) ResolveFlowGraph(ctx context.Context, flowID string) (core.GraphInterface, error) {
+	g, svcErr := r.flowMgtService.GetGraph(ctx, flowID)
+	if svcErr != nil {
+		return nil, fmt.Errorf("failed to resolve flow graph %s: %s", flowID, svcErr.Error.DefaultValue)
+	}
+	return g, nil
 }
 
 func newFlowExecService(flowMgtService flowmgt.FlowMgtServiceInterface,
@@ -291,7 +305,14 @@ func (s *flowExecService) loadContextFromStore(ctx context.Context, executionID 
 		return nil, &serviceerror.InternalServerError
 	}
 
-	engineContext, err := dbModel.ToEngineContext(ctx, graph)
+	graphResolver := func(rctx context.Context, graphID string) (core.GraphInterface, error) {
+		g, svcErr := s.flowMgtService.GetGraph(rctx, graphID)
+		if svcErr != nil {
+			return nil, fmt.Errorf("failed to resolve graph %s: %s", graphID, svcErr.Error.DefaultValue)
+		}
+		return g, nil
+	}
+	engineContext, err := dbModel.ToEngineContext(ctx, graph, graphResolver)
 	if err != nil {
 		logger.Error(ctx, "Failed to convert flow context from database format",
 			log.String(log.LoggerKeyExecutionID, executionID), log.Error(err))

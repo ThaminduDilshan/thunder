@@ -83,6 +83,7 @@ export {
 } from './models/v2/embedded-flow-v2';
 export type {
   EmbeddedFlowComponent as EmbeddedFlowComponentV2,
+  EmbeddedFlowComponentAction as EmbeddedFlowComponentActionV2,
   EmbeddedFlowResponseData as EmbeddedFlowResponseDataV2,
   EmbeddedFlowExecuteRequestConfig as EmbeddedFlowExecuteRequestConfigV2,
   FlowExecutionError,

@@ -141,10 +141,19 @@ func (b *graphBuilder) buildGraph(ctx context.Context, flow *CompleteFlowDefinit
 // processNode processes a single node definition and adds it to the graph.
 func (b *graphBuilder) processNode(ctx context.Context, nodeDef *NodeDefinition, allNodes []NodeDefinition,
 	graph core.GraphInterface, edges map[string][]string, boundaries *[]segmentBoundary) error {
+	// CALL nodes always have onSuccess so they are not final nodes even when OnFailure is absent.
 	isFinalNode := nodeDef.OnSuccess == "" &&
 		nodeDef.OnFailure == "" &&
 		len(nodeDef.Prompts) == 0 &&
-		nodeDef.Next == ""
+		nodeDef.Next == "" &&
+		nodeDef.Flow == nil
+
+	// Validate CALL node definition before constructing the node.
+	if nodeDef.Type == string(common.NodeTypeCall) {
+		if err := b.validateCallNodeDefinition(nodeDef); err != nil {
+			return err
+		}
+	}
 
 	// Construct a new node. Here we set isStartNode to false by default
 	node, err := b.flowFactory.CreateNode(nodeDef.ID, nodeDef.Type, nodeDef.Properties,
@@ -165,12 +174,16 @@ func (b *graphBuilder) processNode(ctx context.Context, nodeDef *NodeDefinition,
 	if err := b.configureNodePrompts(ctx, nodeDef, node, edges); err != nil {
 		return err
 	}
+	if err := b.validateRichTextComponentActions(nodeDef); err != nil {
+		return err
+	}
 	if err := b.configureDisplayOnlyProperties(ctx, nodeDef, node, edges, boundaries); err != nil {
 		return err
 	}
 	if err := b.configureNodeExecutor(ctx, nodeDef, node); err != nil {
 		return err
 	}
+	b.configureCallNodeReference(nodeDef, node)
 
 	// Add node to the graph
 	if err := graph.AddNode(node); err != nil {
@@ -198,11 +211,17 @@ func (b *graphBuilder) configureNodeNavigation(nodeDef *NodeDefinition, allNodes
 
 	// Set onFailure if defined
 	if nodeDef.OnFailure != "" {
-		if err := b.validateOnFailureTarget(allNodes, nodeDef.OnFailure); err != nil {
-			return fmt.Errorf("invalid onFailure configuration for node %s: %w", nodeDef.ID, err)
+		// CALL nodes may have onFailure pointing at a PROMPT node (same rule as task nodes).
+		if nodeDef.Type != string(common.NodeTypeCall) {
+			if err := b.validateOnFailureTarget(allNodes, nodeDef.OnFailure); err != nil {
+				return fmt.Errorf("invalid onFailure configuration for node %s: %w", nodeDef.ID, err)
+			}
 		}
 		if taskNode, ok := node.(core.ExecutorBackedNodeInterface); ok {
 			taskNode.SetOnFailure(nodeDef.OnFailure)
+		}
+		if callNode, ok := node.(core.CallNodeInterface); ok {
+			callNode.SetOnFailure(nodeDef.OnFailure)
 		}
 
 		// Add edge for graph structure
@@ -534,4 +553,89 @@ func (b *graphBuilder) determineAndSetStartNode(graph core.GraphInterface) error
 		}
 	}
 	return fmt.Errorf("no start node found in the graph definition")
+}
+
+// validateCallNodeDefinition validates the constraints specific to CALL nodes:
+// - flow.ref must be non-empty
+// - onSuccess must be present
+// - onIncomplete must be absent
+// - prompts and executor blocks must be absent
+func (b *graphBuilder) validateCallNodeDefinition(nodeDef *NodeDefinition) error {
+	if nodeDef.Flow == nil || nodeDef.Flow.Ref == "" {
+		return fmt.Errorf("CALL node %s: 'flow.ref' is required", nodeDef.ID)
+	}
+	if nodeDef.OnSuccess == "" {
+		return fmt.Errorf("CALL node %s: 'onSuccess' is required", nodeDef.ID)
+	}
+	if nodeDef.OnIncomplete != "" {
+		return fmt.Errorf("CALL node %s: 'onIncomplete' is not allowed on CALL nodes", nodeDef.ID)
+	}
+	if len(nodeDef.Prompts) > 0 {
+		return fmt.Errorf("CALL node %s: 'prompts' is not allowed on CALL nodes", nodeDef.ID)
+	}
+	if nodeDef.Executor != nil {
+		return fmt.Errorf("CALL node %s: 'executor' is not allowed on CALL nodes", nodeDef.ID)
+	}
+	return nil
+}
+
+// validateRichTextComponentActions ensures any RICH_TEXT component carrying an "action.ref"
+// references a ref defined in the node's prompt-level actions. Pure-display RICH_TEXT
+// components (no "action" field) are unaffected.
+func (b *graphBuilder) validateRichTextComponentActions(nodeDef *NodeDefinition) error {
+	if nodeDef.Meta == nil || len(nodeDef.Prompts) == 0 {
+		return nil
+	}
+	metaMap, ok := nodeDef.Meta.(map[string]interface{})
+	if !ok {
+		return nil
+	}
+	components, ok := metaMap["components"].([]interface{})
+	if !ok {
+		return nil
+	}
+	knownRefs := make(map[string]struct{})
+	for _, p := range nodeDef.Prompts {
+		if p.Action != nil && p.Action.Ref != "" {
+			knownRefs[p.Action.Ref] = struct{}{}
+		}
+	}
+	return walkRichTextActions(nodeDef.ID, components, knownRefs)
+}
+
+// walkRichTextActions recurses into the components tree and validates RICH_TEXT.action.ref entries.
+func walkRichTextActions(nodeID string, components []interface{}, knownRefs map[string]struct{}) error {
+	for _, c := range components {
+		comp, ok := c.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		if compType, _ := comp["type"].(string); compType == common.MetaComponentTypeRichText {
+			if action, ok := comp["action"].(map[string]interface{}); ok {
+				ref, _ := action["ref"].(string)
+				if ref == "" {
+					return fmt.Errorf("node %s: RICH_TEXT component 'action.ref' must be non-empty", nodeID)
+				}
+				if _, exists := knownRefs[ref]; !exists {
+					return fmt.Errorf("node %s: RICH_TEXT component 'action.ref' %q does not match any prompt action", nodeID, ref)
+				}
+			}
+		}
+		if nested, ok := comp["components"].([]interface{}); ok {
+			if err := walkRichTextActions(nodeID, nested, knownRefs); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+// configureCallNodeReference sets the referenced flow ID on a CALL node.
+func (b *graphBuilder) configureCallNodeReference(nodeDef *NodeDefinition, node core.NodeInterface) {
+	if nodeDef.Flow == nil || nodeDef.Flow.Ref == "" {
+		return
+	}
+	if callNode, ok := node.(core.CallNodeInterface); ok {
+		callNode.SetReferencedFlow(nodeDef.Flow.Ref)
+	}
 }

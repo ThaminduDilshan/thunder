@@ -111,7 +111,7 @@
     "@types/react-syntax-highlighter": "^15.5.13",
     "@vitejs/plugin-basic-ssl": "catalog:",
     "@vitejs/plugin-react": "catalog:",
-    "@vitest/coverage-istanbul": "catalog:",
+    "@vitest/coverage-v8": "catalog:",
     "babel-plugin-react-compiler": "catalog:",
     "eslint": "catalog:",
     "jsdom": "catalog:",

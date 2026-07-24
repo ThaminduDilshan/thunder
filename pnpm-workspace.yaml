@@ -48,7 +48,7 @@ catalog:
   '@vitejs/plugin-basic-ssl': 2.3.0
   '@vitejs/plugin-react': 6.0.2
   '@vitest/browser-playwright': 4.1.10
-  '@vitest/coverage-istanbul': 4.1.10
+  '@vitest/coverage-v8': 4.1.10
   '@wso2/oxygen-ui': 0.11.0
   '@wso2/oxygen-ui-icons-react': 0.11.0
   babel-plugin-react-compiler: 19.1.0-rc.3
@@ -148,8 +148,8 @@ overrides:
   # JUSTIFICATION: Fixes GHSA-9cwx-2883-4wfx — launch-editor NTLMv2 hash disclosure via UNC path handling on Windows (transitive via vite and other tooling).
   launch-editor: '>=2.14.1'
   # JUSTIFICATION: Fixes GHSA-86vr-4h7v-f9x9 — @babel/core arbitrary file read via sourceMappingURL comment.
-  # Bounded to <8 so it stays on the patched 7.x line: @docusaurus/core and @vitest/coverage-istanbul
-  # require Babel 7 and break on the 8.x ESM export changes.
+  # Bounded to <8 so it stays on the patched 7.x line: @docusaurus/core requires Babel 7
+  # and breaks on the 8.x ESM export changes.
   '@babel/core': '>=7.29.6 <8'
   # JUSTIFICATION: Transitive dep via docusaurus. Fixes CVE-2026-48038 (GHSA-q7cg-457f-vx79) — uncaught RangeError DoS in joi on deeply nested input through recursive link() schemas.
   joi: '>=18.2.1'

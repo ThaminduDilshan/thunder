@@ -189,7 +189,7 @@ export default defineConfig(({command}) => ({
       },
     },
     coverage: {
-      provider: 'istanbul',
+      provider: 'v8',
       reporter: process.env.CI
         ? [['lcov', {projectRoot: resolve(currentDir, '..', '..', '..')}]]
         : ['text', 'json', 'html', ['lcov', {projectRoot: resolve(currentDir, '..', '..', '..')}]],

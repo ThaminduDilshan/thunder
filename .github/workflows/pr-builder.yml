@@ -233,11 +233,11 @@ jobs:
         run: |
           make build_frontend
 
-      - name: 🔨 Build Product with Coverage
+      - name: 🔨 Build Backend with Coverage Instrumentation
         run: |
           set -e
           export LOG_LEVEL=debug
-          make build_with_coverage_only OS=$(go env GOOS) ARCH=$(go env GOARCH)
+          ENABLE_COVERAGE=true ./build.sh build_backend $(go env GOOS) $(go env GOARCH)
 
           # Find the built distribution
           DIST_PATH=$(find target/dist -name "$PRODUCT_NAME_LOWER-*.zip" | head -1)
@@ -249,6 +249,42 @@ jobs:
           name: product-distribution
           path: target/dist/*.zip
           if-no-files-found: error
+
+  test-backend-unit:
+    name: 🧪 Backend Unit Tests
+    needs: [detect-code-changes]
+    if: ${{ always() && (github.event_name == 'workflow_dispatch' || (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'trigger-pr-builder') && (github.event.action != 'labeled' || github.event.label.name == 'trigger-pr-builder')) || github.event_name == 'merge_group') && (needs.detect-code-changes.result == 'skipped' || needs.detect-code-changes.outputs.should-run == 'true') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - name: 📥 Checkout Code
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: ⚙️ Set up Go Environment
+        uses: ./.github/actions/setup-go
+
+      - name: 🗄️ Cache Go Modules
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-modules-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-modules-
+
+      - name: 📦 Install Backend Dependencies
+        run: |
+          cd backend
+          go mod download
+
+      - name: 🧪 Run Backend Unit Tests
+        run: |
+          set -e
+          ./build.sh test_unit $(go env GOOS) $(go env GOARCH)
 
       - name: 📊 Upload Unit Test Coverage Report to Codecov
         # Skipped on merge queue commits: Codecov cannot process them, and the
@@ -312,15 +348,44 @@ jobs:
     needs: [detect-code-changes]
     if: ${{ always() && (github.event_name == 'workflow_dispatch' || (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'trigger-pr-builder') && (github.event.action != 'labeled' || github.event.label.name == 'trigger-pr-builder')) || github.event_name == 'merge_group') && (needs.detect-code-changes.result == 'skipped' || needs.detect-code-changes.outputs.should-run == 'true') }}
     runs-on: ubuntu-latest
+    container:
+      image: mcr.microsoft.com/playwright:v1.60.0-noble
+      options: --user root
+    # PLAYWRIGHT_BROWSERS_PATH: the Playwright image installs browsers under /ms-playwright but
+    # some tooling (e.g. @vitest/browser-playwright) resolves off HOME/.cache/ms-playwright
+    # when the image's ENV is masked by the runner. Pinning at job level guarantees resolution.
+    #
+    # HOME=/root: GitHub Actions overrides HOME=/github/home for container jobs, but that
+    # directory is owned by uid 1001 (the default runner user); since we run as root, Firefox
+    # refuses to launch ("$HOME folder isn't owned by the current user"). Chromium and WebKit
+    # tolerate it; Firefox does not. Setting HOME=/root aligns ownership with the running user.
+    env:
+      PLAYWRIGHT_BROWSERS_PATH: /ms-playwright
+      HOME: /root
+    # GitHub Actions defaults container jobs to POSIX `sh`; force bash so brace expansion,
+    # arrays, and `[[ ... ]]` used elsewhere in this workflow behave the same as on runners.
+    defaults:
+      run:
+        shell: bash
     timeout-minutes: 30
     steps:
+      - name: 🔧 Install Native-Build Toolchain
+        # Some transitive workspace deps (better-sqlite3) don't ship prebuilt binaries for the
+        # Node version in this image and fall back to `node-gyp rebuild`, which needs make + g++.
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends build-essential
+
       - name: 📥 Checkout Code
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
-      - name: ⚙️ Set up Node.js and pnpm
-        uses: ./.github/actions/setup-pnpm
-        with:
-          node-version: ${{ env.NODE_VERSION }}
+      - name: 📦 Enable pnpm via corepack
+        # The Playwright image ships Node with corepack; use it instead of setup-node/setup-pnpm,
+        # both of which are noisy inside containers and add ~15-20s.
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.13.1 --activate
+          pnpm --version
 
       - name: 📦 Install Frontend Dependencies
         run: |
@@ -328,12 +393,6 @@ jobs:
 
       - name: 🗂️ Set up Turbo Cache
         uses: ./.github/actions/setup-turbo-cache
-
-      - name: 🎭 Set up Playwright Browsers
-        uses: ./.github/actions/setup-playwright
-        with:
-          working-directory: frontend
-          scope: packages
 
       - name: 🔨 Build Frontend Packages
         working-directory: frontend
@@ -501,8 +560,8 @@ jobs:
     # commits, Codecov processing stalls). Mirrors coverage.status.patch.default
     # in codecov.yml (target 80%, threshold 1%). The enforcement logic lives in
     # .github/actions/patch-coverage-gate.
-    needs: [build, test-integration, test-frontend-console-app, test-frontend-gate-app, upload-frontend-coverage]
-    if: ${{ always() && (github.event_name == 'pull_request' || github.event_name == 'merge_group') && needs.build.result == 'success' && needs.test-integration.result == 'success' && needs.test-frontend-console-app.result == 'success' && needs.test-frontend-gate-app.result == 'success' && needs.upload-frontend-coverage.result == 'success' }}
+    needs: [build, test-backend-unit, test-integration, test-frontend-console-app, test-frontend-gate-app, upload-frontend-coverage]
+    if: ${{ always() && (github.event_name == 'pull_request' || github.event_name == 'merge_group') && needs.build.result == 'success' && needs.test-backend-unit.result == 'success' && needs.test-integration.result == 'success' && needs.test-frontend-console-app.result == 'success' && needs.test-frontend-gate-app.result == 'success' && needs.upload-frontend-coverage.result == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
@@ -593,12 +652,6 @@ jobs:
       - name: ⚙️ Set up Go Environment
         uses: ./.github/actions/setup-go
 
-      - name: 📥 Download Unit Coverage Report
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
-        with:
-          name: unit-coverage-report
-          path: backend/
-
       - name: 🗄️ Cache Go Modules
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         id: cache-go-modules
@@ -683,22 +736,41 @@ jobs:
     needs: [build, build_samples, detect-code-changes]
     if: ${{ always() && (needs.build.result == 'success' && needs.build_samples.result == 'success' && (needs.detect-code-changes.result == 'skipped' || needs.detect-code-changes.outputs.should-run == 'true')) }}
     runs-on: ubuntu-latest
+    container:
+      image: mcr.microsoft.com/playwright:v1.60.0-noble
+      options: --user root
+    # HOME=/root: GitHub Actions overrides HOME=/github/home for container jobs, but that
+    # directory is owned by uid 1001 (the default runner user). Since we run as root, Firefox
+    # refuses to launch ("$HOME folder isn't owned by the current user"). Chromium and WebKit
+    # tolerate it; Firefox does not. Setting HOME=/root aligns ownership with the running user.
+    env:
+      HOME: /root
+    # GitHub Actions defaults container jobs to POSIX `sh`; force bash so brace expansion
+    # (e.g. `for i in {1..60}`), arrays, and `[[ ... ]]` behave the same as on runners.
+    defaults:
+      run:
+        shell: bash
     timeout-minutes: 30
     steps:
+      - name: 🔧 Install Required OS Utilities
+        # jq/lsof/unzip are used by the bash setup steps below.
+        # build-essential is needed because `pnpm install --frozen-lockfile` at the workspace root
+        # triggers the better-sqlite3 postinstall, which falls back to `node-gyp rebuild` (needs
+        # make + g++) when no prebuilt binary matches the container's Node version.
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends jq lsof unzip build-essential
+
       - name: 📥 Checkout Code
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
-      - name: ⚙️ Set up Node.js
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
-        with:
-          node-version: 'lts/*'
-
-      - name: 📦 Install pnpm
-        uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
-        with:
-          run_install: false
-          cache_dependency_path: pnpm-lock.yaml
-          version: ${{ env.PNPM_VERSION }}
+      - name: 📦 Enable pnpm via corepack
+        # The Playwright image ships Node with corepack; use it instead of setup-node/setup-pnpm,
+        # both of which are noisy inside containers and add ~15-20s.
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.13.1 --activate
+          pnpm --version
 
       - name: 📥 Download Built Distribution
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
@@ -734,9 +806,13 @@ jobs:
         run: |
           cd tests/e2e/server
           ./setup.sh
-          ./start.sh &
+          # In container jobs, GitHub Actions reaps a step's descendant processes when the step's
+          # shell exits. `setsid` runs start.sh in a new session detached from the shell so it
+          # survives the step boundary and remains up when the Playwright test step runs later.
+          setsid ./start.sh > "$GITHUB_WORKSPACE/server.log" 2>&1 < /dev/null &
           SERVER_PID=$!
           echo "SERVER_PID=$SERVER_PID" >> $GITHUB_ENV
+          disown $SERVER_PID 2>/dev/null || true
           # Wait for server to be ready
           echo "Waiting for server to be ready on https://localhost:8090..."
           for i in {1..60}; do
@@ -944,9 +1020,11 @@ jobs:
           sleep 3
 
           echo "Starting the server with security enabled..."
-          ./start.sh &
+          # See "Start the Server" step for why setsid is needed inside container jobs.
+          setsid ./start.sh > "$GITHUB_WORKSPACE/server.log" 2>&1 < /dev/null &
           SERVER_PID=$!
           echo "SERVER_PID=$SERVER_PID" >> $GITHUB_ENV
+          disown $SERVER_PID 2>/dev/null || true
           
           # Wait for server to be ready
           echo "Waiting for server to be ready on https://localhost:8090..."
@@ -1005,7 +1083,10 @@ jobs:
               > /dev/null 2>&1
 
           echo "Starting Sample App..."
-          npm run dev &
+          # See "Start the Server" step for why setsid is needed inside container jobs.
+          SAMPLE_PID=$(setsid bash -c 'npm run dev > "$GITHUB_WORKSPACE/sample-app.log" 2>&1 < /dev/null & echo $!' | tail -1)
+          echo "SAMPLE_APP_PID=$SAMPLE_PID" >> $GITHUB_ENV
+          disown $SAMPLE_PID 2>/dev/null || true
           
           # Wait for sample app to be ready
           echo "Waiting for sample app to be ready on https://localhost:3000..."
@@ -1029,13 +1110,6 @@ jobs:
       - name: 📦 Install E2E Dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: 🎭 Set up Playwright Browsers
-        uses: ./.github/actions/setup-playwright
-        with:
-          working-directory: tests/e2e
-          scope: e2e
-        timeout-minutes: 5
-
       - name: 🎭 Run Playwright E2E Tests
         run: pnpm test
         working-directory: tests/e2e
@@ -1046,7 +1120,7 @@ jobs:
           ADMIN_PASSWORD: ${{ secrets.PLAYWRIGHT_ADMIN_PASSWORD || 'admin' }}
           TEST_USER_USERNAME: ${{ secrets.PLAYWRIGHT_TEST_USER_USERNAME || 'testuser' }}
           TEST_USER_PASSWORD: ${{ secrets.PLAYWRIGHT_TEST_USER_PASSWORD || 'admin' }}
-          PLAYWRIGHT_WORKERS: ${{ vars.PLAYWRIGHT_WORKERS || 1 }}
+          PLAYWRIGHT_WORKERS: ${{ vars.PLAYWRIGHT_WORKERS || 6 }}
           DEBUG_AUTH: ${{ vars.PLAYWRIGHT_DEBUG_AUTH || 'false' }}
           # MFA Test Configuration
           SAMPLE_APP_ID: ${{ steps.extract-app-id.outputs.sample_app_id }}

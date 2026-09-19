@@ -398,6 +398,15 @@ packages:
       pkgname: mgt
       filename: "{{.InterfaceName}}_mock_test.go"
 
+  github.com/thunder-id/thunderid/internal/system/outboundauth:
+    interfaces:
+      Authenticator:
+        config:
+          dir: internal/system/outboundauth
+          structname: '{{.InterfaceName}}Mock'
+          pkgname: outboundauth
+          filename: "{{.InterfaceName}}_mock_test.go"
+
   github.com/thunder-id/thunderid/internal/consent:
     config:
       all: true

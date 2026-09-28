@@ -19,6 +19,7 @@ import (
 	"github.com/thunder-id/thunderid/internal/notification"
 	notifcm "github.com/thunder-id/thunderid/internal/notification/common"
 	"github.com/thunder-id/thunderid/internal/notificationtemplate"
+	"github.com/thunder-id/thunderid/internal/system/log"
 	"github.com/thunder-id/thunderid/tests/mocks/entityprovidermock"
 	"github.com/thunder-id/thunderid/tests/mocks/flow/coremock"
 	"github.com/thunder-id/thunderid/tests/mocks/notification/notificationmock"
@@ -873,6 +874,53 @@ func (suite *EmailExecutorTestSuite) assertExecuteSendSuccess(ctx *providers.Nod
 	suite.NoError(err)
 	suite.Equal(providers.ExecComplete, resp.Status)
 	suite.Equal([]string{expectedRecipient}, sentEmail.To)
+}
+
+// A claim is only a fallback for the recipient, so an address the flow collected is not redirected to
+// one the external party asserted.
+func (suite *EmailExecutorTestSuite) TestResolveRecipientEmail_UserInputWinsOverExternalClaim() {
+	ctx := &providers.NodeContext{
+		UserInputs: map[string]string{"email": "entered@example.com"},
+		RuntimeData: map[string]string{
+			common.RuntimeKeyExternalIdentity: externalIdentityEntry("idp-1", "sub-1",
+				map[string]interface{}{"email": "claimed@example.com"}),
+		},
+	}
+
+	recipient, err := suite.executor.resolveRecipientEmail(ctx, log.GetLogger())
+
+	suite.NoError(err)
+	suite.Equal("entered@example.com", recipient)
+
+	delete(ctx.UserInputs, "email")
+	recipient, err = suite.executor.resolveRecipientEmail(ctx, log.GetLogger())
+
+	suite.NoError(err)
+	suite.Equal("claimed@example.com", recipient)
+}
+
+func (suite *EmailExecutorTestSuite) TestResolveTemplateData_ExternalClaims() {
+	ctx := &providers.NodeContext{
+		Application: providers.Application{Name: "MyApp"},
+		RuntimeData: map[string]string{
+			common.RuntimeKeyExternalIdentity: externalIdentityEntry("idp-1", "sub-1", map[string]interface{}{
+				"userID": "victim-id",
+				"name":   "Claimed",
+				"mobile": float64(94771234567),
+			}),
+			"userID": "real-id",
+			"name":   "",
+			"code":   "",
+		},
+	}
+
+	data := suite.executor.resolveTemplateData(ctx)
+
+	suite.Equal("real-id", data["userID"], "runtime data must win over a claim of the same name")
+	suite.Equal("Claimed", data["name"], "an empty runtime value must not hide the claim")
+	suite.Contains(data, "code", "an empty runtime value with no claim behind it is still rendered")
+	suite.Equal("94771234567", data["mobile"], "numeric claims render as the claim readers see them")
+	suite.NotContains(data, common.RuntimeKeyExternalIdentity)
 }
 
 func TestEmailExecutorSuite(t *testing.T) {

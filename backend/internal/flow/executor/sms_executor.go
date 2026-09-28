@@ -19,6 +19,7 @@ import (
 	notifcm "github.com/thunder-id/thunderid/internal/notification/common"
 	"github.com/thunder-id/thunderid/internal/notificationtemplate"
 	"github.com/thunder-id/thunderid/internal/system/log"
+	systemutils "github.com/thunder-id/thunderid/internal/system/utils"
 )
 
 // phoneNumberRegex matches phone numbers in various formats including optional +, digits, spaces, dashes,
@@ -152,7 +153,20 @@ func (e *smsExecutor) Execute(ctx *providers.NodeContext) (*providers.ExecutorRe
 func (e *smsExecutor) resolveTemplateData(ctx *providers.NodeContext) map[string]string {
 	templateData := map[string]string{}
 
+	// Claims are added first so runtime data overrides them. External claims must never take
+	// priority over runtime data, but an empty runtime value does not hide a claim.
+	if extIdentity := core.GetExternalIdentity(ctx.RuntimeData); extIdentity != nil {
+		for k, v := range extIdentity.Claims {
+			templateData[k] = systemutils.ConvertInterfaceValueToString(v)
+		}
+	}
 	for k, v := range ctx.RuntimeData {
+		if k == common.RuntimeKeyExternalIdentity {
+			continue
+		}
+		if _, claimed := templateData[k]; claimed && v == "" {
+			continue
+		}
 		templateData[k] = v
 	}
 
@@ -183,6 +197,10 @@ func (e *smsExecutor) resolveRecipientMobile(ctx *providers.NodeContext, phoneAt
 		return mobile
 	}
 	if mobile, ok := ctx.RuntimeData[phoneAttr]; ok && mobile != "" {
+		return mobile
+	}
+	// External claims are only a fallback and must never take priority over runtime data.
+	if mobile, ok := core.GetExternalClaim(ctx.RuntimeData, phoneAttr); ok && mobile != "" {
 		return mobile
 	}
 	if userID, ok := ctx.RuntimeData[userAttributeUserID]; ok && userID != "" && e.entityProvider != nil {

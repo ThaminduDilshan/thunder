@@ -77,9 +77,9 @@ func (suite *SMSExecutorTestSuite) TestExecute_SendMode_Success() {
 	suite.mockTemplateRenderer.On("Resolve", mock.Anything, notificationtemplate.ChannelTypeSMS,
 		smsSelfRegistrationHandle, mock.Anything).
 		Return(&notificationtemplate.ResolvedContent{Body: testRenderedSMSBody}, nil)
-	suite.mockSMSSenderSvc.On("Send",
+	suite.mockSMSSenderSvc.On("SendMessage",
 		mock.Anything, mock.Anything, "sender-uuid-001",
-		notifcm.NotificationData{Recipient: "+94714627887", Body: testRenderedSMSBody},
+		notifcm.MessageData{Recipient: "+94714627887", Body: testRenderedSMSBody},
 	).Return(nil)
 
 	resp, err := suite.executor.Execute(ctx)
@@ -109,9 +109,9 @@ func (suite *SMSExecutorTestSuite) TestExecute_SendMode_RecipientFromRuntimeData
 	suite.mockTemplateRenderer.On("Resolve", mock.Anything, notificationtemplate.ChannelTypeSMS,
 		smsSelfRegistrationHandle, mock.Anything).
 		Return(&notificationtemplate.ResolvedContent{Body: testRenderedSMSBody}, nil)
-	suite.mockSMSSenderSvc.On("Send",
+	suite.mockSMSSenderSvc.On("SendMessage",
 		mock.Anything, mock.Anything, "sender-uuid-001",
-		notifcm.NotificationData{Recipient: "+94714627887", Body: testRenderedSMSBody},
+		notifcm.MessageData{Recipient: "+94714627887", Body: testRenderedSMSBody},
 	).Return(nil)
 
 	resp, err := suite.executor.Execute(ctx)
@@ -143,9 +143,9 @@ func (suite *SMSExecutorTestSuite) TestExecute_SendMode_UserInputOverridesRuntim
 	suite.mockTemplateRenderer.On("Resolve", mock.Anything, notificationtemplate.ChannelTypeSMS,
 		smsSelfRegistrationHandle, mock.Anything).
 		Return(&notificationtemplate.ResolvedContent{Body: testRenderedSMSBody}, nil)
-	suite.mockSMSSenderSvc.On("Send",
+	suite.mockSMSSenderSvc.On("SendMessage",
 		mock.Anything, mock.Anything, "sender-uuid-001",
-		notifcm.NotificationData{Recipient: "+94714627887", Body: testRenderedSMSBody},
+		notifcm.MessageData{Recipient: "+94714627887", Body: testRenderedSMSBody},
 	).Return(nil)
 
 	resp, err := suite.executor.Execute(ctx)
@@ -178,9 +178,9 @@ func (suite *SMSExecutorTestSuite) TestExecute_SendMode_CustomPhoneAttribute() {
 	suite.mockTemplateRenderer.On("Resolve", mock.Anything, notificationtemplate.ChannelTypeSMS,
 		smsSelfRegistrationHandle, mock.Anything).
 		Return(&notificationtemplate.ResolvedContent{Body: testRenderedSMSBody}, nil)
-	suite.mockSMSSenderSvc.On("Send",
+	suite.mockSMSSenderSvc.On("SendMessage",
 		mock.Anything, mock.Anything, "sender-uuid-001",
-		notifcm.NotificationData{Recipient: "+94714627887", Body: testRenderedSMSBody},
+		notifcm.MessageData{Recipient: "+94714627887", Body: testRenderedSMSBody},
 	).Return(nil)
 
 	resp, err := suite.executor.Execute(ctx)
@@ -207,7 +207,7 @@ func (suite *SMSExecutorTestSuite) TestExecute_PrerequisiteNotMet_ReturnsFailure
 	suite.NoError(err)
 	suite.Equal(providers.ExecFailure, resp.Status)
 	suite.Equal(ErrSMSRecipientMissing.Error.DefaultValue, resp.Error.Error.DefaultValue)
-	suite.mockSMSSenderSvc.AssertNotCalled(suite.T(), "Send",
+	suite.mockSMSSenderSvc.AssertNotCalled(suite.T(), "SendMessage",
 		mock.Anything, mock.Anything, mock.Anything, mock.Anything)
 }
 
@@ -231,7 +231,7 @@ func (suite *SMSExecutorTestSuite) TestExecute_SendMode_MissingRecipient() {
 	suite.NoError(err)
 	suite.Equal(providers.ExecFailure, resp.Status)
 	suite.Equal(ErrSMSRecipientMissing.Error.DefaultValue, resp.Error.Error.DefaultValue)
-	suite.mockSMSSenderSvc.AssertNotCalled(suite.T(), "Send",
+	suite.mockSMSSenderSvc.AssertNotCalled(suite.T(), "SendMessage",
 		mock.Anything, mock.Anything, mock.Anything, mock.Anything)
 }
 
@@ -255,7 +255,7 @@ func (suite *SMSExecutorTestSuite) TestExecute_SendMode_MissingSenderID() {
 	suite.Error(err)
 	suite.Nil(resp)
 	suite.Contains(err.Error(), "senderId is not configured")
-	suite.mockSMSSenderSvc.AssertNotCalled(suite.T(), "Send",
+	suite.mockSMSSenderSvc.AssertNotCalled(suite.T(), "SendMessage",
 		mock.Anything, mock.Anything, mock.Anything, mock.Anything)
 }
 
@@ -305,7 +305,7 @@ func (suite *SMSExecutorTestSuite) TestExecute_SendMode_InvalidPhoneNumber() {
 	suite.NoError(err)
 	suite.Equal(providers.ExecFailure, resp.Status)
 	suite.Equal(ErrSMSInvalidPhone.Error.DefaultValue, resp.Error.Error.DefaultValue)
-	suite.mockSMSSenderSvc.AssertNotCalled(suite.T(), "Send",
+	suite.mockSMSSenderSvc.AssertNotCalled(suite.T(), "SendMessage",
 		mock.Anything, mock.Anything, mock.Anything, mock.Anything)
 }
 
@@ -373,7 +373,7 @@ func (suite *SMSExecutorTestSuite) TestExecute_SendMode_UserOnboarding_ClientErr
 			DefaultValue: "The requested notification sender could not be found",
 		},
 	}
-	suite.mockSMSSenderSvc.On("Send", mock.Anything, mock.Anything, mock.Anything, mock.Anything).
+	suite.mockSMSSenderSvc.On("SendMessage", mock.Anything, mock.Anything, mock.Anything, mock.Anything).
 		Return(clientErr)
 
 	resp, err := suite.executor.Execute(ctx)
@@ -411,7 +411,7 @@ func (suite *SMSExecutorTestSuite) TestExecute_SendMode_UserOnboarding_ServerErr
 			Key: "error.test.internal_server_error", DefaultValue: "internal server error",
 		},
 	}
-	suite.mockSMSSenderSvc.On("Send", mock.Anything, mock.Anything, mock.Anything, mock.Anything).
+	suite.mockSMSSenderSvc.On("SendMessage", mock.Anything, mock.Anything, mock.Anything, mock.Anything).
 		Return(serverErr)
 
 	resp, err := suite.executor.Execute(ctx)
@@ -451,7 +451,7 @@ func (suite *SMSExecutorTestSuite) TestExecute_SendMode_OtherFlow_NotificationEr
 			DefaultValue: "The requested notification sender could not be found",
 		},
 	}
-	suite.mockSMSSenderSvc.On("Send", mock.Anything, mock.Anything, mock.Anything, mock.Anything).
+	suite.mockSMSSenderSvc.On("SendMessage", mock.Anything, mock.Anything, mock.Anything, mock.Anything).
 		Return(clientErr)
 
 	resp, err := suite.executor.Execute(ctx)
@@ -485,7 +485,7 @@ func (suite *SMSExecutorTestSuite) TestExecute_NoSMSTemplateProperty_ReturnsFlow
 	suite.Equal(ErrSMSTemplateMissing.Error.DefaultValue, resp.Error.Error.DefaultValue)
 	suite.mockTemplateRenderer.AssertNotCalled(suite.T(), "Resolve",
 		mock.Anything, mock.Anything, mock.Anything, mock.Anything)
-	suite.mockSMSSenderSvc.AssertNotCalled(suite.T(), "Send",
+	suite.mockSMSSenderSvc.AssertNotCalled(suite.T(), "SendMessage",
 		mock.Anything, mock.Anything, mock.Anything, mock.Anything)
 }
 
@@ -514,7 +514,7 @@ func (suite *SMSExecutorTestSuite) TestExecute_EmptySMSTemplateProperty_ReturnsF
 	suite.Equal(ErrSMSTemplateMissing.Error.DefaultValue, resp.Error.Error.DefaultValue)
 	suite.mockTemplateRenderer.AssertNotCalled(suite.T(), "Resolve",
 		mock.Anything, mock.Anything, mock.Anything, mock.Anything)
-	suite.mockSMSSenderSvc.AssertNotCalled(suite.T(), "Send",
+	suite.mockSMSSenderSvc.AssertNotCalled(suite.T(), "SendMessage",
 		mock.Anything, mock.Anything, mock.Anything, mock.Anything)
 }
 
@@ -538,9 +538,9 @@ func (suite *SMSExecutorTestSuite) TestExecute_SMSTemplatePropertySet_UsesCustom
 	suite.mockTemplateRenderer.On("Resolve", mock.Anything, notificationtemplate.ChannelTypeSMS,
 		smsSelfRegistrationHandle, mock.Anything).
 		Return(&notificationtemplate.ResolvedContent{Body: testRenderedSMSBody}, nil)
-	suite.mockSMSSenderSvc.On("Send",
+	suite.mockSMSSenderSvc.On("SendMessage",
 		mock.Anything, mock.Anything, "sender-uuid-001",
-		notifcm.NotificationData{Recipient: "+94714627887", Body: testRenderedSMSBody},
+		notifcm.MessageData{Recipient: "+94714627887", Body: testRenderedSMSBody},
 	).Return(nil)
 
 	resp, err := suite.executor.Execute(ctx)
@@ -578,7 +578,7 @@ func (suite *SMSExecutorTestSuite) TestExecute_SendMode_TemplateRenderFailure_Re
 	suite.Error(err)
 	suite.Nil(resp)
 	suite.Contains(err.Error(), "failed to render SMS template")
-	suite.mockSMSSenderSvc.AssertNotCalled(suite.T(), "Send",
+	suite.mockSMSSenderSvc.AssertNotCalled(suite.T(), "SendMessage",
 		mock.Anything, mock.Anything, mock.Anything, mock.Anything)
 }
 
@@ -616,9 +616,9 @@ func (suite *SMSExecutorTestSuite) TestExecute_SendMode_TemplateDataIncludesRunt
 			},
 		},
 	).Return(&notificationtemplate.ResolvedContent{Body: testRenderedSMSBody}, nil)
-	suite.mockSMSSenderSvc.On("Send",
+	suite.mockSMSSenderSvc.On("SendMessage",
 		mock.Anything, mock.Anything, "sender-uuid-001",
-		notifcm.NotificationData{Recipient: "+94714627887", Body: testRenderedSMSBody},
+		notifcm.MessageData{Recipient: "+94714627887", Body: testRenderedSMSBody},
 	).Return(nil)
 
 	resp, err := suite.executor.Execute(ctx)

@@ -29,7 +29,6 @@ import (
 	"github.com/thunder-id/thunderid/internal/notificationtemplate"
 	"github.com/thunder-id/thunderid/internal/revocation"
 	"github.com/thunder-id/thunderid/internal/role"
-	"github.com/thunder-id/thunderid/internal/system/email"
 	"github.com/thunder-id/thunderid/internal/system/jose/jwt"
 	"github.com/thunder-id/thunderid/internal/system/log"
 	"github.com/thunder-id/thunderid/internal/user"
@@ -175,7 +174,6 @@ type ExecutorDependencies struct {
 	UserMgtProvider       providers.UserMgtProvider
 	AgentMgtProvider      providers.AgentMgtProvider
 	AttributeCacheSvc     attributecache.AttributeCacheServiceInterface
-	EmailClient           email.EmailClientInterface
 	TemplateRenderer      notificationtemplate.TemplateRendererInterface
 	OAuthSvc              oauth.OAuthAuthnServiceInterface
 	OIDCSvc               oidc.OIDCAuthnServiceInterface
@@ -260,7 +258,7 @@ func newBuiltInExecutorRegistrars() map[string]builtInExecutorRegistrar {
 		},
 		ExecutorNameEmailExecutor: func(reg ExecutorRegistryInterface, deps ExecutorDependencies) {
 			reg.RegisterExecutor(ExecutorNameEmailExecutor, newEmailExecutor(
-				deps.FlowFactory, deps.EmailClient, deps.TemplateRenderer, deps.EntityProvider))
+				deps.FlowFactory, deps.NotifSenderSvc, deps.TemplateRenderer, deps.EntityProvider))
 		},
 		ExecutorNameCredentialSetter: func(reg ExecutorRegistryInterface, deps ExecutorDependencies) {
 			reg.RegisterExecutor(ExecutorNameCredentialSetter, newCredentialSetter(

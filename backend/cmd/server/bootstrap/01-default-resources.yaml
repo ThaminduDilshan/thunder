@@ -453,7 +453,7 @@ nodes:
 - id: send_recovery_email
   type: TASK_EXECUTION
   properties:
-    emailTemplate: PASSWORD_RECOVERY
+    emailTemplate: password-recovery
   executor:
     name: EmailExecutor
     mode: send
@@ -733,7 +733,7 @@ nodes:
 - id: send_recovery_email
   type: TASK_EXECUTION
   properties:
-    emailTemplate: PASSWORD_RECOVERY
+    emailTemplate: password-recovery
   executor:
     name: EmailExecutor
     mode: send
@@ -1690,7 +1690,7 @@ nodes:
 - id: send_invite_email
   type: TASK_EXECUTION
   properties:
-    emailTemplate: USER_INVITE
+    emailTemplate: user-invite
   executor:
     name: EmailExecutor
     mode: send

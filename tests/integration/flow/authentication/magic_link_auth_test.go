@@ -71,7 +71,7 @@ var magicLinkAuthFlow = testutils.Flow{
 				},
 			},
 			"properties": map[string]interface{}{
-				"emailTemplate": "MAGIC_LINK",
+				"emailTemplate": "magic-link",
 			},
 			"onSuccess": "verify_magic_link",
 		},

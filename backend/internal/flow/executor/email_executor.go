@@ -15,23 +15,23 @@ import (
 	"github.com/thunder-id/thunderid/internal/flow/core"
 	"github.com/thunder-id/thunderid/internal/notification"
 	notifcm "github.com/thunder-id/thunderid/internal/notification/common"
+	"github.com/thunder-id/thunderid/internal/notificationtemplate"
 	"github.com/thunder-id/thunderid/internal/system/log"
-	"github.com/thunder-id/thunderid/internal/system/template"
 )
 
 // emailExecutor sends emails based on the configured email template and runtime context data.
 type emailExecutor struct {
 	providers.Executor
-	logger          *log.Logger
-	notifSenderSvc  notification.NotificationSenderServiceInterface
-	templateService template.TemplateServiceInterface
-	entityProvider  entityprovider.EntityProviderInterface
+	logger           *log.Logger
+	notifSenderSvc   notification.NotificationSenderServiceInterface
+	templateRenderer notificationTemplateRenderer
+	entityProvider   entityprovider.EntityProviderInterface
 }
 
 // newEmailExecutor creates a new instance of the email executor.
 func newEmailExecutor(flowFactory core.FlowFactoryInterface,
 	notifSenderSvc notification.NotificationSenderServiceInterface,
-	templateService template.TemplateServiceInterface,
+	templateRenderer notificationTemplateRenderer,
 	entityProvider entityprovider.EntityProviderInterface) *emailExecutor {
 	logger := log.GetLogger().With(log.String(log.LoggerKeyComponentName, "EmailExecutor"))
 	base := flowFactory.CreateExecutor(
@@ -54,11 +54,11 @@ func newEmailExecutor(flowFactory core.FlowFactoryInterface,
 		},
 	)
 	return &emailExecutor{
-		Executor:        base,
-		logger:          logger,
-		notifSenderSvc:  notifSenderSvc,
-		templateService: templateService,
-		entityProvider:  entityProvider,
+		Executor:         base,
+		logger:           logger,
+		notifSenderSvc:   notifSenderSvc,
+		templateRenderer: templateRenderer,
+		entityProvider:   entityProvider,
 	}
 }
 
@@ -93,8 +93,8 @@ func (e *emailExecutor) executeSend(ctx *providers.NodeContext) (*providers.Exec
 		return nil, errors.New("notification sender service is not configured")
 	}
 
-	if e.templateService == nil {
-		return nil, errors.New("template service is not configured")
+	if e.templateRenderer == nil {
+		return nil, errors.New("template renderer is not configured")
 	}
 
 	recipient, err := e.resolveRecipientEmail(ctx, logger)
@@ -108,7 +108,7 @@ func (e *emailExecutor) executeSend(ctx *providers.NodeContext) (*providers.Exec
 		return execResp, nil
 	}
 
-	var scenario template.ScenarioType
+	var handle string
 	if tmplProp, ok := ctx.NodeProperties[propertyKeyEmailTemplate]; ok {
 		tmplStr, ok := tmplProp.(string)
 		if !ok {
@@ -118,8 +118,8 @@ func (e *emailExecutor) executeSend(ctx *providers.NodeContext) (*providers.Exec
 		if tmplStr == "" {
 			return nil, fmt.Errorf("email template property is empty in node configuration")
 		}
-		scenario = template.ScenarioType(tmplStr)
-		logger.Debug(ctx.Context, "EmailExecutor: resolved email template", log.String("scenario", tmplStr))
+		handle = tmplStr
+		logger.Debug(ctx.Context, "EmailExecutor: resolved email template", log.String("handle", handle))
 	} else {
 		return nil, fmt.Errorf("missing required property: %s", propertyKeyEmailTemplate)
 	}
@@ -131,7 +131,12 @@ func (e *emailExecutor) executeSend(ctx *providers.NodeContext) (*providers.Exec
 
 	templateData := e.resolveTemplateData(ctx)
 
-	rendered, svcErr := e.templateService.Render(ctx.Context, scenario, template.TemplateTypeEmail, templateData)
+	// Locale omitted (renderer falls back to system language); flow-injected locale is future work.
+	rendered, svcErr := e.templateRenderer.Resolve(ctx.Context, notificationtemplate.ChannelTypeEmail, handle,
+		notificationtemplate.RenderInput{
+			Data:    templateData,
+			ThemeID: ctx.Application.ThemeID,
+		})
 	if svcErr != nil {
 		return nil, fmt.Errorf("failed to render email template: %s", svcErr.Code)
 	}
@@ -140,7 +145,7 @@ func (e *emailExecutor) executeSend(ctx *providers.NodeContext) (*providers.Exec
 		To:      []string{recipient},
 		Subject: rendered.Subject,
 		Body:    rendered.Body,
-		IsHTML:  rendered.IsHTML,
+		IsHTML:  true,
 	})
 	if notifSvcErr != nil {
 		// A client error means the node names no usable email provider, a configuration problem
@@ -215,8 +220,8 @@ func (e *emailExecutor) resolveRecipientEmail(ctx *providers.NodeContext, logger
 }
 
 // resolveTemplateData extracts template data from RuntimeData, Context, and ForwardedData.
-func (e *emailExecutor) resolveTemplateData(ctx *providers.NodeContext) template.TemplateData {
-	templateData := template.TemplateData{}
+func (e *emailExecutor) resolveTemplateData(ctx *providers.NodeContext) map[string]string {
+	templateData := map[string]string{}
 
 	if ctx.RuntimeData != nil {
 		for k, v := range ctx.RuntimeData {

@@ -387,7 +387,7 @@ nodes:
     type: TASK_EXECUTION
     properties:
       senderId: 0193b0a1-1002-7000-8000-000000000001
-      emailTemplate: PASSWORD_RECOVERY
+      emailTemplate: password-recovery
     executor:
       name: EmailExecutor
       mode: send
@@ -683,7 +683,7 @@ nodes:
     type: TASK_EXECUTION
     properties:
       senderId: 0193b0a1-1002-7000-8000-000000000001
-      emailTemplate: USER_INVITE
+      emailTemplate: user-invite
     executor:
       name: EmailExecutor
       mode: send
@@ -804,7 +804,7 @@ nodes:
     type: TASK_EXECUTION
     properties:
       senderId: 0193b0a1-1002-7000-8000-000000000001
-      emailTemplate: USER_INVITE
+      emailTemplate: user-invite
     executor:
       name: EmailExecutor
       mode: send
@@ -1113,7 +1113,7 @@ nodes:
     type: TASK_EXECUTION
     properties:
       senderId: 0193b0a1-1002-7000-8000-000000000001
-      emailTemplate: CIBA_NOTIFICATION
+      emailTemplate: ciba-notification
     executor:
       name: EmailExecutor
       mode: send
@@ -1314,7 +1314,7 @@ nodes:
   - id: send_notification_sms
     type: TASK_EXECUTION
     properties:
-      smsTemplate: CIBA_NOTIFICATION
+      smsTemplate: ciba-notification
       senderId: "{{.SMS_SENDER_ID}}"
     executor:
       name: SMSExecutor

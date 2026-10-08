@@ -583,7 +583,7 @@ func buildEmailLinkPasswordRecoveryFlow(senderID string) testutils.Flow {
 				"id":   "send_recovery_email",
 				"type": "TASK_EXECUTION",
 				"properties": map[string]interface{}{
-					"emailTemplate": "PASSWORD_RECOVERY",
+					"emailTemplate": "password-recovery",
 					"senderId":      senderID,
 				},
 				"executor": map[string]interface{}{

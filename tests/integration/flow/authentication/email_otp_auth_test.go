@@ -17,7 +17,7 @@ import (
 // OTP flow, with the send half swapped for the EmailExecutor, which exercises the email side of the
 // channel agnostic OTPExecutor. An empty senderID leaves the email step without a provider.
 func buildEmailOTPFlow(handle, senderID string) testutils.Flow {
-	emailProperties := map[string]interface{}{"emailTemplate": "OTP"}
+	emailProperties := map[string]interface{}{"emailTemplate": "otp"}
 	if senderID != "" {
 		emailProperties["senderId"] = senderID
 	}

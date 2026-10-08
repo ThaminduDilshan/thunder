@@ -627,6 +627,30 @@ func (suite *SMSExecutorTestSuite) TestExecute_SendMode_TemplateDataIncludesRunt
 	suite.Equal(providers.ExecComplete, resp.Status)
 }
 
+func (suite *SMSExecutorTestSuite) TestResolveTemplateData_ExternalClaims() {
+	ctx := &providers.NodeContext{
+		Application: providers.Application{Name: "MyApp"},
+		RuntimeData: map[string]string{
+			common.RuntimeKeyExternalIdentity: externalIdentityEntry("idp-1", "sub-1", map[string]interface{}{
+				"userID": "victim-id",
+				"name":   "Claimed",
+				"mobile": float64(94771234567),
+			}),
+			"userID": "real-id",
+			"name":   "",
+			"code":   "",
+		},
+	}
+
+	data := suite.executor.resolveTemplateData(ctx)
+
+	suite.Equal("real-id", data["userID"], "runtime data must win over a claim of the same name")
+	suite.Equal("Claimed", data["name"], "an empty runtime value must not hide the claim")
+	suite.Contains(data, "code", "an empty runtime value with no claim behind it is still rendered")
+	suite.Equal("94771234567", data["mobile"], "numeric claims render as the claim readers see them")
+	suite.NotContains(data, common.RuntimeKeyExternalIdentity)
+}
+
 func TestSMSExecutorSuite(t *testing.T) {
 	suite.Run(t, new(SMSExecutorTestSuite))
 }

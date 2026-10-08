@@ -17,6 +17,7 @@ import (
 	notifcm "github.com/thunder-id/thunderid/internal/notification/common"
 	"github.com/thunder-id/thunderid/internal/notificationtemplate"
 	"github.com/thunder-id/thunderid/internal/system/log"
+	systemutils "github.com/thunder-id/thunderid/internal/system/utils"
 )
 
 // emailExecutor sends emails based on the configured email template and runtime context data.
@@ -198,6 +199,11 @@ func (e *emailExecutor) resolveRecipientEmail(ctx *providers.NodeContext, logger
 		return recipientEmail, nil
 	}
 
+	// External claims are only a fallback and must never take priority over runtime data or user inputs.
+	if recipientEmail, ok := core.GetExternalClaim(ctx.RuntimeData, emailAttr); ok && recipientEmail != "" {
+		return recipientEmail, nil
+	}
+
 	if userID, ok := ctx.RuntimeData[userAttributeUserID]; ok && userID != "" {
 		if e.entityProvider == nil {
 			return "", errors.New("entity provider is not configured for email resolution")
@@ -223,10 +229,21 @@ func (e *emailExecutor) resolveRecipientEmail(ctx *providers.NodeContext, logger
 func (e *emailExecutor) resolveTemplateData(ctx *providers.NodeContext) map[string]string {
 	templateData := map[string]string{}
 
-	if ctx.RuntimeData != nil {
-		for k, v := range ctx.RuntimeData {
-			templateData[k] = fmt.Sprintf("%v", v)
+	// Claims are added first so runtime data overrides them. External claims must never take
+	// priority over runtime data, but an empty runtime value does not hide a claim.
+	if extIdentity := core.GetExternalIdentity(ctx.RuntimeData); extIdentity != nil {
+		for k, v := range extIdentity.Claims {
+			templateData[k] = systemutils.ConvertInterfaceValueToString(v)
 		}
+	}
+	for k, v := range ctx.RuntimeData {
+		if k == common.RuntimeKeyExternalIdentity {
+			continue
+		}
+		if _, claimed := templateData[k]; claimed && v == "" {
+			continue
+		}
+		templateData[k] = v
 	}
 
 	if ctx.Application.Name != "" {

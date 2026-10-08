@@ -250,6 +250,10 @@ const (
 	ClaimExp      string = "exp"
 	ClaimIat      string = "iat"
 	ClaimJTI      string = "jti"
+	ClaimNbf      string = "nbf"
+	ClaimNonce    string = "nonce"
+	ClaimAtHash   string = "at_hash"
+	ClaimCHash    string = "c_hash"
 	ClaimAuthTime string = "auth_time"
 	ClaimACR      string = "acr"
 )

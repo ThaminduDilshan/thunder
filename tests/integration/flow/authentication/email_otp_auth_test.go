@@ -50,7 +50,7 @@ func buildEmailOTPFlow() testutils.Flow {
 			{
 				"id":         "email_send",
 				"type":       "TASK_EXECUTION",
-				"properties": map[string]interface{}{"emailTemplate": "OTP"},
+				"properties": map[string]interface{}{"emailTemplate": "otp"},
 				"executor": map[string]interface{}{
 					"name": "EmailExecutor",
 					"mode": "send",

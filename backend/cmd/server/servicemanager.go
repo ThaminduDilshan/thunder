@@ -106,7 +106,6 @@ import (
 	"github.com/thunder-id/thunderid/internal/system/secretresolver"
 	"github.com/thunder-id/thunderid/internal/system/services"
 	"github.com/thunder-id/thunderid/internal/system/sysauthz"
-	"github.com/thunder-id/thunderid/internal/system/template"
 	"github.com/thunder-id/thunderid/internal/user"
 	"github.com/thunder-id/thunderid/internal/usermgtprovider"
 	"github.com/thunder-id/thunderid/internal/variablestore"
@@ -264,9 +263,6 @@ func registerServices(mux *http.ServeMux, cacheManager cache.CacheManagerInterfa
 	idpService, err := idp.Initialize(cacheManager, entityTypeService, roleService, groupService, resourceService)
 	fatalOnError(ctx, logger, err, "Failed to initialize IDPService")
 
-	templateService, err := template.Initialize()
-	fatalOnError(ctx, logger, err, "Failed to initialize template service")
-
 	notifSenderMgtSvc, notifOTPService, notifSenderSvc, err := notification.Initialize(jwtService)
 	fatalOnError(ctx, logger, err, "Failed to initialize NotificationService")
 
@@ -339,7 +335,7 @@ func registerServices(mux *http.ServeMux, cacheManager cache.CacheManagerInterfa
 	agentMgtProvider := agentmgtprovider.Initialize()
 
 	_, directAuthGuard := authn.Initialize(mux, mcpServer, idpService, jwtService, authnProvider, authAssertGen,
-		otpCoreService, notifSenderSvc, templateService, magicLinkService, oauthAuthnService,
+		otpCoreService, notifSenderSvc, notifTemplateRenderer, magicLinkService, oauthAuthnService,
 		oidcAuthnService, googleAuthnService, githubAuthnService, authnconfig.FromServerRuntime())
 
 	// AuthZEN access-evaluation endpoints are Direct API endpoints, so they reuse the Direct Auth
@@ -411,7 +407,7 @@ func registerServices(mux *http.ServeMux, cacheManager cache.CacheManagerInterfa
 			AgentMgtProvider:      agentMgtProvider,
 			AttributeCacheSvc:     attributeCacheService,
 			EmailClient:           emailClient,
-			TemplateService:       templateService,
+			TemplateRenderer:      notifTemplateRenderer,
 			OAuthSvc:              oauthAuthnService,
 			OIDCSvc:               oidcAuthnService,
 			GithubSvc:             githubAuthnService,

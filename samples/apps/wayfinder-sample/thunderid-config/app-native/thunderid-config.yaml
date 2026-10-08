@@ -374,7 +374,7 @@ nodes:
   - id: send_recovery_email
     type: TASK_EXECUTION
     properties:
-      emailTemplate: PASSWORD_RECOVERY
+      emailTemplate: password-recovery
     executor:
       name: EmailExecutor
       mode: send
@@ -669,7 +669,7 @@ nodes:
   - id: send_invite_email_support
     type: TASK_EXECUTION
     properties:
-      emailTemplate: USER_INVITE
+      emailTemplate: user-invite
     executor:
       name: EmailExecutor
       mode: send
@@ -789,7 +789,7 @@ nodes:
   - id: send_invite_email_destinations
     type: TASK_EXECUTION
     properties:
-      emailTemplate: USER_INVITE
+      emailTemplate: user-invite
     executor:
       name: EmailExecutor
       mode: send
@@ -1248,7 +1248,7 @@ nodes:
   - id: send_notification_email
     type: TASK_EXECUTION
     properties:
-      emailTemplate: CIBA_NOTIFICATION
+      emailTemplate: ciba-notification
     executor:
       name: EmailExecutor
       mode: send
@@ -1450,7 +1450,7 @@ nodes:
   - id: send_notification_sms
     type: TASK_EXECUTION
     properties:
-      smsTemplate: CIBA_NOTIFICATION
+      smsTemplate: ciba-notification
       senderId: "{{.SMS_SENDER_ID}}"
     executor:
       name: SMSExecutor

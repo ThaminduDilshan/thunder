@@ -134,7 +134,7 @@ function ProvisioningProperties({resource, onChange}: CommonResourcePropertiesPr
       <FormControlLabel
         control={
           <Checkbox
-            checked={!!properties['seedGroupsFromMapping']}
+            checked={!!properties.seedGroupsFromMapping}
             onChange={(e) => handleBooleanPropertyChange('seedGroupsFromMapping', e.target.checked)}
             size="small"
           />
@@ -146,7 +146,7 @@ function ProvisioningProperties({resource, onChange}: CommonResourcePropertiesPr
       <FormControlLabel
         control={
           <Checkbox
-            checked={!!properties['seedRolesFromMapping']}
+            checked={!!properties.seedRolesFromMapping}
             onChange={(e) => handleBooleanPropertyChange('seedRolesFromMapping', e.target.checked)}
             size="small"
           />

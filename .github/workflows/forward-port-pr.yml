@@ -41,6 +41,10 @@ jobs:
       !startsWith(github.event.pull_request.head.ref, 'forward-port/') &&
       (github.event.action != 'closed' || github.event.pull_request.merged == true)
     runs-on: ubuntu-latest
+    # Runs for the same PR are queued, so a run always sees the comment posted by the previous one.
+    concurrency:
+      group: forward-port-targets-${{ github.event.pull_request.number }}
+      cancel-in-progress: false
     outputs:
       targets: ${{ steps.resolve.outputs.targets }}
     steps:

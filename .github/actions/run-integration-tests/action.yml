@@ -48,6 +48,10 @@ runs:
       if: inputs.database-type == 'postgres'
       shell: bash
       run: |
+        # The database is thrown away after the run, so commits need not wait for the disk.
+        PGPASSWORD=dbpassword psql -h localhost -p 5432 -U dbuser -d postgredb -c "ALTER SYSTEM SET fsync = off" \
+          -c "ALTER SYSTEM SET synchronous_commit = off" -c "ALTER SYSTEM SET full_page_writes = off" \
+          -c "SELECT pg_reload_conf()"
         PGPASSWORD=dbpassword psql -h localhost -p 5432 -U dbuser -d postgredb -c "CREATE DATABASE configdb;"
         PGPASSWORD=dbpassword psql -h localhost -p 5432 -U dbuser -d postgredb -c "CREATE DATABASE runtime_transient;"
         PGPASSWORD=dbpassword psql -h localhost -p 5432 -U dbuser -d postgredb -c "CREATE DATABASE entitydb;"

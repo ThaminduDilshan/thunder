@@ -51,10 +51,13 @@ func extractedDir() string {
 // DefaultServerPort is the port the server runs on when the runner sets no SERVER_PORT.
 const DefaultServerPort = "8095"
 
-// ServerPort returns the port of the server under test.
+// ServerPort returns the port of the server under test. The runner sets SERVER_PORT for the process
+// of each test group and for the test packages it runs, so a SERVER_PORT set anywhere else is ignored.
 func ServerPort() string {
-	if port := os.Getenv("SERVER_PORT"); port != "" {
-		return port
+	if TestGroup() != "" || os.Getenv("SERVER_EXTRACTED_HOME") != "" {
+		if port := os.Getenv("SERVER_PORT"); port != "" {
+			return port
+		}
 	}
 	return DefaultServerPort
 }
@@ -1035,11 +1038,16 @@ func RestartServer() error {
 	return nil
 }
 
+// readinessRequestTimeout bounds each health check WaitForServerReady makes.
+const readinessRequestTimeout = 5 * time.Second
+
 // WaitForServerReady polls the server's health endpoint until it responds with a 2xx
 // status or the timeout is exceeded. A polling interval of 500ms is used.
 func WaitForServerReady(timeout time.Duration) error {
 	healthURL := "https://localhost:" + serverPort + "/health/liveness"
 	client := GetHTTPClient()
+	// A server that accepts the connection but never answers must not hold the wait past its deadline.
+	client.Timeout = readinessRequestTimeout
 	deadline := time.Now().Add(timeout)
 
 	for time.Now().Before(deadline) {

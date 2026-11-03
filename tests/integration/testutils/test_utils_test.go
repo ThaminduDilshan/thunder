@@ -22,3 +22,27 @@ func TestWithoutTopLevelKeyLeavesOtherKeysAlone(t *testing.T) {
 
 	require.Equal(t, "attributes:\n  id: nested\n", WithoutTopLevelKey(doc, "id"))
 }
+
+func TestServerPortIgnoresAServerPortTheRunnerDidNotSet(t *testing.T) {
+	t.Setenv(TestGroupEnv, "")
+	t.Setenv("SERVER_EXTRACTED_HOME", "")
+	t.Setenv("SERVER_PORT", "3000")
+
+	require.Equal(t, DefaultServerPort, ServerPort())
+}
+
+func TestServerPortUsesTheTestGroupPort(t *testing.T) {
+	t.Setenv(TestGroupEnv, "g1")
+	t.Setenv("SERVER_EXTRACTED_HOME", "")
+	t.Setenv("SERVER_PORT", "8195")
+
+	require.Equal(t, "8195", ServerPort())
+}
+
+func TestServerPortUsesThePortTheRunnerPassesToTestPackages(t *testing.T) {
+	t.Setenv(TestGroupEnv, "")
+	t.Setenv("SERVER_EXTRACTED_HOME", "/tmp/product")
+	t.Setenv("SERVER_PORT", "8195")
+
+	require.Equal(t, "8195", ServerPort())
+}

@@ -1,0 +1,62 @@
+# Starts or stops the PR Builder when the `trigger-pr-builder` label is added or removed.
+# The PR Builder doesn't listen to label events itself: a run started by any label change
+# reports skipped checks under the same names, which hide the running build on the PR.
+# Uses pull_request_target so the token can re-run and cancel runs for fork PRs as well.
+# It doesn't check out or run any code from the pull request.
+
+name: 🏷️ PR Builder Trigger
+
+on:
+  pull_request_target:
+    types: [labeled, unlabeled]
+
+permissions:
+  actions: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  trigger:
+    name: 🏷️ Start or Stop PR Builder
+    if: github.event.label.name == 'trigger-pr-builder'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      ACTION: ${{ github.event.action }}
+      HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+    steps:
+      - name: 🏷️ Re-run or Cancel the Latest PR Builder Run
+        run: |
+          runs_url="repos/$GH_REPO/actions/workflows/pr-builder.yml/runs?event=pull_request&head_sha=$HEAD_SHA&per_page=1"
+          run_id=$(gh api "$runs_url" -q '.workflow_runs[0].id // empty')
+          if [ -z "$run_id" ]; then
+            echo "::notice::No PR Builder run found for $HEAD_SHA."
+            exit 0
+          fi
+
+          if [ "$ACTION" = "unlabeled" ]; then
+            if [ "$(gh run view "$run_id" --json status -q .status)" != "completed" ]; then
+              gh run cancel "$run_id"
+              echo "Cancelled PR Builder run $run_id."
+            fi
+            exit 0
+          fi
+
+          # A run started by the last push may still be finishing its skipped jobs. A PR
+          # opened with the label already builds, so it's left alone.
+          while :; do
+            run=$(gh run view "$run_id" --json status,jobs)
+            build=$(jq -r '.jobs[] | select(.name == "🛠️ Build Product") | .status' <<< "$run")
+            if [ "$build" = "queued" ] || [ "$build" = "in_progress" ]; then
+              echo "PR Builder run $run_id is already building."
+              exit 0
+            fi
+            [ "$(jq -r .status <<< "$run")" = "completed" ] && break
+            sleep 10
+          done
+          gh run rerun "$run_id"
+          echo "Re-ran PR Builder run $run_id."
